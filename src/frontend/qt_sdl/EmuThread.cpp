@@ -1856,7 +1856,7 @@ struct SoulLinkMon {
     bool isFainted = false;
 };
 
-static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
+static SoulLinkMon ParsePartyMon(const melonDS::u8* data, bool isParty = true)
 {
     SoulLinkMon info;
     if (!data) return info;
@@ -1894,6 +1894,11 @@ static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
     if (metLoc == 0) metLoc = *(const melonDS::u16*)(decBytes + blockDPos + 0x16);
     info.metLoc  = metLoc;
 
+    if (!isParty) {
+        info.valid = (info.species > 0 && info.species <= 493);
+        return info;
+    }
+
     // Decrypt Party stats (100 bytes at +0x88)
     melonDS::u16 partyWords[50];
     memcpy(partyWords, data + 0x88, 100);
@@ -1922,7 +1927,7 @@ static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
         }
     }
     info.isFainted = (info.curHp == 0);
-    info.valid = (info.species > 0);
+    info.valid = (info.species > 0 && info.species <= 493);
     return info;
 }
 
@@ -1944,11 +1949,11 @@ static std::vector<BoxMonSummary> SoulLink_GetLocalBoxedMons(melonDS::NDS* nds)
 
     for (int b = 0; b < 17; b++)
     {
-        melonDS::u32 boxBase = pcStorage + b * 4080;
+        melonDS::u32 boxBase = pcStorage + 4 + b * 4080;
         for (int s = 0; s < 30; s++)
         {
             const melonDS::u8* slotPtr = apPtr(nds, boxBase + s * 136);
-            SoulLinkMon bm = ParsePartyMon(slotPtr);
+            SoulLinkMon bm = ParsePartyMon(slotPtr, false);
             if (bm.valid && bm.metLoc > 0)
             {
                 BoxMonSummary item;
@@ -2029,11 +2034,11 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
     melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
     if (pcStorage && (gBr.frame % 60) == 0)
     {
-        melonDS::u32 box18Base = pcStorage + 17 * 4080;
+        melonDS::u32 box18Base = pcStorage + 4 + 17 * 4080;
         for (int slot = 0; slot < 30; slot++)
         {
             const melonDS::u8* bMon = apPtr(nds, box18Base + slot * 136);
-            SoulLinkMon bm = ParsePartyMon(bMon);
+            SoulLinkMon bm = ParsePartyMon(bMon, false);
             if (bm.valid && bm.metLoc > 0)
             {
                 if (sSessionDeadLocations.insert(bm.metLoc).second)
@@ -2068,117 +2073,8 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
         }
     }
 
-    // 4. Apply deaths to local party if NOT in battle
-    bool inBattle = false;
-    if (gBr.exportBlk)
-    {
-        inBattle = (apRd8(nds, gBr.exportBlk + 0x10) != 0);
-    }
-
-    if (!inBattle && localCount > 0 && localCount <= 6)
-    {
-        melonDS::u8* pBase = apPtr(nds, gBr.partyExp);
-        for (int s = (int)localCount - 1; s >= 0; s--)
-        {
-            SoulLinkMon info = ParsePartyMon(pBase + 8 + s * 236);
-            if (info.valid && info.metLoc > 0 && sSessionDeadLocations.count(info.metLoc))
-            {
-                printf("[SOULLINK] Applying death to linked Pokemon (species %d, loc %d) in slot %d!\n",
-                       info.species, info.metLoc, s);
-
-                // Move dead mon to Cemetery Box 18
-                if (pcStorage)
-                {
-                    melonDS::u32 box18Base = pcStorage + 17 * 4080;
-                    for (int bslot = 0; bslot < 30; bslot++)
-                    {
-                        melonDS::u8* bSlotPtr = apPtr(nds, box18Base + bslot * 136);
-                        melonDS::u32 bPid = *(const melonDS::u32*)bSlotPtr;
-                        if (bPid == 0)
-                        {
-                            memcpy(bSlotPtr, pBase + 8 + s * 236, 136);
-                            printf("[SOULLINK] Moved linked dead mon to Box 18 (CIMETIERE) slot %d!\n", bslot + 1);
-                            break;
-                        }
-                    }
-                }
-
-                if (localCount > 1)
-                {
-                    for (int k = s; k < (int)localCount - 1; k++)
-                    {
-                        memcpy(pBase + 8 + k * 236, pBase + 8 + (k + 1) * 236, 236);
-                    }
-                    memset(pBase + 8 + (localCount - 1) * 236, 0, 236);
-                    localCount--;
-                    apWr32(nds, gBr.partyExp + 4, localCount);
-                    printf("[SOULLINK] Removed linked dead Pokemon (species %d, loc %d) from slot %d! Remaining: %u\n",
-                           info.species, info.metLoc, s, localCount);
-                }
-                else
-                {
-                    // Last mon: zero HP so game whiteout triggers
-                    melonDS::u8* monData = pBase + 8 + s * 236;
-                    melonDS::u32 pid = *(const melonDS::u32*)(monData + 0x00);
-                    melonDS::u16 flags = *(const melonDS::u16*)(monData + 0x04);
-                    melonDS::u16 partyWords[50];
-                    memcpy(partyWords, monData + 0x88, 100);
-                    bool isPartyDecrypted = (flags & 1) != 0;
-                    if (!isPartyDecrypted)
-                    {
-                        melonDS::u32 pSeed = pid;
-                        for (int w = 0; w < 50; w++) {
-                            pSeed = pSeed * 0x41C64E6Du + 0x6073u;
-                            partyWords[w] ^= (melonDS::u16)(pSeed >> 16);
-                        }
-                    }
-                    partyWords[3] = 0; // curHp = 0
-                    if (!isPartyDecrypted)
-                    {
-                        melonDS::u32 pSeed = pid;
-                        for (int w = 0; w < 50; w++) {
-                            pSeed = pSeed * 0x41C64E6Du + 0x6073u;
-                            partyWords[w] ^= (melonDS::u16)(pSeed >> 16);
-                        }
-                    }
-                    memcpy(monData + 0x88, partyWords, 100);
-                    *(melonDS::u16*)(monData + 0x88 + 6) = 0; // zero raw curHp
-                }
-            }
-        }
-    }
-
-    // 5. Apply deaths to PC Boxes 0 to 16 (Boxes 1 to 17)
-    if (pcStorage && !sSessionDeadLocations.empty())
-    {
-        melonDS::u32 box18Base = pcStorage + 17 * 4080;
-        for (int b = 0; b < 17; b++)
-        {
-            melonDS::u32 boxBase = pcStorage + b * 4080;
-            for (int s = 0; s < 30; s++)
-            {
-                melonDS::u8* slotPtr = apPtr(nds, boxBase + s * 136);
-                SoulLinkMon bm = ParsePartyMon(slotPtr);
-                if (bm.valid && bm.metLoc > 0 && sSessionDeadLocations.count(bm.metLoc))
-                {
-                    printf("[SOULLINK] Found linked dead Pokemon (species %d, loc %d) in PC Box %d Slot %d! Moving to Cemetery...\n",
-                           bm.species, bm.metLoc, b + 1, s + 1);
-
-                    for (int cslot = 0; cslot < 30; cslot++)
-                    {
-                        melonDS::u8* cPtr = apPtr(nds, box18Base + cslot * 136);
-                        if (*(const melonDS::u32*)cPtr == 0)
-                        {
-                            memcpy(cPtr, slotPtr, 136);
-                            printf("[SOULLINK] Moved to Cemetery Box 18 slot %d!\n", cslot + 1);
-                            break;
-                        }
-                    }
-                    memset(slotPtr, 0, 136);
-                }
-            }
-        }
-    }
+    // Memory mutations removed: the ROM engine autonomously manages PC boxes and party
+    // via official game functions, avoiding Bad Eggs ("Mauv. Oeuf") and HP desyncs.
 }
 
 void NetTick()
