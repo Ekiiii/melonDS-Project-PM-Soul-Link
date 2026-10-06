@@ -334,7 +334,7 @@ void OverlayServer::buildHtml()
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch Soullocke Overlay - Project PM</title>
+    <title>Twitch Soul Link Overlay - Project PM</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">

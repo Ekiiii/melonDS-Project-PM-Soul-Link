@@ -951,6 +951,7 @@ struct Net
                                 // after our first send never got our party
     melonDS::u32 retryAt = 0;
     int assignedRole = 0;               // join: role handed out by the host
+    melonDS::u32 directJoinDeadline = 0; // timeout for direct P2P join attempt
 
     // ---- online relay session (0 = plain LAN transport, unchanged) ----
     int online = 0;                     // 0 off, 1 host via relay, 2 join via relay
@@ -1182,6 +1183,7 @@ struct Net
         if (ip && ip[0]) { strncpy(joinIP, ip, sizeof(joinIP)-1); joinIP[sizeof(joinIP)-1] = 0; }
         if (code && code[0]) setStr(roomCode, code);
         mode = 2; started = true; online = 0;
+        directJoinDeadline = GetTickCount() + 12000;
         char msg[128];
         snprintf(msg, sizeof(msg), "Direct P2P: Connexion a %s:%d", joinIP, directPort);
         setMsg(msg);
@@ -1693,6 +1695,17 @@ struct Net
         }
         else if (mode == 2 && !peers[0].up)
         {
+            if (directJoinDeadline > 0 && GetTickCount() > directJoinDeadline)
+            {
+                dropPeer(0);
+                connecting = false;
+                mode = 0;
+                directJoinDeadline = 0;
+                setMsg("Délai de connexion dépassé (l'hôte est introuvable ou le port 7820 est bloqué)");
+                printf("[BR] direct P2P connection timed out\n");
+                publishStatus();
+                return;
+            }
             Peer& h = peers[0];
             if (connecting)
             {
@@ -1700,7 +1713,7 @@ struct Net
                 FD_SET(h.s, &wr); FD_SET(h.s, &ex);
                 timeval tv = {0,0};
                 int r = select(0, NULL, &wr, &ex, &tv);
-                if (r > 0 && FD_ISSET(h.s, &wr)) { h.up = true; connecting = false; freshPeer = true; printf("[BR] connected to %s\n", joinIP); }
+                if (r > 0 && FD_ISSET(h.s, &wr)) { h.up = true; connecting = false; freshPeer = true; directJoinDeadline = 0; printf("[BR] connected to %s\n", joinIP); }
                 else if (r > 0 && FD_ISSET(h.s, &ex)) { dropPeer(0); retryAt = frame + 120; }
             }
             else if (frame >= retryAt)
@@ -1717,7 +1730,7 @@ struct Net
                         memcpy(&a.sin_addr, he->h_addr_list[0], sizeof(a.sin_addr));
                 }
                 int r = ::connect(h.s, (sockaddr*)&a, sizeof(a));
-                if (r == 0) { h.up = true; freshPeer = true; printf("[BR] connected to %s:%d\n", joinIP, directPort); }
+                if (r == 0) { h.up = true; freshPeer = true; directJoinDeadline = 0; printf("[BR] connected to %s:%d\n", joinIP, directPort); }
                 else if (WSAGetLastError() == WSAEWOULDBLOCK) connecting = true;
                 else { dropPeer(0); retryAt = frame + 120; }
             }

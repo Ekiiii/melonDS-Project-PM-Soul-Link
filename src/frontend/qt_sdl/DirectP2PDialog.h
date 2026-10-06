@@ -44,7 +44,6 @@ private:
     QWidget* hostConfigWidget;
     QWidget* hostActiveWidget;
     QLineEdit* edHostName;
-    QSpinBox* spHostPort;
     QCheckBox* chkUPnP;
     QPushButton* btnStartHost;
     QPushButton* btnStopHost;
@@ -63,6 +62,9 @@ private:
     QPushButton* btnLeaveJoin;
     QLabel* lblJoinStatus;
     QLabel* lblJoinRoster;
+    QLabel* lblJoinError;
+    int joinElapsedSec = 0;
+    bool joinPending = false;
 
     void setupUI();
     void updateStatus();
