@@ -202,4 +202,13 @@ private:
     bool videoSettingsDirty;
 };
 
+struct BoxMonSummary {
+    quint16 species = 0;
+    quint16 metLoc = 0;
+    quint8 box = 0;
+    quint8 slot = 0;
+};
+
+bool SoulLink_IsLocationDead(int loc);
+
 #endif // EMUTHREAD_H

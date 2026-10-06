@@ -232,7 +232,9 @@ void OverlayServer::UpdateTeams(const melonDS::u8* partyExp, const melonDS::u8* 
 }
 
 void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS::u8* partyN, melonDS::u32 partySize,
-                                     int myRole, const char roster[9][24], const melonDS::u8* partyImp)
+                                     int myRole, const char roster[9][24], const melonDS::u8* partyImp,
+                                     const std::vector<BoxMonSummary>& localBoxes,
+                                     const std::map<int, std::vector<BoxMonSummary>>& peerBoxes)
 {
     if (!partyExp || partySize < 8) return;
     if (myRole < 1 || myRole > 8) myRole = 1;
@@ -250,6 +252,8 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
         int slot;
         int species;
         bool is_fainted;
+        bool in_box = false;
+        int box_num = 0;
     };
     QMap<int, QVector<MonLocInfo>> locClusters;
 
@@ -294,10 +298,44 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
                     info.role = r;
                     info.slot = mon["slot"].toInt();
                     info.species = mon["species"].toInt();
-                    info.is_fainted = mon["is_fainted"].toBool();
+                    info.is_fainted = mon["is_fainted"].toBool() || SoulLink_IsLocationDead(loc);
+                    info.in_box = false;
+                    info.box_num = 0;
                     locClusters[loc].append(info);
                 }
             }
+        }
+
+        // Add PC boxed mons for player r
+        const std::vector<BoxMonSummary>* bList = nullptr;
+        if (r == myRole) {
+            bList = &localBoxes;
+        } else {
+            auto it = peerBoxes.find(r);
+            if (it != peerBoxes.end()) bList = &it->second;
+        }
+        if (bList) {
+            QJsonArray pcArray;
+            for (const auto& bMon : *bList) {
+                QJsonObject bObj;
+                bObj["species"] = bMon.species;
+                bObj["met_location"] = bMon.metLoc;
+                bObj["box"] = bMon.box;
+                bObj["slot"] = bMon.slot;
+                bool dead = SoulLink_IsLocationDead(bMon.metLoc);
+                bObj["is_fainted"] = dead;
+                pcArray.append(bObj);
+
+                MonLocInfo info;
+                info.role = r;
+                info.slot = bMon.slot;
+                info.species = bMon.species;
+                info.is_fainted = dead;
+                info.in_box = true;
+                info.box_num = bMon.box;
+                locClusters[bMon.metLoc].append(info);
+            }
+            playerObj["pc_box"] = pcArray;
         }
 
         playerObj["alive_count"] = aliveCount;
@@ -329,6 +367,10 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
             QJsonArray members;
             int p1Slot = 0;
             int p2Slot = 0;
+            bool p1InBox = false;
+            bool p2InBox = false;
+            int p1Box = 0;
+            int p2Box = 0;
 
             for (const MonLocInfo& m : list)
             {
@@ -338,16 +380,29 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
                 mem["slot"] = m.slot;
                 mem["species"] = m.species;
                 mem["is_fainted"] = m.is_fainted;
+                mem["in_box"] = m.in_box;
+                mem["box_num"] = m.box_num;
                 members.append(mem);
 
-                if (m.role == myRole) p1Slot = m.slot;
-                else if (p2Slot == 0) p2Slot = m.slot;
+                if (m.role == myRole) {
+                    p1Slot = m.slot;
+                    p1InBox = m.in_box;
+                    p1Box = m.box_num;
+                } else if (p2Slot == 0) {
+                    p2Slot = m.slot;
+                    p2InBox = m.in_box;
+                    p2Box = m.box_num;
+                }
             }
 
             pair["status"] = anyDead ? "DEAD" : "ALIVE";
             pair["members"] = members;
             pair["p1_slot"] = p1Slot;
             pair["p2_slot"] = p2Slot;
+            pair["p1_in_box"] = p1InBox;
+            pair["p2_in_box"] = p2InBox;
+            pair["p1_box"] = p1Box;
+            pair["p2_box"] = p2Box;
             pairsArray.append(pair);
         }
     }
@@ -774,15 +829,20 @@ void OverlayServer::buildHtml()
                     let linkDead = false;
                     if (pairs && pairs.length > 0) {
                         for (const p of pairs) {
-                            const isMember = (p.members && p.members.some(m => m.role === role && m.slot === (i + 1)))
-                                          || (player.is_me && p.p1_slot === (i + 1))
-                                          || (!player.is_me && p.p2_slot === (i + 1));
+                            const isMember = (p.members && p.members.some(m => m.role === role && !m.in_box && m.slot === (i + 1)))
+                                          || (player.is_me && !p.p1_in_box && p.p1_slot === (i + 1))
+                                          || (!player.is_me && !p.p2_in_box && p.p2_slot === (i + 1));
                             if (isMember) {
                                 if (p.status === 'DEAD') {
                                     linkText = '🔗 ÂME BRISÉE';
                                     linkDead = true;
                                 } else {
-                                    linkText = `🔗 LIÉ [Zone ${p.location_id}]`;
+                                    const partner = p.members ? p.members.find(m => m.role !== role) : null;
+                                    if (partner && partner.in_box) {
+                                        linkText = `🔗 LIÉ [Z.${p.location_id}] (PC B${partner.box_num})`;
+                                    } else {
+                                        linkText = `🔗 LIÉ [Zone ${p.location_id}]`;
+                                    }
                                 }
                                 break;
                             }

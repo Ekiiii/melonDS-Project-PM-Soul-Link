@@ -9,7 +9,10 @@
 #include <QJsonDocument>
 #include <QString>
 #include <mutex>
+#include <vector>
+#include <map>
 #include "types.h"
+#include "EmuThread.h"
 
 class OverlayServer : public QObject
 {
@@ -24,7 +27,9 @@ public:
 
     void UpdateTeams(const melonDS::u8* partyExp, const melonDS::u8* partyImp, melonDS::u32 partySize);
     void UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS::u8* partyN, melonDS::u32 partySize,
-                          int myRole, const char roster[9][24], const melonDS::u8* partyImp);
+                          int myRole, const char roster[9][24], const melonDS::u8* partyImp,
+                          const std::vector<BoxMonSummary>& localBoxes = {},
+                          const std::map<int, std::vector<BoxMonSummary>>& peerBoxes = {});
 
 private slots:
     void onNewConnection();

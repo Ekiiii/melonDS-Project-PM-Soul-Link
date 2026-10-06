@@ -1921,6 +1921,51 @@ static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
 
 static std::set<int> sSessionDeadLocations;
 
+bool SoulLink_IsLocationDead(int loc)
+{
+    return sSessionDeadLocations.count(loc) > 0;
+}
+
+static melonDS::u32 SoulLink_GetPCStorageAddress(melonDS::NDS* nds)
+{
+    if (!nds) return 0;
+    melonDS::u32 savePtr = apRd32(nds, 0x021CFC34);
+    if (savePtr < 0x02000000 || savePtr >= 0x023E0000) return 0;
+    melonDS::u32 pcOff = apRd32(nds, savePtr + 0x250 + 0x2002C);
+    if (pcOff == 0 || pcOff >= 0x200000) return 0;
+    return savePtr + 0x14 + pcOff;
+}
+
+static std::vector<BoxMonSummary> SoulLink_GetLocalBoxedMons(melonDS::NDS* nds)
+{
+    std::vector<BoxMonSummary> list;
+    melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
+    if (!pcStorage) return list;
+
+    for (int b = 0; b < 17; b++)
+    {
+        melonDS::u32 boxBase = pcStorage + b * 4080;
+        for (int s = 0; s < 30; s++)
+        {
+            const melonDS::u8* slotPtr = apPtr(nds, boxBase + s * 136);
+            SoulLinkMon bm = ParsePartyMon(slotPtr);
+            if (bm.valid && bm.metLoc > 0)
+            {
+                BoxMonSummary item;
+                item.species = bm.species;
+                item.metLoc  = bm.metLoc;
+                item.box     = (quint8)(b + 1);
+                item.slot    = (quint8)(s + 1);
+                list.push_back(item);
+                if (list.size() >= 120) break;
+            }
+        }
+    }
+    return list;
+}
+
+static std::map<int, std::vector<BoxMonSummary>> sPeerBoxedMons;
+
 static void SoulLink_SyncDeaths(melonDS::NDS* nds)
 {
     if (!nds || !gBr.partyExp || gBr.partySize < 8) return;
@@ -1981,28 +2026,21 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
     }
 
     // 2b. Scan PC Box 18 (CIMETIERE) periodically (every 60 frames = 1s) to pick up mons moved by ROM
-    if ((gBr.frame % 60) == 0)
+    melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
+    if (pcStorage && (gBr.frame % 60) == 0)
     {
-        melonDS::u32 savePtr = apRd32(nds, 0x021CFC34);
-        if (savePtr >= 0x02000000 && savePtr < 0x023E0000)
+        melonDS::u32 box18Base = pcStorage + 17 * 4080;
+        for (int slot = 0; slot < 30; slot++)
         {
-            melonDS::u32 pcOff = apRd32(nds, savePtr + 0x250 + 0x2002C);
-            if (pcOff > 0 && pcOff < 0x200000)
+            const melonDS::u8* bMon = apPtr(nds, box18Base + slot * 136);
+            SoulLinkMon bm = ParsePartyMon(bMon);
+            if (bm.valid && bm.metLoc > 0)
             {
-                melonDS::u32 box18Base = savePtr + 0x14 + pcOff + 17 * 4080;
-                for (int slot = 0; slot < 30; slot++)
+                if (sSessionDeadLocations.insert(bm.metLoc).second)
                 {
-                    const melonDS::u8* bMon = apPtr(nds, box18Base + slot * 136);
-                    SoulLinkMon bm = ParsePartyMon(bMon);
-                    if (bm.valid && bm.metLoc > 0)
-                    {
-                        if (sSessionDeadLocations.insert(bm.metLoc).second)
-                        {
-                            newDeadFound = true;
-                            printf("[SOULLINK] Found dead mon in Cemetery Box 18 (species %d, zone %d)! Marked DEAD.\n",
-                                   bm.species, bm.metLoc);
-                        }
-                    }
+                    newDeadFound = true;
+                    printf("[SOULLINK] Found dead mon in Cemetery Box 18 (species %d, zone %d)! Marked DEAD.\n",
+                           bm.species, bm.metLoc);
                 }
             }
         }
@@ -2049,23 +2087,18 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
                        info.species, info.metLoc, s);
 
                 // Move dead mon to Cemetery Box 18
-                melonDS::u32 savePtr = apRd32(nds, 0x021CFC34);
-                if (savePtr >= 0x02000000 && savePtr < 0x023E0000)
+                if (pcStorage)
                 {
-                    melonDS::u32 pcOff = apRd32(nds, savePtr + 0x250 + 0x2002C);
-                    if (pcOff > 0 && pcOff < 0x200000)
+                    melonDS::u32 box18Base = pcStorage + 17 * 4080;
+                    for (int bslot = 0; bslot < 30; bslot++)
                     {
-                        melonDS::u32 box18Base = savePtr + 0x14 + pcOff + 17 * 4080;
-                        for (int bslot = 0; bslot < 30; bslot++)
+                        melonDS::u8* bSlotPtr = apPtr(nds, box18Base + bslot * 136);
+                        melonDS::u32 bPid = *(const melonDS::u32*)bSlotPtr;
+                        if (bPid == 0)
                         {
-                            melonDS::u8* bSlotPtr = apPtr(nds, box18Base + bslot * 136);
-                            melonDS::u32 bPid = *(const melonDS::u32*)bSlotPtr;
-                            if (bPid == 0)
-                            {
-                                memcpy(bSlotPtr, pBase + 8 + s * 236, 136);
-                                printf("[SOULLINK] Moved linked dead mon to Box 18 (CIMETIERE) slot %d!\n", bslot);
-                                break;
-                            }
+                            memcpy(bSlotPtr, pBase + 8 + s * 236, 136);
+                            printf("[SOULLINK] Moved linked dead mon to Box 18 (CIMETIERE) slot %d!\n", bslot + 1);
+                            break;
                         }
                     }
                 }
@@ -2110,6 +2143,38 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
                     }
                     memcpy(monData + 0x88, partyWords, 100);
                     *(melonDS::u16*)(monData + 0x88 + 6) = 0; // zero raw curHp
+                }
+            }
+        }
+    }
+
+    // 5. Apply deaths to PC Boxes 0 to 16 (Boxes 1 to 17)
+    if (pcStorage && !sSessionDeadLocations.empty())
+    {
+        melonDS::u32 box18Base = pcStorage + 17 * 4080;
+        for (int b = 0; b < 17; b++)
+        {
+            melonDS::u32 boxBase = pcStorage + b * 4080;
+            for (int s = 0; s < 30; s++)
+            {
+                melonDS::u8* slotPtr = apPtr(nds, boxBase + s * 136);
+                SoulLinkMon bm = ParsePartyMon(slotPtr);
+                if (bm.valid && bm.metLoc > 0 && sSessionDeadLocations.count(bm.metLoc))
+                {
+                    printf("[SOULLINK] Found linked dead Pokemon (species %d, loc %d) in PC Box %d Slot %d! Moving to Cemetery...\n",
+                           bm.species, bm.metLoc, b + 1, s + 1);
+
+                    for (int cslot = 0; cslot < 30; cslot++)
+                    {
+                        melonDS::u8* cPtr = apPtr(nds, box18Base + cslot * 136);
+                        if (*(const melonDS::u32*)cPtr == 0)
+                        {
+                            memcpy(cPtr, slotPtr, 136);
+                            printf("[SOULLINK] Moved to Cemetery Box 18 slot %d!\n", cslot + 1);
+                            break;
+                        }
+                    }
+                    memset(slotPtr, 0, 136);
                 }
             }
         }
@@ -2231,13 +2296,16 @@ void BridgePump(melonDS::NDS* nds)
     // Overlay server update: independent of wireless activation so stream overlay always works!
     if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0 && gBr.partyExp)
     {
+        std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
         OverlayServer::Instance().UpdateTeamsMulti(
             apPtr(nds, gBr.partyExp),
             gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
             gBr.partySize,
             mpnet::gNet.myRole(),
             mpnet::gNet.rname,
-            gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr
+            gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
+            localBoxes,
+            sPeerBoxedMons
         );
     }
 
@@ -2280,6 +2348,42 @@ void BridgePump(melonDS::NDS* nds)
         }
     }
 
+    // Tag 5: Boxed mons sync (every 60 frames)
+    if (mpnet::gNet.anyUp())
+    {
+        melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
+        if (pcStorage)
+        {
+            static size_t sLastBoxedCount = 0;
+            if ((gBr.frame % 60) == 0)
+            {
+                std::vector<BoxMonSummary> currentBoxes = SoulLink_GetLocalBoxedMons(nds);
+                if (currentBoxes.size() != sLastBoxedCount || (gBr.frame % 180) == 0)
+                {
+                    sLastBoxedCount = currentBoxes.size();
+                    melonDS::u8 bbuf[1024];
+                    bbuf[0] = 5;
+                    bbuf[1] = (melonDS::u8)myRole;
+                    melonDS::u16 payloadSz = 0;
+                    for (const auto& item : currentBoxes)
+                    {
+                        if (4 + payloadSz + 6 > sizeof(bbuf)) break;
+                        bbuf[4 + payloadSz]     = (melonDS::u8)(item.species & 0xFF);
+                        bbuf[4 + payloadSz + 1] = (melonDS::u8)(item.species >> 8);
+                        bbuf[4 + payloadSz + 2] = (melonDS::u8)(item.metLoc & 0xFF);
+                        bbuf[4 + payloadSz + 3] = (melonDS::u8)(item.metLoc >> 8);
+                        bbuf[4 + payloadSz + 4] = item.box;
+                        bbuf[4 + payloadSz + 5] = item.slot;
+                        payloadSz += 6;
+                    }
+                    bbuf[2] = (melonDS::u8)(payloadSz & 0xFF);
+                    bbuf[3] = (melonDS::u8)(payloadSz >> 8);
+                    mpnet::gNet.sendAll(bbuf, 4 + payloadSz);
+                }
+            }
+        }
+    }
+
     // receive: apply peers' mailboxes (per peer link; host relays)
     {
         u8 rx[2100];
@@ -2307,7 +2411,7 @@ void BridgePump(melonDS::NDS* nds)
                 for (int pj = 0; pj < 7; pj++)
                     if (pj != pi) mpnet::gNet.enqueue(pj, rx, n);
 
-            if (tag >= 1 && tag <= 4)
+            if (tag >= 1 && tag <= 5)
             {
                 // Peer NEWLY game-active (activated Wireless Play or
                 // reconnected): resend on-change channels — anything sent
@@ -2387,6 +2491,23 @@ void BridgePump(melonDS::NDS* nds)
                         }
                     }
                 }
+            }
+            else if (tag == 5 && sz >= 6)
+            {
+                std::vector<BoxMonSummary> mons;
+                for (melonDS::u32 k = 0; k + 5 < sz; k += 6)
+                {
+                    BoxMonSummary b;
+                    b.species = (quint16)(rx[4 + k] | (rx[4 + k + 1] << 8));
+                    b.metLoc  = (quint16)(rx[4 + k + 2] | (rx[4 + k + 3] << 8));
+                    b.box     = rx[4 + k + 4];
+                    b.slot    = rx[4 + k + 5];
+                    if (b.species > 0 && b.metLoc > 0)
+                    {
+                        mons.push_back(b);
+                    }
+                }
+                sPeerBoxedMons[r] = mons;
             }
         }
     }
