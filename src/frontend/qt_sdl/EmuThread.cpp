@@ -629,6 +629,13 @@ static void MpWatchdogStart(const char* role)
 // ENet channel, packet type 4).  The emulated radio is never touched, so
 // native wireless features keep full ownership of it.
 // ---------------------------------------------------------------------------
+static std::set<int> sSessionDeadLocations;
+
+bool SoulLink_IsLocationDead(int loc)
+{
+    return sSessionDeadLocations.count(loc) > 0;
+}
+
 namespace
 {
 
@@ -1917,13 +1924,6 @@ static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
     info.isFainted = (info.curHp == 0);
     info.valid = (info.species > 0);
     return info;
-}
-
-static std::set<int> sSessionDeadLocations;
-
-bool SoulLink_IsLocationDead(int loc)
-{
-    return sSessionDeadLocations.count(loc) > 0;
 }
 
 static melonDS::u32 SoulLink_GetPCStorageAddress(melonDS::NDS* nds)
