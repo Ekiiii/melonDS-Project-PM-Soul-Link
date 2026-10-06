@@ -17,6 +17,9 @@
 */
 
 #ifdef _WIN32
+    #ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
+    #define _WINSOCK_DEPRECATED_NO_WARNINGS
+    #endif
     // must precede any windows.h (pulled in by SDL) to get winsock2, not winsock1
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -1705,6 +1708,7 @@ struct Net
                 h.s = socket(AF_INET, SOCK_STREAM, 0);
                 if (h.s == INVALID_SOCKET) { retryAt = frame + 120; return; }
                 setNonBlock(h.s);
+                struct sockaddr_in a = {};
                 a.sin_family = AF_INET; a.sin_port = htons(directPort);
                 if (inet_pton(AF_INET, joinIP, &a.sin_addr) <= 0)
                 {
