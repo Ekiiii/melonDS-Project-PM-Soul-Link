@@ -2073,8 +2073,48 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
         }
     }
 
-    // Memory mutations removed: the ROM engine autonomously manages PC boxes and party
-    // via official game functions, avoiding Bad Eggs ("Mauv. Oeuf") and HP desyncs.
+    // 4. Update the ROM's SoulLinkSharedState (0x534C4E4B) with session dead locations
+    // and read back any local dead locations recorded by the ROM engine (failures / faints).
+    static melonDS::u32 sSharedStateAddr = 0;
+    if (!sSharedStateAddr || (gBr.frame % 180) == 0)
+    {
+        for (melonDS::u32 off = 0x3DF000; off < 0x3E0000; off += 4)
+        {
+            if (apRd32(nds, 0x02000000 + off) == 0x534C4E4B) // "SLNK"
+            {
+                sSharedStateAddr = 0x02000000 + off;
+                break;
+            }
+        }
+    }
+
+    if (sSharedStateAddr)
+    {
+        // a. Read any dead/failed zones reported directly by the ROM engine
+        melonDS::u16 numLocal = apRd16s(nds, sSharedStateAddr + 264);
+        if (numLocal > 0 && numLocal <= 128)
+        {
+            for (melonDS::u16 i = 0; i < numLocal; i++)
+            {
+                melonDS::u16 z = apRd16s(nds, sSharedStateAddr + 266 + i * 2);
+                if (z > 0 && sSessionDeadLocations.insert(z).second)
+                {
+                    newDeadFound = true;
+                    printf("[SOULLINK] Imported local dead/failed zone %d from ROM!\n", z);
+                }
+            }
+        }
+
+        // b. Write current session dead locations into the ROM's remoteDeadZones buffer
+        melonDS::u16 count = 0;
+        for (int loc : sSessionDeadLocations)
+        {
+            if (count >= 128) break;
+            apWr16(nds, sSharedStateAddr + 8 + count * 2, (melonDS::u16)loc);
+            count++;
+        }
+        apWr16(nds, sSharedStateAddr + 6, count); // numRemoteDead
+    }
 }
 
 void NetTick()
