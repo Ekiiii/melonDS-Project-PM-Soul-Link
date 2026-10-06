@@ -461,7 +461,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 actOverlayEnable = overlaySubmenu->addAction("Activer l'Overlay Twitch");
                 actOverlayEnable->setMenuRole(QAction::NoRole);
                 actOverlayEnable->setCheckable(true);
-                bool overlayOn = globalCfg.GetBool("Overlay.Enabled", true);
+                bool overlayOn = globalCfg.GetBool("Overlay.Enabled");
                 actOverlayEnable->setChecked(overlayOn);
                 if (overlayOn) OverlayServer::Instance().Start(8080);
                 connect(actOverlayEnable, &QAction::toggled, this, &MainWindow::onToggleOverlay);
