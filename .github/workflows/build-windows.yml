@@ -19,14 +19,17 @@ jobs:
         arch:
           - name: x86_64
             image: windows-2025-vs2026
-          - name: arm64
-            image: windows-11-arm
 
     name: ${{ matrix.arch.name }}
     runs-on: ${{ matrix.arch.image }}
     env:
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg_cache,readwrite
     steps:
+    - name: Enable Windows Long Paths
+      run: |
+        New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+        git config --system core.longpaths true
+        mkdir C:\b -ErrorAction SilentlyContinue
     - name: Check out sources
       uses: actions/checkout@v6
     - name: Restore vcpkg cache
@@ -43,7 +46,7 @@ jobs:
       uses: lukka/run-cmake@v10
       with:
         configurePreset: release-windows-${{ matrix.arch.name }}
-        configurePresetAdditionalArgs: "['-DENABLE_DEBUG_DEPS=OFF', '-DMELONDS_EMBED_BUILD_INFO=ON']"
+        configurePresetAdditionalArgs: "['-DENABLE_DEBUG_DEPS=OFF', '-DMELONDS_EMBED_BUILD_INFO=ON', '-DVCPKG_INSTALL_OPTIONS=--x-buildtrees-root=C:\\\\b']"
         buildPreset: release-windows-${{ matrix.arch.name }}
     - uses: actions/upload-artifact@v7
       with:

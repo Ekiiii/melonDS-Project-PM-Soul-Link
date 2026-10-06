@@ -265,23 +265,26 @@ void OverlayServer::buildHtml()
 <head>
     <meta charset="UTF-8">
     <title>Twitch Soullocke Overlay - Project PM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Press Start 2P', monospace, sans-serif;
             color: #ffffff;
             overflow: hidden;
             user-select: none;
+            image-rendering: pixelated;
         }
 
         .container {
-            padding: 10px;
+            padding: 8px;
             display: flex;
-            gap: 16px;
+            gap: 14px;
         }
 
-        /* Layout modes */
         .layout-horizontal {
             flex-direction: row;
             width: 100vw;
@@ -289,158 +292,262 @@ void OverlayServer::buildHtml()
         }
         .layout-vertical {
             flex-direction: column;
-            width: 380px;
+            width: 320px;
         }
 
+        /* Pixel Art Team Box Frame */
         .team-box {
-            background: rgba(18, 22, 34, 0.85);
-            border: 2px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
+            background: rgba(14, 18, 30, 0.94);
+            border: 3px solid #2e3856;
+            outline: 2px solid #090c14;
+            box-shadow: inset 0 0 0 2px #3e4b73, 0 6px 18px rgba(0,0,0,0.65);
+            border-radius: 4px;
+            padding: 8px 10px;
             flex: 1;
         }
 
         .team-title {
-            font-size: 14px;
-            font-weight: 700;
+            font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             color: #4ade80;
-            margin-bottom: 10px;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            border-bottom: 2px solid #242c44;
+            padding-bottom: 5px;
         }
-        .team-title.p2 { color: #60a5fa; }
+        .team-title.p2 { color: #38bdf8; }
 
+        .alive-badge {
+            font-size: 7.5px;
+            background: #1e293b;
+            border: 1px solid #475569;
+            padding: 2px 5px;
+            border-radius: 2px;
+            color: #cbd5e1;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* Slots Grid - Strictly Square in BOTH layouts! */
         .slots-grid {
             display: grid;
-            gap: 8px;
+            gap: 6px;
         }
         .layout-horizontal .slots-grid {
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(6, 116px);
+            justify-content: space-between;
         }
         .layout-vertical .slots-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 136px);
+            justify-content: center;
         }
 
+        /* Strictly Square Mon Card */
         .mon-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            padding: 6px 8px;
+            background: rgba(24, 31, 51, 0.9);
+            border: 2px solid #334155;
+            outline: 1px solid #0f172a;
+            box-shadow: inset 0 0 0 1px #475569;
+            border-radius: 4px;
+            padding: 5px 4px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
+            justify-content: space-between;
             position: relative;
             overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .layout-horizontal .mon-card {
+            width: 116px;
+            height: 116px; /* Exactly square */
+        }
+        .layout-vertical .mon-card {
+            width: 136px;
+            height: 136px; /* Exactly square */
         }
 
         .mon-card.dead {
             filter: grayscale(1);
             opacity: 0.55;
-            border-color: #ef4444;
-            background: rgba(40, 10, 10, 0.6);
+            border-color: #ef4444 !important;
+            box-shadow: inset 0 0 0 1px #7f1d1d !important;
+            background: rgba(45, 12, 12, 0.85) !important;
         }
 
-        .mon-card.dead::after {
-            content: "💀 K.O.";
+        .dead-badge {
             position: absolute;
-            right: 6px;
-            top: 6px;
-            font-size: 10px;
+            top: 4px;
+            right: 4px;
+            background: rgba(220, 38, 38, 0.95);
+            color: #ffffff;
+            font-size: 7px;
             font-weight: bold;
-            color: #ef4444;
-            background: rgba(0,0,0,0.8);
-            padding: 2px 4px;
-            border-radius: 4px;
+            padding: 2px 3px;
+            border: 1px solid #000;
+            box-shadow: 1px 1px 0 #000;
+            z-index: 5;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* Sprite Frame */
+        .sprite-frame {
+            width: 48px;
+            height: 48px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 80%);
+            border: 2px solid #1e293b;
+            box-shadow: inset 0 0 0 1px #334155;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .layout-vertical .sprite-frame {
+            width: 58px;
+            height: 58px;
         }
 
         .sprite {
-            width: 48px;
-            height: 48px;
+            max-width: 44px;
+            max-height: 44px;
             image-rendering: pixelated;
-            flex-shrink: 0;
+        }
+        .layout-vertical .sprite {
+            max-width: 52px;
+            max-height: 52px;
         }
 
-        .info {
-            flex: 1;
+        /* Mon Info Area inside square */
+        .mon-info {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
             min-width: 0;
         }
 
         .name-row {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 4px;
+            align-items: center;
+            width: 100%;
         }
 
         .mon-name {
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 7.5px;
+            color: #ffffff;
+            text-shadow: 1px 1px 0 #000;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 72px;
+        }
+        .layout-vertical .mon-name {
+            font-size: 8px;
+            max-width: 86px;
         }
 
         .mon-level {
-            font-size: 11px;
-            color: #94a3b8;
-            font-weight: 600;
+            font-size: 7px;
+            color: #facc15;
+            text-shadow: 1px 1px 0 #78350f;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
-        .hp-bar-bg {
-            background: rgba(0, 0, 0, 0.6);
-            height: 8px;
-            border-radius: 4px;
-            overflow: hidden;
+        /* Authentic Pokemon HP Container */
+        .hp-container {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .hp-badge {
+            background: #eab308;
+            color: #000;
+            font-size: 5.5px;
+            font-weight: bold;
+            padding: 1px 2px;
+            border-radius: 1px;
+            line-height: 1;
+            box-shadow: 1px 1px 0 #000;
+            flex-shrink: 0;
+        }
+
+        .hp-bar-track {
+            background: #0f172a;
+            border: 1px solid #000;
+            box-shadow: inset 0 1px 0 rgba(0,0,0,0.8);
+            border-radius: 2px;
+            height: 6px;
+            flex: 1;
             position: relative;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
         }
 
         .hp-bar-fill {
             height: 100%;
             width: 100%;
             background: #22c55e;
-            border-radius: 3px;
-            transition: width 0.4s ease, background-color 0.4s ease;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+            transition: width 0.3s steps(20);
         }
-
         .hp-bar-fill.warn { background: #eab308; }
         .hp-bar-fill.crit { background: #ef4444; }
 
-        .hp-text {
-            font-size: 9px;
-            color: #cbd5e1;
+        .hp-numbers {
+            font-size: 6.5px;
+            color: #94a3b8;
+            text-shadow: 1px 1px 0 #000;
             text-align: right;
-            margin-top: 2px;
-            font-variant-numeric: tabular-nums;
+            line-height: 1;
         }
 
+        /* Soul Link Badge */
         .link-badge {
-            display: inline-block;
-            font-size: 9px;
-            padding: 1px 5px;
-            border-radius: 3px;
-            margin-top: 2px;
-            background: rgba(168, 85, 247, 0.3);
-            border: 1px solid rgba(168, 85, 247, 0.5);
-            color: #d8b4fe;
+            font-size: 6px;
+            background: #581c87;
+            border: 1px solid #c084fc;
+            box-shadow: 1px 1px 0 #000;
+            color: #f5d0fe;
+            text-shadow: 1px 1px 0 #000;
+            padding: 1px 2px;
+            border-radius: 2px;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            text-align: center;
         }
 
+        /* Empty Square Slot */
         .empty-slot {
-            height: 60px;
+            border: 2px dashed #334155;
+            background: rgba(15, 23, 42, 0.35);
+            border-radius: 4px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
-            color: #64748b;
-            border: 1px dashed rgba(255,255,255,0.1);
-            border-radius: 8px;
+            gap: 4px;
+            color: #475569;
+            font-size: 7px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .layout-horizontal .empty-slot {
+            width: 116px;
+            height: 116px;
+        }
+        .layout-vertical .empty-slot {
+            width: 136px;
+            height: 136px;
         }
     </style>
 </head>
@@ -449,8 +556,8 @@ void OverlayServer::buildHtml()
         <!-- Player 1 -->
         <div class="team-box">
             <div class="team-title">
-                <span>Joueur 1 (Streamer)</span>
-                <span id="p1-alive" style="font-size:11px; color:#cbd5e1;">0/6</span>
+                <span>Joueur 1 (Moi)</span>
+                <span id="p1-alive" class="alive-badge">0/6 Vivants</span>
             </div>
             <div id="p1-slots" class="slots-grid"></div>
         </div>
@@ -459,13 +566,15 @@ void OverlayServer::buildHtml()
         <div class="team-box">
             <div class="team-title p2">
                 <span>Joueur 2 (Partenaire)</span>
-                <span id="p2-alive" style="font-size:11px; color:#cbd5e1;">0/6</span>
+                <span id="p2-alive" class="alive-badge">0/6 Vivants</span>
             </div>
             <div id="p2-slots" class="slots-grid"></div>
         </div>
     </div>
 
     <script>
+        const PKMN_NAMES_FR = {"1": "Bulbizarre", "2": "Herbizarre", "3": "Florizarre", "4": "Salamèche", "5": "Reptincel", "6": "Dracaufeu", "7": "Carapuce", "8": "Carabaffe", "9": "Tortank", "10": "Chenipan", "11": "Chrysacier", "12": "Papilusion", "13": "Aspicot", "14": "Coconfort", "15": "Dardargnan", "16": "Roucool", "17": "Roucoups", "18": "Roucarnage", "19": "Rattata", "20": "Rattatac", "21": "Piafabec", "22": "Rapasdepic", "23": "Abo", "24": "Arbok", "25": "Pikachu", "26": "Raichu", "27": "Sabelette", "28": "Sablaireau", "29": "Nidoran♀", "30": "Nidorina", "31": "Nidoqueen", "32": "Nidoran♂", "33": "Nidorino", "34": "Nidoking", "35": "Mélofée", "36": "Mélodelfe", "37": "Goupix", "38": "Feunard", "39": "Rondoudou", "40": "Grodoudou", "41": "Nosferapti", "42": "Nosferalto", "43": "Mystherbe", "44": "Ortide", "45": "Rafflesia", "46": "Paras", "47": "Parasect", "48": "Mimitoss", "49": "Aéromite", "50": "Taupiqueur", "51": "Triopikeur", "52": "Miaouss", "53": "Persian", "54": "Psykokwak", "55": "Akwakwak", "56": "Férosinge", "57": "Colossinge", "58": "Caninos", "59": "Arcanin", "60": "Ptitard", "61": "Têtarte", "62": "Tartard", "63": "Abra", "64": "Kadabra", "65": "Alakazam", "66": "Machoc", "67": "Machopeur", "68": "Mackogneur", "69": "Chétiflor", "70": "Boustiflor", "71": "Empiflor", "72": "Tentacool", "73": "Tentacruel", "74": "Racaillou", "75": "Gravalanch", "76": "Grolem", "77": "Ponyta", "78": "Galopa", "79": "Ramoloss", "80": "Flagadoss", "81": "Magnéti", "82": "Magnéton", "83": "Canarticho", "84": "Doduo", "85": "Dodrio", "86": "Otaria", "87": "Lamantine", "88": "Tadmorv", "89": "Grotadmorv", "90": "Kokiyas", "91": "Crustabri", "92": "Fantominus", "93": "Spectrum", "94": "Ectoplasma", "95": "Onix", "96": "Soporifik", "97": "Hypnomade", "98": "Krabby", "99": "Krabboss", "100": "Voltorbe", "101": "Électrode", "102": "Noeunoeuf", "103": "Noadkoko", "104": "Osselait", "105": "Ossatueur", "106": "Kicklee", "107": "Tygnon", "108": "Excelangue", "109": "Smogo", "110": "Smogogo", "111": "Rhinocorne", "112": "Rhinoféros", "113": "Leveinard", "114": "Saquedeneu", "115": "Kangourex", "116": "Hypotrempe", "117": "Hypocéan", "118": "Poissirène", "119": "Poissoroy", "120": "Stari", "121": "Staross", "122": "M. Mime", "123": "Insécateur", "124": "Lippoutou", "125": "Élektek", "126": "Magmar", "127": "Scarabrute", "128": "Tauros", "129": "Magicarpe", "130": "Léviator", "131": "Lokhlass", "132": "Métamorph", "133": "Évoli", "134": "Aquali", "135": "Voltali", "136": "Pyroli", "137": "Porygon", "138": "Amonita", "139": "Amonistar", "140": "Kabuto", "141": "Kabutops", "142": "Ptéra", "143": "Ronflex", "144": "Artikodin", "145": "Électhor", "146": "Sulfura", "147": "Minidraco", "148": "Draco", "149": "Dracolosse", "150": "Mewtwo", "151": "Mew", "152": "Germignon", "153": "Macronium", "154": "Méganium", "155": "Héricendre", "156": "Feurisson", "157": "Typhlosion", "158": "Kaiminus", "159": "Crocrodil", "160": "Aligatueur", "161": "Fouinette", "162": "Fouinar", "163": "Hoothoot", "164": "Noarfang", "165": "Coxy", "166": "Coxyclaque", "167": "Mimigal", "168": "Migalos", "169": "Nostenfer", "170": "Loupio", "171": "Lanturn", "172": "Pichu", "173": "Mélo", "174": "Toudoudou", "175": "Togepi", "176": "Togetic", "177": "Natu", "178": "Xatu", "179": "Wattouat", "180": "Lainergie", "181": "Pharamp", "182": "Joliflor", "183": "Marill", "184": "Azumarill", "185": "Simularbre", "186": "Tarpaud", "187": "Granivol", "188": "Floravol", "189": "Cotovol", "190": "Capumain", "191": "Tournegrin", "192": "Héliatronc", "193": "Yanma", "194": "Axoloto", "195": "Maraiste", "196": "Mentali", "197": "Noctali", "198": "Cornèbre", "199": "Roigada", "200": "Feuforêve", "201": "Zarbi", "202": "Qulbutoké", "203": "Girafarig", "204": "Pomdepik", "205": "Foretress", "206": "Insolourdo", "207": "Scorplane", "208": "Steelix", "209": "Snubbull", "210": "Granbull", "211": "Qwilfish", "212": "Cizayox", "213": "Caratroc", "214": "Scarhino", "215": "Farfuret", "216": "Teddiursa", "217": "Ursaring", "218": "Limagma", "219": "Volcaropod", "220": "Marcacrin", "221": "Cochignon", "222": "Corayon", "223": "Rémoraid", "224": "Octillery", "225": "Cadoizo", "226": "Démanta", "227": "Airmure", "228": "Malosse", "229": "Démolosse", "230": "Hyporoi", "231": "Phanpy", "232": "Donphan", "233": "Porygon2", "234": "Cerfrousse", "235": "Queulorior", "236": "Debugant", "237": "Kapoera", "238": "Lippouti", "239": "Élekid", "240": "Magby", "241": "Écrémeuh", "242": "Leuphorie", "243": "Raikou", "244": "Entei", "245": "Suicune", "246": "Embrylex", "247": "Ymphect", "248": "Tyranocif", "249": "Lugia", "250": "Ho-Oh", "251": "Celebi", "252": "Arcko", "253": "Massko", "254": "Jungko", "255": "Poussifeu", "256": "Galifeu", "257": "Braségali", "258": "Gobou", "259": "Flobio", "260": "Laggron", "261": "Medhyèna", "262": "Grahyèna", "263": "Zigzaton", "264": "Linéon", "265": "Chenipotte", "266": "Armulys", "267": "Charmillon", "268": "Blindalys", "269": "Papinox", "270": "Nénupiot", "271": "Lombre", "272": "Ludicolo", "273": "Grainipiot", "274": "Pifeuil", "275": "Tengalice", "276": "Nirondelle", "277": "Hélédelle", "278": "Goélise", "279": "Bekipan", "280": "Tarsal", "281": "Kirlia", "282": "Gardevoir", "283": "Arakdo", "284": "Maskadra", "285": "Balignon", "286": "Chapignon", "287": "Parecool", "288": "Vigoroth", "289": "Monaflèmit", "290": "Ningale", "291": "Ninjask", "292": "Munja", "293": "Chuchmur", "294": "Ramboum", "295": "Brouhabam", "296": "Makuhita", "297": "Hariyama", "298": "Azurill", "299": "Tarinor", "300": "Skitty", "301": "Delcatty", "302": "Ténéfix", "303": "Mysdibule", "304": "Galekid", "305": "Galegon", "306": "Galeking", "307": "Méditikka", "308": "Charmina", "309": "Dynavolt", "310": "Élecsprint", "311": "Posipi", "312": "Négapi", "313": "Muciole", "314": "Lumivole", "315": "Rosélia", "316": "Gloupti", "317": "Avaltout", "318": "Carvanha", "319": "Sharpedo", "320": "Wailmer", "321": "Wailord", "322": "Chamallot", "323": "Camérupt", "324": "Chartor", "325": "Spoink", "326": "Groret", "327": "Spinda", "328": "Kraknoix", "329": "Vibraninf", "330": "Libégon", "331": "Cacnea", "332": "Cacturne", "333": "Tylton", "334": "Altaria", "335": "Mangriff", "336": "Séviper", "337": "Séléroc", "338": "Solaroc", "339": "Barloche", "340": "Barbicha", "341": "Écrapince", "342": "Colhomard", "343": "Balbuto", "344": "Kaorine", "345": "Lilia", "346": "Vacilys", "347": "Anorith", "348": "Armaldo", "349": "Barpau", "350": "Milobellus", "351": "Morphéo", "352": "Kecleon", "353": "Polichombr", "354": "Branette", "355": "Skelénox", "356": "Téraclope", "357": "Tropius", "358": "Éoko", "359": "Absol", "360": "Okéoké", "361": "Stalgamin", "362": "Oniglali", "363": "Obalie", "364": "Phogleur", "365": "Kaimorse", "366": "Coquiperl", "367": "Serpang", "368": "Rosabyss", "369": "Relicanth", "370": "Lovdisc", "371": "Draby", "372": "Drackhaus", "373": "Drattak", "374": "Terhal", "375": "Métang", "376": "Métalosse", "377": "Regirock", "378": "Regice", "379": "Registeel", "380": "Latias", "381": "Latios", "382": "Kyogre", "383": "Groudon", "384": "Rayquaza", "385": "Jirachi", "386": "Deoxys", "387": "Tortipouss", "388": "Boskara", "389": "Torterra", "390": "Ouisticram", "391": "Chimpenfeu", "392": "Simiabraz", "393": "Tiplouf", "394": "Prinplouf", "395": "Pingoléon", "396": "Étourmi", "397": "Étourvol", "398": "Étouraptor", "399": "Keunotor", "400": "Castorno", "401": "Crikzik", "402": "Mélokrik", "403": "Lixy", "404": "Luxio", "405": "Luxray", "406": "Rozbouton", "407": "Roserade", "408": "Kranidos", "409": "Charkos", "410": "Dinoclier", "411": "Bastiodon", "412": "Cheniti", "413": "Cheniselle", "414": "Papilord", "415": "Apitrini", "416": "Apireine", "417": "Pachirisu", "418": "Mustébouée", "419": "Mustéflott", "420": "Ceribou", "421": "Ceriflor", "422": "Sancoki", "423": "Tritosor", "424": "Capidextre", "425": "Baudrive", "426": "Grodrive", "427": "Laporeille", "428": "Lockpin", "429": "Magirêve", "430": "Corboss", "431": "Chaglam", "432": "Chaffreux", "433": "Korillon", "434": "Moufouette", "435": "Moufflair", "436": "Archéomire", "437": "Archéodong", "438": "Manzaï", "439": "Mime Jr", "440": "Ptiravi", "441": "Pijako", "442": "Spiritomb", "443": "Griknot", "444": "Carmache", "445": "Carchacrok", "446": "Goinfrex", "447": "Riolu", "448": "Lucario", "449": "Hippopotas", "450": "Hippodocus", "451": "Rapion", "452": "Drascore", "453": "Cradopaud", "454": "Coatox", "455": "Vortente", "456": "Écayon", "457": "Luminéon", "458": "Babimanta", "459": "Blizzi", "460": "Blizzaroi", "461": "Dimoret", "462": "Magnézone", "463": "Coudlangue", "464": "Rhinastoc", "465": "Bouldeneu", "466": "Élekable", "467": "Maganon", "468": "Togekiss", "469": "Yanmega", "470": "Phyllali", "471": "Givrali", "472": "Scorvol", "473": "Mammochon", "474": "Porygon-Z", "475": "Gallame", "476": "Tarinorme", "477": "Noctunoir", "478": "Momartik", "479": "Motisma", "480": "Créhelf", "481": "Créfollet", "482": "Créfadet", "483": "Dialga", "484": "Palkia", "485": "Heatran", "486": "Regigigas", "487": "Giratina", "488": "Cresselia", "489": "Phione", "490": "Manaphy", "491": "Darkrai", "492": "Shaymin", "493": "Arceus"};
+
         const params = new URLSearchParams(window.location.search);
         const layout = params.get('layout') || 'horizontal';
         const container = document.getElementById('container');
@@ -473,9 +582,17 @@ void OverlayServer::buildHtml()
             container.className = 'container layout-vertical';
         }
 
+        function getMonName(species) {
+            if (!species || species <= 0) return 'Inconnu';
+            return PKMN_NAMES_FR[species] || ('#' + species);
+        }
+
         function getSpriteUrl(species) {
             if (!species || species <= 0) return '';
-            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${species}.png`;
+            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${species}.gif`;
+        }
+        function getFallbackSpriteUrl(species) {
+            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/${species}.png`;
         }
 
         function renderTeam(team, pairs, containerId, countId, isP1) {
@@ -489,7 +606,7 @@ void OverlayServer::buildHtml()
                 if (!mon || !mon.species) {
                     const empty = document.createElement('div');
                     empty.className = 'empty-slot';
-                    empty.textContent = `- Slot ${i+1} -`;
+                    empty.innerHTML = `<span>◓ Slot ${i+1}</span><span style="opacity:0.4;">Vide</span>`;
                     slotsDiv.appendChild(empty);
                     continue;
                 }
@@ -501,31 +618,40 @@ void OverlayServer::buildHtml()
                 if (hpPct <= 20) hpClass = 'crit';
                 else if (hpPct <= 50) hpClass = 'warn';
 
-                // Look for soul pair
                 let linkHtml = '';
                 if (pairs && pairs.length > 0) {
                     for (const p of pairs) {
                         const mySlot = isP1 ? p.p1_slot : p.p2_slot;
                         if (mySlot === (i + 1)) {
-                            linkHtml = `<span class="link-badge">🔗 Zone ${p.location_id}</span>`;
+                            linkHtml = `<span class="link-badge">🔗 PAIRE ${p.location_id}</span>`;
                             break;
                         }
                     }
                 }
 
+                const name = getMonName(mon.species);
                 const card = document.createElement('div');
                 card.className = `mon-card ${mon.is_fainted ? 'dead' : ''}`;
+                
+                let deadBadge = mon.is_fainted ? '<div class="dead-badge">💀 K.O.</div>' : '';
+
                 card.innerHTML = `
-                    <img class="sprite" src="${getSpriteUrl(mon.species)}" alt="PKM">
-                    <div class="info">
+                    ${deadBadge}
+                    <div class="sprite-frame">
+                        <img class="sprite" src="${getSpriteUrl(mon.species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${mon.species});" alt="${name}">
+                    </div>
+                    <div class="mon-info">
                         <div class="name-row">
-                            <span class="mon-name">#${mon.species}</span>
+                            <span class="mon-name" title="${name}">${name}</span>
                             <span class="mon-level">Nv.${mon.level}</span>
                         </div>
-                        <div class="hp-bar-bg">
-                            <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
+                        <div class="hp-container">
+                            <div class="hp-badge">PV</div>
+                            <div class="hp-bar-track">
+                                <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
+                            </div>
                         </div>
-                        <div class="hp-text">${mon.hp} / ${mon.max_hp} PV</div>
+                        <div class="hp-numbers">${mon.hp}/${mon.max_hp}</div>
                         ${linkHtml}
                     </div>
                 `;
@@ -543,9 +669,7 @@ void OverlayServer::buildHtml()
                     renderTeam(data.player1, data.pairs, 'p1-slots', 'p1-alive', true);
                     renderTeam(data.player2, data.pairs, 'p2-slots', 'p2-alive', false);
                 }
-            } catch (err) {
-                // Ignore connection blips
-            }
+            } catch (err) {}
         }
 
         setInterval(pollTeams, 300);
