@@ -2,12 +2,8 @@ name: Windows
 
 on:
   push:
-    branches:
-      - master
-      - ci/*
   pull_request:
-    branches:
-      - master
+  workflow_dispatch:
 
 env:
   MELONDS_GIT_BRANCH: ${{ github.ref }}
