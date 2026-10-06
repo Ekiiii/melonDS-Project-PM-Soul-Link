@@ -164,6 +164,10 @@ void apWr32(melonDS::NDS* nds, melonDS::u32 addr, melonDS::u32 v)
 {
     *(melonDS::u32*)&nds->MainRAM[addr & nds->MainRAMMask] = v;
 }
+void apWr16(melonDS::NDS* nds, melonDS::u32 addr, melonDS::u16 v)
+{
+    *(melonDS::u16*)&nds->MainRAM[addr & nds->MainRAMMask] = v;
+}
 
 // Activate/stop the wireless session via the ROM's debug inbox (sDiscovery[17],
 // cmd 19) — in-game activation moved from the SELECT shortcut to the
