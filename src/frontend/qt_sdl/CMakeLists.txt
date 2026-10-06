@@ -9,6 +9,10 @@ set(SOURCES_QT_SDL
     Window.cpp
     OverlayServer.h
     OverlayServer.cpp
+    DirectP2P.h
+    DirectP2P.cpp
+    DirectP2PDialog.h
+    DirectP2PDialog.cpp
     EmuInstance.cpp
     EmuInstanceAudio.cpp
     EmuInstanceInput.cpp

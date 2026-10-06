@@ -47,7 +47,7 @@ struct MpOnlineStatus
     int mode = 0;                   // 0 off, 1 hosting online, 2 joined online
     int peers = 0;                  // live game links
     bool pending = false;           // request posted, emulation has not run yet
-    char code[8] = "";              // room code (empty until the relay assigns)
+    char code[32] = "";             // room code (empty until assigned, or Direct P2P token)
     char server[96] = "";
     char text[128] = "";            // connection state / last error, for the UI
 
@@ -65,6 +65,10 @@ bool MpOnlineResolve(const char* server, int defPort, MpOnlineTarget* out);
 void MpOnlineHost(const MpOnlineTarget& t, const char* name);
 void MpOnlineJoin(const MpOnlineTarget& t, const char* code, const char* name);
 void MpOnlineStop();
+
+// Direct P2P mode (direct TCP sockets, no relay, with Room Code and UPnP support)
+void MpDirectHost(int port, const char* name, const char* roomCode = "");
+void MpDirectJoin(const char* ip, int port, const char* name, const char* roomCode = "");
 
 void MpOnlineGetStatus(MpOnlineStatus* out);
 

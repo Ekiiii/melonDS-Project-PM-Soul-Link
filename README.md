@@ -7,14 +7,42 @@
 <a href="https://kiwiirc.com/client/irc.badnik.net/?nick=IRC-Source_?#melonds" alt="IRC channel: #melonds"><img src="https://img.shields.io/badge/IRC%20chat-%23melonds-%23dd2e44.svg"></a>
 <a href="https://discord.gg/pAMAtExcqV" alt="Discord"><img src="https://img.shields.io/badge/Discord-Kuribo64-7289da?logo=discord&logoColor=white"></a>
 <br>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-windows.yml/badge.svg" /></a>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-ubuntu.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-ubuntu.yml/badge.svg" /></a>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-macos.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-macos.yml/badge.svg" /></a>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-bsd.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-bsd.yml/badge.svg" /></a>
+<a href="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml/badge.svg" /></a>
 </p>
 DS emulator, sorta
 
 The goal is to do things right and fast, akin to blargSNES (but hopefully better). But also to, you know, have a fun challenge :)
+## Soul Link Edition ([melonDS-Project-PM-Soul-Link](https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link))
+
+This fork by **Ekiiii** extends melonDS and Project PM specifically for **Soul Link / Nuzlocke** co-op adventures, bringing direct P2P connections, one-click hosting with UPnP, and a live broadcast-ready streaming overlay.
+
+### Key Additions & Features
+
+1. **Direct P2P & Automatic UPnP Port Forwarding**:
+   - **Zero Relay Dependency**: Connect directly peer-to-peer using high-performance TCP streaming sockets without relying on public relay servers or local LAN discovery.
+   - **Automatic UPnP**: Automatically requests port mapping on your router/gateway (`TCP 7820`) in one click—no manual router configuration or port-forwarding menus needed for most home routers.
+   - **Integrated Windows Firewall Helper**: Ensures inbound rules are present with a single prompt.
+
+2. **Short, Shareable Room Codes (`SL-XXXXX-XXXXX`)**:
+   - Hosts don't need to look up or share raw IP addresses. The emulator packs the public IP and port into a clean, 10-character Base32 room code (e.g. `SL-4LADD-A69NE`).
+   - One-click copy for the host, instant decoding for joining players.
+   - Also accepts raw IPv4 addresses or virtual LAN IPs (Radmin VPN, Tailscale, ZeroTier) seamlessly.
+
+3. **Dedicated Direct P2P Window**:
+   - Custom graphical interface (`System -> Multiplayer -> Direct P2P Soul Link...`) featuring:
+     - **Host Tab**: One-click session creation, large room code display, copy button, UPnP diagnostic indicator, live roster with latency/ping times, and session controls.
+     - **Join Tab**: Room code / IP input, instant decoding, connection status, and connected roster.
+
+4. **Multi-Player Live OBS / Twitch HTML Overlay (1 to 8 Players)**:
+   - Built-in lightweight HTTP server running on `http://localhost:8080/overlay`.
+   - **Real-Time Memory & Encryption Decoding**: Automatically decrypts Gen 4 BoxMon structures directly from Nintendo DS RAM to read active party HP, levels, types, and fainted states with sub-frame latency.
+   - **Automatic Soul Link Cluster Detection**: Automatically identifies linked Pokémon across all connected players by matching catch locations (`met_location`).
+   - **Soul Status Badges**:
+     - `🔗 LIÉ [Zone X]` (Active Soul Link)
+     - `🔗 ÂME BRISÉE` (Broken Soul / Death alert)
+   - **Streamer Solo Mode**: `http://localhost:8080/overlay?player=me` displays an ultra-compact 1:1 retro pixel-art square slots layout tailored for OBS streamers with zero wasted space.
+   - **Cluster View**: `http://localhost:8080/overlay?player=all` renders all connected party cards (up to 8 players) with customizable layouts (`?layout=horizontal` or `?layout=vertical`).
+
 <hr>
 
 ## Project PM fork
