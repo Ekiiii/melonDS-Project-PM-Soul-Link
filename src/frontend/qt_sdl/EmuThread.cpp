@@ -1737,6 +1737,7 @@ struct Net
         }
         for (int i = 0; i < 7; i++) { flush(i); pumpRecv(i); }
         lobbyTick(frame);
+        publishStatus();
     }
 
     void enqueue(int i, const melonDS::u8* p, melonDS::u32 n)
@@ -1836,9 +1837,8 @@ melonDS::u8* apPtr(melonDS::NDS* nds, melonDS::u32 addr)
     return &nds->MainRAM[addr & nds->MainRAMMask];
 }
 
-void BridgePump(melonDS::NDS* nds)
+void NetTick()
 {
-    using namespace melonDS;
     gBr.frame++;
 
     mpnet::gNet.pollRequest();      // Host/Join Online Game... from the menu
@@ -1868,7 +1868,11 @@ void BridgePump(melonDS::NDS* nds)
                 }
             }
         }
-        if (mpnet::gNet.mode == 0) return;
+        if (mpnet::gNet.mode == 0)
+        {
+            mpnet::gNet.publishStatus();
+            return;
+        }
     }
     mpnet::gNet.tick(gBr.frame);
 
@@ -1881,6 +1885,15 @@ void BridgePump(melonDS::NDS* nds)
         gBr.lastParty.clear();
         gBr.lastPkt.clear();
     }
+}
+
+void BridgePump(melonDS::NDS* nds)
+{
+    using namespace melonDS;
+    NetTick();
+
+    if (!nds) return;
+    if (mpnet::gNet.mode == 0) return;
 
     if (!gBr.disc)
     {
@@ -2647,7 +2660,11 @@ void EmuThread::run()
             snprintf(melontitle, sizeof(melontitle), "melonDS " MELONDS_VERSION);
             changeWindowTitle(melontitle);
 
-            SDL_Delay(75);
+            for (int d = 0; d < 5; d++)
+            {
+                NetTick();
+                SDL_Delay(15);
+            }
 
             emuInstance->drawScreen();
         }

@@ -101,29 +101,48 @@ void DirectP2PDialog::setupUI()
     layHostAct->setContentsMargins(0, 0, 0, 0);
     layHostAct->setSpacing(8);
 
-    QGroupBox* codeBox = new QGroupBox("Code de salon pour vos amis", hostActiveWidget);
+    QGroupBox* codeBox = new QGroupBox("Codes de salon pour vos amis", hostActiveWidget);
     QVBoxLayout* layCodeBox = new QVBoxLayout(codeBox);
-    layCodeBox->setSpacing(8);
+    layCodeBox->setSpacing(6);
 
+    QLabel* lblDescCode = new QLabel("<b>Code Internet</b> (à distance avec un ami) :", codeBox);
     lblHostRoomCode = new QLabel("SL-XXXXX-XXXXX", codeBox);
     QFont fCode = lblHostRoomCode->font();
     fCode.setFamily("Consolas");
-    fCode.setPointSize(15);
+    fCode.setPointSize(14);
     fCode.setBold(true);
     lblHostRoomCode->setFont(fCode);
     lblHostRoomCode->setAlignment(Qt::AlignCenter);
     lblHostRoomCode->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    lblHostRoomCode->setStyleSheet("background: #0f172a; color: #38bdf8; padding: 10px; border: 1px solid #334155; border-radius: 6px; letter-spacing: 2px;");
+    lblHostRoomCode->setStyleSheet("background: #0f172a; color: #38bdf8; padding: 8px; border: 1px solid #334155; border-radius: 6px; letter-spacing: 2px;");
 
-    btnCopyHostCode = new QPushButton("Copier le code de salon", codeBox);
+    btnCopyHostCode = new QPushButton("Copier le code Internet", codeBox);
     btnCopyHostCode->setStyleSheet(
-        "QPushButton { font-weight: 600; padding: 7px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; }"
+        "QPushButton { font-weight: 600; padding: 6px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; }"
         "QPushButton:hover { background-color: #e2e8f0; }"
     );
     connect(btnCopyHostCode, &QPushButton::clicked, this, &DirectP2PDialog::onCopyHostCodeClicked);
 
+    QLabel* lblDescLan = new QLabel("<b>Code Local / LAN</b> (sur la même box ou ce PC) :", codeBox);
+    lblHostLanCode = new QLabel("SL-XXXXX-XXXXX", codeBox);
+    lblHostLanCode->setFont(fCode);
+    lblHostLanCode->setAlignment(Qt::AlignCenter);
+    lblHostLanCode->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    lblHostLanCode->setStyleSheet("background: #0f172a; color: #a7f3d0; padding: 8px; border: 1px solid #334155; border-radius: 6px; letter-spacing: 2px;");
+
+    btnCopyHostLanCode = new QPushButton("Copier le code Local / LAN", codeBox);
+    btnCopyHostLanCode->setStyleSheet(
+        "QPushButton { font-weight: 600; padding: 6px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; }"
+        "QPushButton:hover { background-color: #e2e8f0; }"
+    );
+    connect(btnCopyHostLanCode, &QPushButton::clicked, this, &DirectP2PDialog::onCopyHostLanCodeClicked);
+
+    layCodeBox->addWidget(lblDescCode);
     layCodeBox->addWidget(lblHostRoomCode);
     layCodeBox->addWidget(btnCopyHostCode);
+    layCodeBox->addWidget(lblDescLan);
+    layCodeBox->addWidget(lblHostLanCode);
+    layCodeBox->addWidget(btnCopyHostLanCode);
     layHostAct->addWidget(codeBox);
 
     lblHostUPnPStatus = new QLabel("UPnP : En attente...", hostActiveWidget);
@@ -176,7 +195,18 @@ void DirectP2PDialog::setupUI()
     formJoin->addRow("Code de salon :", edJoinCode);
     layJoinCfg->addLayout(formJoin);
 
-    QLabel* joinHelp = new QLabel("Collez le code de salon à 10 caractères partagé par l'hôte.<br>"
+    btnTestLocalJoin = new QPushButton("Tester sur ce PC (Même machine - 1 clic)", joinConfigWidget);
+    btnTestLocalJoin->setStyleSheet(
+        "QPushButton { font-weight: 600; font-size: 12px; padding: 8px; background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; border-radius: 6px; }"
+        "QPushButton:hover { background-color: #dcfce7; }"
+    );
+    connect(btnTestLocalJoin, &QPushButton::clicked, this, [this]() {
+        edJoinCode->setText("127.0.0.1:7820");
+        onJoinClicked();
+    });
+    layJoinCfg->addWidget(btnTestLocalJoin);
+
+    QLabel* joinHelp = new QLabel("Collez le code de salon partagé par l'hôte ou cliquez ci-dessus pour tester sur ce PC.<br>"
                                   "L'adresse et le port sont résolus automatiquement.", joinConfigWidget);
     joinHelp->setWordWrap(true);
     joinHelp->setStyleSheet("color: #64748b; font-size: 12px;");
@@ -278,16 +308,18 @@ void DirectP2PDialog::onStartHostClicked()
             upnpMsg = "Port configuré : 7820 (sans UPnP)";
         }
 
-        std::string targetIp = pubIp.empty() ? localIp : pubIp;
-        std::string roomCode = DirectP2P::EncodeRoomCode(targetIp, (uint16_t)port);
+        std::string internetIp = pubIp.empty() ? localIp : pubIp;
+        std::string roomCodeInternet = DirectP2P::EncodeRoomCode(internetIp, (uint16_t)port);
+        std::string roomCodeLan = DirectP2P::EncodeRoomCode(localIp, (uint16_t)port);
 
-        QMetaObject::invokeMethod(this, [this, name, port, roomCode, upnpMsg, upnpOk]() {
+        QMetaObject::invokeMethod(this, [this, name, port, roomCodeInternet, roomCodeLan, upnpMsg, upnpOk]() {
             btnStartHost->setEnabled(true);
             btnStartHost->setText("Créer le salon");
 
-            MpDirectHost(port, name.toStdString().c_str(), roomCode.c_str());
+            MpDirectHost(port, name.toStdString().c_str(), roomCodeInternet.c_str());
 
-            lblHostRoomCode->setText(QString::fromStdString(roomCode));
+            lblHostRoomCode->setText(QString::fromStdString(roomCodeInternet));
+            lblHostLanCode->setText(QString::fromStdString(roomCodeLan));
             if (upnpOk)
                 lblHostUPnPStatus->setText(QString("<font color='#10b981'>●</font> %1").arg(QString::fromStdString(upnpMsg)));
             else
@@ -356,7 +388,17 @@ void DirectP2PDialog::onCopyHostCodeClicked()
     QApplication::clipboard()->setText(code);
     btnCopyHostCode->setText("Code copié !");
     QTimer::singleShot(2000, this, [this]() {
-        btnCopyHostCode->setText("Copier le code de salon");
+        btnCopyHostCode->setText("Copier le code Internet");
+    });
+}
+
+void DirectP2PDialog::onCopyHostLanCodeClicked()
+{
+    QString code = lblHostLanCode->text();
+    QApplication::clipboard()->setText(code);
+    btnCopyHostLanCode->setText("Code LAN copié !");
+    QTimer::singleShot(2000, this, [this]() {
+        btnCopyHostLanCode->setText("Copier le code Local / LAN");
     });
 }
 
@@ -412,6 +454,11 @@ void DirectP2PDialog::updateStatus()
     {
         if (st.code[0]) {
             lblHostRoomCode->setText(QString(st.code));
+        }
+        if (lblHostLanCode->text() == "SL-XXXXX-XXXXX") {
+            std::string localIp = DirectP2P::GetLocalIP();
+            std::string lanCode = DirectP2P::EncodeRoomCode(localIp, DirectP2P::DEFAULT_PORT);
+            lblHostLanCode->setText(QString::fromStdString(lanCode));
         }
         lblHostPeersStatus->setText(QString("Joueurs connectés : %1/7").arg(st.peers));
 

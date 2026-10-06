@@ -31,6 +31,7 @@ private slots:
     void onJoinClicked();
     void onLeaveClicked();
     void onCopyHostCodeClicked();
+    void onCopyHostLanCodeClicked();
     void onOpenOverlayClicked();
     void onUpdateTimer();
 
@@ -49,6 +50,8 @@ private:
     QPushButton* btnStopHost;
     QLabel* lblHostRoomCode;
     QPushButton* btnCopyHostCode;
+    QLabel* lblHostLanCode;
+    QPushButton* btnCopyHostLanCode;
     QLabel* lblHostUPnPStatus;
     QLabel* lblHostPeersStatus;
     QLabel* lblHostRoster;
@@ -59,6 +62,7 @@ private:
     QLineEdit* edJoinName;
     QLineEdit* edJoinCode;
     QPushButton* btnJoin;
+    QPushButton* btnTestLocalJoin;
     QPushButton* btnLeaveJoin;
     QLabel* lblJoinStatus;
     QLabel* lblJoinRoster;

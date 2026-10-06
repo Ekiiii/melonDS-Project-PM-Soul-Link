@@ -58,11 +58,32 @@ std::string EncodeRoomCode(const std::string& ipStr, uint16_t port)
     return res;
 }
 
+static std::string sCachedLocalIp;
+static uint32_t sCachedLocalIpTime = 0;
+static std::string sCachedPublicIp;
+static uint32_t sCachedPublicIpTime = 0;
+
 bool DecodeRoomCode(const std::string& input, std::string& outIp, uint16_t& outPort)
 {
     if (input.empty()) return false;
 
-    // Direct IP format check (e.g. 192.168.1.50 or 25.1.2.3:7820)
+    // Check for "localhost" with optional port
+    std::string lowerInput;
+    for (char c : input) lowerInput += (char)tolower((unsigned char)c);
+
+    if (lowerInput == "localhost" || lowerInput.rfind("localhost:", 0) == 0) {
+        outIp = "127.0.0.1";
+        size_t colon = input.find(':');
+        if (colon != std::string::npos) {
+            outPort = (uint16_t)atoi(input.substr(colon + 1).c_str());
+            if (outPort == 0) outPort = DEFAULT_PORT;
+        } else {
+            outPort = DEFAULT_PORT;
+        }
+        return true;
+    }
+
+    // Direct IP format check (e.g. 192.168.1.50 or 127.0.0.1:7820)
     if (input.find('.') != std::string::npos) {
         size_t colon = input.find(':');
         if (colon != std::string::npos) {
@@ -72,6 +93,10 @@ bool DecodeRoomCode(const std::string& input, std::string& outIp, uint16_t& outP
         } else {
             outIp = input;
             outPort = DEFAULT_PORT;
+        }
+        std::string localIp = GetLocalIP();
+        if (outIp == "127.0.0.1" || (!localIp.empty() && outIp == localIp)) {
+            outIp = "127.0.0.1";
         }
         return true;
     }
@@ -103,11 +128,32 @@ bool DecodeRoomCode(const std::string& input, std::string& outIp, uint16_t& outP
     char ipBuf[64];
     snprintf(ipBuf, sizeof(ipBuf), "%u.%u.%u.%u", b1, b2, b3, b4);
     outIp = ipBuf;
+
+    // Same-PC self-connection detection:
+    // If the decoded IP matches this machine's public IP, LAN IP, or loopback,
+    // route directly to 127.0.0.1 to avoid NAT loopback / hairpinning issues on home routers.
+    std::string localIp = GetLocalIP();
+    if (outIp == "127.0.0.1" || (!localIp.empty() && outIp == localIp)) {
+        outIp = "127.0.0.1";
+    } else {
+        std::string pubIp = GetPublicIP(800);
+        if (!pubIp.empty() && outIp == pubIp) {
+            outIp = "127.0.0.1";
+        }
+    }
     return true;
 }
 
 std::string GetLocalIP()
 {
+#ifdef _WIN32
+    uint32_t now = (uint32_t)GetTickCount();
+#else
+    uint32_t now = 0;
+#endif
+    if (!sCachedLocalIp.empty() && (now - sCachedLocalIpTime < 30000))
+        return sCachedLocalIp;
+
     SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s == INVALID_SOCKET) return "127.0.0.1";
     sockaddr_in target{};
@@ -121,11 +167,20 @@ std::string GetLocalIP()
     closesocket(s);
     char buf[64] = "127.0.0.1";
     inet_ntop(AF_INET, &local.sin_addr, buf, sizeof(buf));
-    return std::string(buf);
+    sCachedLocalIp = std::string(buf);
+    sCachedLocalIpTime = now;
+    return sCachedLocalIp;
 }
 
 std::string GetPublicIP(int timeoutMs)
 {
+#ifdef _WIN32
+    uint32_t now = (uint32_t)GetTickCount();
+#else
+    uint32_t now = 0;
+#endif
+    if (!sCachedPublicIp.empty() && (now - sCachedPublicIpTime < 120000))
+        return sCachedPublicIp;
     const char* services[] = { "api.ipify.org", "icanhazip.com" };
     for (const char* host : services)
     {
@@ -179,7 +234,11 @@ std::string GetPublicIP(int timeoutMs)
         while (*body && (*body == '.' || (*body >= '0' && *body <= '9'))) {
             ip += *body++;
         }
-        if (!ip.empty()) return ip;
+        if (!ip.empty()) {
+            sCachedPublicIp = ip;
+            sCachedPublicIpTime = now;
+            return ip;
+        }
     }
     return "";
 }
