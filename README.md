@@ -9,6 +9,11 @@
 <br>
 <a href="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml/badge.svg" /></a>
 </p>
+
+<p align="center">
+  <b>🇫🇷 <a href="README_FR.md">Cliquez ici pour lire la documentation en Français</a></b>
+</p>
+
 DS emulator, sorta
 
 The goal is to do things right and fast, akin to blargSNES (but hopefully better). But also to, you know, have a fun challenge :)
