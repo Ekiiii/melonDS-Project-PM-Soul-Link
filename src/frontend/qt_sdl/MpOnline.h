@@ -66,10 +66,6 @@ void MpOnlineHost(const MpOnlineTarget& t, const char* name);
 void MpOnlineJoin(const MpOnlineTarget& t, const char* code, const char* name);
 void MpOnlineStop();
 
-// Direct P2P mode (direct TCP sockets, no relay, no LAN broadcast)
-void MpDirectHost(int port, const char* name);
-void MpDirectJoin(const char* ip, int port, const char* name);
-
 void MpOnlineGetStatus(MpOnlineStatus* out);
 
 // The bridge wire protocol version, as advertised by the LAN beacon.

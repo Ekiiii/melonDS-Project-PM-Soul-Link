@@ -676,12 +676,11 @@ const melonDS::u32 RELAY_MAXLINE = 200;
 std::mutex gUiMx;
 struct UiRequest
 {
-    int want = 0;                   // 0 none, 1 host online, 2 join online, 3 stop, 4 host direct, 5 join direct
+    int want = 0;                   // 0 none, 1 host, 2 join, 3 stop
     sockaddr_in addr = {};
     char disp[96] = "";
     char name[40] = "";
     char code[8] = "";
-    int port = 7820;
 };
 UiRequest gUiReq;
 MpOnlineStatus gUiStatus;
@@ -937,7 +936,6 @@ struct Net
 {
     int mode = 0;                       // 0 off, 1 host, 2 join
     char joinIP[64] = "127.0.0.1";
-    int directPort = PORT;
     bool started = false;
     SOCKET listener = INVALID_SOCKET;
     Peer peers[7];                      // host: 7 client slots (slot i = role 2+i; 8-player rooms)
@@ -1146,41 +1144,32 @@ struct Net
         }
     }
 
-    void startHost(int port = PORT)
+    void startHost()
     {
         ensureFirewall();
         ensureName();
         WSADATA w; WSAStartup(MAKEWORD(2,2), &w);
-        mode = 1; started = true; online = 0;
-        directPort = (port > 0 && port < 65536) ? port : PORT;
+        mode = 1; started = true;
         listener = socket(AF_INET, SOCK_STREAM, 0);
         if (listener == INVALID_SOCKET) { mode = 0; return; }
         BOOL yes = TRUE;
         setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof(yes));
         sockaddr_in a; memset(&a, 0, sizeof(a));
-        a.sin_family = AF_INET; a.sin_addr.s_addr = INADDR_ANY; a.sin_port = htons(directPort);
+        a.sin_family = AF_INET; a.sin_addr.s_addr = INADDR_ANY; a.sin_port = htons(PORT);
         if (bind(listener, (sockaddr*)&a, sizeof(a)) != 0 || listen(listener, 3) != 0)
         {
             closesocket(listener); listener = INVALID_SOCKET; mode = 0; return;
         }
         setNonBlock(listener);
-        char msg[128];
-        snprintf(msg, sizeof(msg), "Hosting on port %d", directPort);
-        setMsg(msg);
-        printf("[BR] direct P2P hosting on :%d\n", directPort);
+        printf("[BR] hosting on :%d\n", PORT);
     }
 
-    void startJoin(const char* ip, int port = PORT)
+    void startJoin(const char* ip)
     {
         ensureName();
         WSADATA w; WSAStartup(MAKEWORD(2,2), &w);
-        directPort = (port > 0 && port < 65536) ? port : PORT;
         if (ip && ip[0]) { strncpy(joinIP, ip, sizeof(joinIP)-1); joinIP[sizeof(joinIP)-1] = 0; }
-        mode = 2; started = true; online = 0;
-        char msg[128];
-        snprintf(msg, sizeof(msg), "Connecting to %s:%d", joinIP, directPort);
-        setMsg(msg);
-        printf("[BR] direct P2P joining %s:%d\n", joinIP, directPort);
+        mode = 2; started = true;
     }
 
     // Online host.  Deliberately does NOT bind, listen, beacon or touch the
@@ -1604,27 +1593,11 @@ struct Net
     void publishStatus()
     {
         std::lock_guard<std::mutex> lk(gUiMx);
-        if (online) {
-            gUiStatus.mode = online;
-        } else if (mode == 1) {
-            gUiStatus.mode = 3; // direct host
-        } else if (mode == 2) {
-            gUiStatus.mode = 4; // direct join
-        } else {
-            gUiStatus.mode = 0;
-        }
+        gUiStatus.mode = online;
         gUiStatus.peers = upCount();
         gUiStatus.pending = (gUiReq.want != 0);
         setStr(gUiStatus.code, roomCode);
-        if (online) {
-            setStr(gUiStatus.server, relaySrv);
-        } else if (mode == 1) {
-            char buf[64]; snprintf(buf, sizeof(buf), "%d", directPort);
-            setStr(gUiStatus.server, buf);
-        } else if (mode == 2) {
-            char buf[96]; snprintf(buf, sizeof(buf), "%s:%d", joinIP, directPort);
-            setStr(gUiStatus.server, buf);
-        }
+        setStr(gUiStatus.server, relaySrv);
         setStr(gUiStatus.text, onlineMsg);
         gUiStatus.myRole = myRole();
         for (int r = 1; r <= 8; r++)
@@ -1649,20 +1622,10 @@ struct Net
         started = true;
         if (r.want == 1) startHostOnline(r.addr, r.disp, r.name);
         else if (r.want == 2) startJoinOnline(r.addr, r.disp, r.code, r.name);
-        else if (r.want == 4)
-        {
-            setName(r.name);
-            startHost(r.port);
-        }
-        else if (r.want == 5)
-        {
-            setName(r.name);
-            startJoin(r.disp, r.port);
-        }
         else
         {
             setMsg("");
-            printf("[BR] multiplayer: session stopped\n");
+            printf("[BR] online: session stopped\n");
             fflush(stdout);
         }
         publishStatus();
@@ -1704,15 +1667,10 @@ struct Net
                 if (h.s == INVALID_SOCKET) { retryAt = frame + 120; return; }
                 setNonBlock(h.s);
                 sockaddr_in a; memset(&a, 0, sizeof(a));
-                a.sin_family = AF_INET; a.sin_port = htons(directPort);
-                if (inet_pton(AF_INET, joinIP, &a.sin_addr) <= 0)
-                {
-                    struct hostent* he = gethostbyname(joinIP);
-                    if (he && he->h_addr_list && he->h_addr_list[0])
-                        memcpy(&a.sin_addr, he->h_addr_list[0], sizeof(a.sin_addr));
-                }
+                a.sin_family = AF_INET; a.sin_port = htons(PORT);
+                inet_pton(AF_INET, joinIP, &a.sin_addr);
                 int r = ::connect(h.s, (sockaddr*)&a, sizeof(a));
-                if (r == 0) { h.up = true; freshPeer = true; printf("[BR] connected to %s:%d\n", joinIP, directPort); }
+                if (r == 0) { h.up = true; freshPeer = true; printf("[BR] connected to %s\n", joinIP); }
                 else if (WSAGetLastError() == WSAEWOULDBLOCK) connecting = true;
                 else { dropPeer(0); retryAt = frame + 120; }
             }
@@ -1942,14 +1900,7 @@ void BridgePump(melonDS::NDS* nds)
 
         if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0 && gBr.partyExp)
         {
-            OverlayServer::Instance().UpdateTeamsMulti(
-                apPtr(nds, gBr.partyExp),
-                gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
-                gBr.partySize,
-                mpnet::gNet.myRole(),
-                mpnet::gNet.rname,
-                gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr
-            );
+            OverlayServer::Instance().UpdateTeams(apPtr(nds, gBr.partyExp), gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr, gBr.partySize);
         }
 
         // pkt channel: on content change
@@ -2248,36 +2199,6 @@ void MpOnlineStop()
 {
     MpOnlineTarget t;
     MpOnlinePost(3, t, "", "");
-}
-
-void MpDirectHost(int port, const char* name)
-{
-    std::lock_guard<std::mutex> lk(mpnet::gUiMx);
-    mpnet::gUiReq.want = 4;
-    mpnet::gUiReq.port = (port > 0 && port < 65536) ? port : 7820;
-    mpnet::setStr(mpnet::gUiReq.name, name);
-    snprintf(mpnet::gUiReq.disp, sizeof(mpnet::gUiReq.disp), "0.0.0.0:%d", mpnet::gUiReq.port);
-    mpnet::gUiStatus.pending = true;
-    mpnet::gUiStatus.mode = 3;
-    char srv[64]; snprintf(srv, sizeof(srv), "%d", mpnet::gUiReq.port);
-    mpnet::setStr(mpnet::gUiStatus.server, srv);
-    mpnet::setStr(mpnet::gUiStatus.code, "");
-    mpnet::setStr(mpnet::gUiStatus.text, "Direct P2P: Hébergement actif...");
-}
-
-void MpDirectJoin(const char* ip, int port, const char* name)
-{
-    std::lock_guard<std::mutex> lk(mpnet::gUiMx);
-    mpnet::gUiReq.want = 5;
-    mpnet::gUiReq.port = (port > 0 && port < 65536) ? port : 7820;
-    mpnet::setStr(mpnet::gUiReq.name, name);
-    mpnet::setStr(mpnet::gUiReq.disp, ip ? ip : "127.0.0.1");
-    mpnet::gUiStatus.pending = true;
-    mpnet::gUiStatus.mode = 4;
-    char srv[96]; snprintf(srv, sizeof(srv), "%s:%d", mpnet::gUiReq.disp, mpnet::gUiReq.port);
-    mpnet::setStr(mpnet::gUiStatus.server, srv);
-    mpnet::setStr(mpnet::gUiStatus.code, "");
-    mpnet::setStr(mpnet::gUiStatus.text, "Direct P2P: Connexion...");
 }
 
 void MpOnlineGetStatus(MpOnlineStatus* out)

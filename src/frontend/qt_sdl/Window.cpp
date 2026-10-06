@@ -53,7 +53,6 @@
 #include <QPushButton>
 #include <QClipboard>
 #include <QGuiApplication>
-#include <QSpinBox>
 #include "OverlayServer.h"
 
 #include "main.h"
@@ -441,11 +440,11 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 submenu->addSeparator();
 
-                actOnlineStartHost = submenu->addAction("Host Online Game (Relay)...");
+                actOnlineStartHost = submenu->addAction("Host Online Game...");
                 actOnlineStartHost->setMenuRole(QAction::NoRole);
                 connect(actOnlineStartHost, &QAction::triggered, this, &MainWindow::onOnlineStartHost);
 
-                actOnlineStartClient = submenu->addAction("Join Online Game (Relay)...");
+                actOnlineStartClient = submenu->addAction("Join Online Game...");
                 actOnlineStartClient->setMenuRole(QAction::NoRole);
                 connect(actOnlineStartClient, &QAction::triggered, this, &MainWindow::onOnlineStartClient);
 
@@ -457,21 +456,9 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 submenu->addSeparator();
 
-                QMenu* p2pSubmenu = submenu->addMenu("Direct P2P (Sans serveur / IP Direct)");
-
-                actDirectHost = p2pSubmenu->addAction("Héberger en Direct P2P (Host)...");
-                actDirectHost->setMenuRole(QAction::NoRole);
-                connect(actDirectHost, &QAction::triggered, this, &MainWindow::onDirectStartHost);
-
-                actDirectJoin = p2pSubmenu->addAction("Rejoindre en Direct P2P (Join by IP)...");
-                actDirectJoin->setMenuRole(QAction::NoRole);
-                connect(actDirectJoin, &QAction::triggered, this, &MainWindow::onDirectStartJoin);
-
-                submenu->addSeparator();
-
                 QMenu* overlaySubmenu = submenu->addMenu("Twitch Overlay (Soullocke)");
 
-                actOverlayEnable = overlaySubmenu->addAction("Activer l'Overlay Twitch (Port 8080)");
+                actOverlayEnable = overlaySubmenu->addAction("Activer l'Overlay Twitch");
                 actOverlayEnable->setMenuRole(QAction::NoRole);
                 actOverlayEnable->setCheckable(true);
                 bool overlayOn = globalCfg.GetBool("Overlay.Enabled");
@@ -479,33 +466,13 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 if (overlayOn) OverlayServer::Instance().Start(8080);
                 connect(actOverlayEnable, &QAction::toggled, this, &MainWindow::onToggleOverlay);
 
-                overlaySubmenu->addSeparator();
-
-                // OBS Links - Solo (Streamer)
-                actOverlayCopyLinkSoloH = overlaySubmenu->addAction("Copier lien OBS (Mon équipe - Horizontal)");
-                actOverlayCopyLinkSoloH->setMenuRole(QAction::NoRole);
-                connect(actOverlayCopyLinkSoloH, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkSoloH);
-
-                actOverlayCopyLinkSoloV = overlaySubmenu->addAction("Copier lien OBS (Mon équipe - Vertical)");
-                actOverlayCopyLinkSoloV->setMenuRole(QAction::NoRole);
-                connect(actOverlayCopyLinkSoloV, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkSoloV);
-
-                overlaySubmenu->addSeparator();
-
-                // OBS Links - All Players (Groupe)
-                actOverlayCopyLinkAllH = overlaySubmenu->addAction("Copier lien OBS (Tous les joueurs - Horizontal)");
-                actOverlayCopyLinkAllH->setMenuRole(QAction::NoRole);
-                connect(actOverlayCopyLinkAllH, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkAllH);
-
-                actOverlayCopyLinkAllV = overlaySubmenu->addAction("Copier lien OBS (Tous les joueurs - Grille/Vertical)");
-                actOverlayCopyLinkAllV->setMenuRole(QAction::NoRole);
-                connect(actOverlayCopyLinkAllV, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkAllV);
-
-                overlaySubmenu->addSeparator();
-
-                actOverlayCopyLink = overlaySubmenu->addAction("Copier le lien par défaut (OBS)");
+                actOverlayCopyLink = overlaySubmenu->addAction("Copier le lien pour OBS (Horizontal)");
                 actOverlayCopyLink->setMenuRole(QAction::NoRole);
                 connect(actOverlayCopyLink, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkHorizontal);
+
+                actOverlayCopyLinkVertical = overlaySubmenu->addAction("Copier le lien pour OBS (Vertical)");
+                actOverlayCopyLinkVertical->setMenuRole(QAction::NoRole);
+                connect(actOverlayCopyLinkVertical, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkVertical);
 
                 actOverlayOpenBrowser = overlaySubmenu->addAction("Ouvrir l'Overlay dans le navigateur");
                 actOverlayOpenBrowser->setMenuRole(QAction::NoRole);
@@ -1954,141 +1921,6 @@ void MainWindow::onCopyOverlayLinkVertical()
         "4. Le fond est deja 100% transparent !");
 }
 
-void MainWindow::onCopyOverlayLinkSoloH()
-{
-    QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=me&layout=horizontal");
-    QMessageBox::information(this, "Twitch Overlay - Project PM",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=me&layout=horizontal\n\n"
-        "Affiche UNIQUEMENT votre équipe (6 slots carrés 1:1, horizontal).");
-}
-
-void MainWindow::onCopyOverlayLinkSoloV()
-{
-    QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=me&layout=vertical");
-    QMessageBox::information(this, "Twitch Overlay - Project PM",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=me&layout=vertical\n\n"
-        "Affiche UNIQUEMENT votre équipe (colonne 2x3 slots carrés 1:1, vertical).");
-}
-
-void MainWindow::onCopyOverlayLinkAllH()
-{
-    QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=all&layout=horizontal");
-    QMessageBox::information(this, "Twitch Overlay - Project PM",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=all&layout=horizontal\n\n"
-        "Affiche TOUS les joueurs connectés de la session (vue de groupe horizontale).");
-}
-
-void MainWindow::onCopyOverlayLinkAllV()
-{
-    QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=all&layout=vertical");
-    QMessageBox::information(this, "Twitch Overlay - Project PM",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=all&layout=vertical\n\n"
-        "Affiche TOUS les joueurs connectés de la session (vue de groupe grille/verticale).");
-}
-
-void MainWindow::onDirectStartHost()
-{
-    Config::Table& globalCfg = emuInstance->getGlobalConfig();
-    QString defName = globalCfg.GetQString("Online.PlayerName");
-    if (defName.isEmpty()) defName = "Player";
-
-    QDialog dlg(this);
-    dlg.setWindowTitle("Direct P2P - Héberger une partie");
-    QVBoxLayout* lay = new QVBoxLayout(&dlg);
-
-    QLabel* info = new QLabel("<b>Hébergement Direct P2P (Point-à-point)</b><br>"
-                              "Aucun serveur tiers n'est utilisé. La connexion s'établit directement en socket TCP.<br>"
-                              "Assurez-vous que le port TCP choisi est ouvert / redirigé sur votre box internet,<br>"
-                              "ou utilisez un réseau privé virtuel de confiance (Radmin VPN, Tailscale, ZeroTier).", &dlg);
-    info->setWordWrap(true);
-    lay->addWidget(info);
-
-    QFormLayout* form = new QFormLayout();
-    QSpinBox* spPort = new QSpinBox(&dlg);
-    spPort->setRange(1024, 65535);
-    spPort->setValue(7820);
-    QLineEdit* edName = new QLineEdit(defName, &dlg);
-
-    form->addRow("Port d'écoute TCP :", spPort);
-    form->addRow("Votre pseudo :", edName);
-    lay->addLayout(form);
-
-    QDialogButtonBox* bb = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
-    bb->button(QDialogButtonBox::Ok)->setText("Démarrer l'Hébergement");
-    connect(bb, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    connect(bb, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-    lay->addWidget(bb);
-
-    if (dlg.exec() != QDialog::Accepted) return;
-
-    int port = spPort->value();
-    QString name = edName->text().trimmed();
-    if (name.isEmpty()) name = "Player";
-
-    globalCfg.SetQString("Online.PlayerName", name);
-    Config::Save();
-
-    MpDirectHost(port, name.toStdString().c_str());
-    showOnlineStatus();
-}
-
-void MainWindow::onDirectStartJoin()
-{
-    Config::Table& globalCfg = emuInstance->getGlobalConfig();
-    QString defName = globalCfg.GetQString("Online.PlayerName");
-    if (defName.isEmpty()) defName = "Player";
-
-    QDialog dlg(this);
-    dlg.setWindowTitle("Direct P2P - Rejoindre une partie");
-    QVBoxLayout* lay = new QVBoxLayout(&dlg);
-
-    QLabel* info = new QLabel("<b>Rejoindre en Direct P2P</b><br>"
-                              "Saisissez l'adresse IP de l'hôte (IP publique ou IP VPN Radmin/Tailscale de votre ami).", &dlg);
-    info->setWordWrap(true);
-    lay->addWidget(info);
-
-    QFormLayout* form = new QFormLayout();
-    QLineEdit* edIp = new QLineEdit(&dlg);
-    edIp->setPlaceholderText("ex: 192.168.1.50 ou 25.x.x.x ou IP publique");
-    QSpinBox* spPort = new QSpinBox(&dlg);
-    spPort->setRange(1024, 65535);
-    spPort->setValue(7820);
-    QLineEdit* edName = new QLineEdit(defName, &dlg);
-
-    form->addRow("Adresse IP de l'hôte :", edIp);
-    form->addRow("Port de l'hôte TCP :", spPort);
-    form->addRow("Votre pseudo :", edName);
-    lay->addLayout(form);
-
-    QDialogButtonBox* bb = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
-    bb->button(QDialogButtonBox::Ok)->setText("Rejoindre la partie");
-    connect(bb, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    connect(bb, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-    lay->addWidget(bb);
-
-    if (dlg.exec() != QDialog::Accepted) return;
-
-    QString ip = edIp->text().trimmed();
-    if (ip.isEmpty()) {
-        QMessageBox::warning(this, "Direct P2P", "Veuillez spécifier l'adresse IP de l'hôte.");
-        return;
-    }
-
-    int port = spPort->value();
-    QString name = edName->text().trimmed();
-    if (name.isEmpty()) name = "Player";
-
-    globalCfg.SetQString("Online.PlayerName", name);
-    Config::Save();
-
-    MpDirectJoin(ip.toStdString().c_str(), port, name.toStdString().c_str());
-    showOnlineStatus();
-}
-
 void MainWindow::onOpenOverlayBrowser()
 {
     QDesktopServices::openUrl(QUrl("http://localhost:8080/overlay"));
@@ -2262,7 +2094,6 @@ void MainWindow::showOnlineStatus()
             MpOnlineStatus st;
             MpOnlineGetStatus(&st);
             if (st.code[0]) QApplication::clipboard()->setText(QString(st.code));
-            else if (st.server[0]) QApplication::clipboard()->setText(QString(st.server));
         });
         connect(stopBtn, &QPushButton::clicked, this, [this]()
         {
@@ -2288,58 +2119,39 @@ void MainWindow::updateOnlineStatus()
     MpOnlineStatus st;
     MpOnlineGetStatus(&st);
 
-    if (onlineStatusDlg)
-    {
-        if (st.mode == 3 || st.mode == 4)
-            onlineStatusDlg->setWindowTitle("Direct P2P (Point-à-point)");
-        else if (st.mode == 1 || st.mode == 2)
-            onlineStatusDlg->setWindowTitle("Online Game (Relay)");
-        else
-            onlineStatusDlg->setWindowTitle("Multiplayer Game");
-    }
-
     QString s;
     if (st.mode == 1)
     {
         if (st.code[0])
-            s = QString("Online Relay - Salon %1 sur %2").arg(st.code).arg(st.server);
+            s = QString("Online - room code %1 on %2").arg(st.code).arg(st.server);
         else
-            s = QString("Online Relay - %1").arg(st.text[0] ? st.text : "connexion au relais...");
-        s += QString("\nJoueurs connectés : %1").arg(st.peers);
+            s = QString("Online - %1").arg(st.text[0] ? st.text : "connecting to the relay...");
+        s += QString("\nPlayers connected: %1").arg(st.peers);
     }
     else if (st.mode == 2)
     {
-        s = QString("Online Relay - Salon %1 (%2)")
+        s = QString("Online - room %1 (%2)")
             .arg(st.code[0] ? st.code : "-")
-            .arg(st.text[0] ? st.text : "connexion...");
-    }
-    else if (st.mode == 3)
-    {
-        s = QString("Direct P2P - Hébergement sur le port %1").arg(st.server);
-        s += QString("\nJoueurs connectés : %1/7").arg(st.peers);
-    }
-    else if (st.mode == 4)
-    {
-        s = QString("Direct P2P - Cible : %1").arg(st.server);
-        if (st.peers == 0) s += "\nStatut : En attente de connexion...";
-        else s += QString("\nStatut : Connecté à l'hôte ! (Joueurs dans la session : %1)").arg(st.peers + 1);
+            .arg(st.text[0] ? st.text : "connecting...");
     }
     else
     {
-        s = "Multiplayer - Déconnecté";
+        s = "Online - not connected";
     }
-    if (st.pending) s += "\nDémarrage : en attente du démarrage du jeu dans l'émulateur.";
+    if (st.pending) s += "\nStarting: waiting for emulation to run.";
 
+    // Roster: names arrive over the shared lobby frame, so players show up here
+    // as soon as they connect, well before anyone starts playing.
     QString roster;
     for (int r = 1; r <= 8; r++)
     {
         if (!st.roster[r][0]) continue;
-        roster += QString("\n  [%1] %2").arg(r).arg(st.roster[r]);
-        if (r == 1) roster += " (Hôte)";
-        if (st.rosterPing[r] > 0) roster += QString(" (%1 ms)").arg(st.rosterPing[r]);
-        if (r == st.myRole) roster += " (Moi)";
+        roster += QString("\n  %1. %2").arg(r).arg(st.roster[r]);
+        if (r == 1) roster += " (host)";
+        else if (st.rosterPing[r] > 0) roster += QString(" (%1 ms)").arg(st.rosterPing[r]);
+        if (r == st.myRole) roster += " (you)";
     }
-    if (!roster.isEmpty()) s += "\nJoueurs dans la session :" + roster;
+    if (!roster.isEmpty()) s += "\nPlayers:" + roster;
 
     onlineStatusLabel->setText(s);
 }
