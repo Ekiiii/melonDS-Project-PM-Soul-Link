@@ -42,12 +42,14 @@ class EmuInstance;
 class EmuThread;
 class QDialog;
 class QLabel;
+class DirectP2PDialog;
 
 const int kMaxRecentROMs = 10;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+    friend class DirectP2PDialog;
 
 public:
     explicit MainWindow(int id, EmuInstance* inst, QWidget* parent = nullptr);

@@ -6,6 +6,9 @@
 #include <cctype>
 
 #ifdef _WIN32
+#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -110,7 +113,7 @@ std::string GetLocalIP()
     sockaddr_in target{};
     target.sin_family = AF_INET;
     target.sin_port = htons(80);
-    target.sin_addr.s_addr = inet_addr("8.8.8.8");
+    inet_pton(AF_INET, "8.8.8.8", &target.sin_addr);
     connect(s, (sockaddr*)&target, sizeof(target));
     sockaddr_in local{};
     int len = sizeof(local);
