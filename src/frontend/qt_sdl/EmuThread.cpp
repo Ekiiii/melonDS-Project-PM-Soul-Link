@@ -1883,7 +1883,9 @@ static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
         if (order[b] == 'D') blockDPos = b * 32;
     }
     info.species = *(const melonDS::u16*)(decBytes + blockAPos + 0x00);
-    info.metLoc  = *(const melonDS::u16*)(decBytes + blockDPos + 0x16);
+    melonDS::u16 metLoc = *(const melonDS::u16*)(decBytes + blockDPos + 0x18);
+    if (metLoc == 0) metLoc = *(const melonDS::u16*)(decBytes + blockDPos + 0x16);
+    info.metLoc  = metLoc;
 
     // Decrypt Party stats (100 bytes at +0x88)
     melonDS::u16 partyWords[50];
@@ -1918,7 +1920,6 @@ static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
 }
 
 static std::set<int> sSessionDeadLocations;
-static std::map<int, std::set<int>> sEverSeenPartyZones;
 
 static void SoulLink_SyncDeaths(melonDS::NDS* nds)
 {
@@ -1941,7 +1942,6 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
         melonDS::u32 pCount = *(const melonDS::u32*)(peerParty + 4);
         if (pCount == 0 || pCount > 6) continue;
 
-        std::set<int> currentPeerZones;
         for (melonDS::u32 i = 0; i < pCount; i++)
         {
             SoulLinkMon m = ParsePartyMon(peerParty + 8 + i * 236);
@@ -1955,22 +1955,6 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
                         printf("[SOULLINK] Peer %d has fainted mon in zone %d! Marked DEAD.\n", r, m.metLoc);
                     }
                 }
-                else
-                {
-                    currentPeerZones.insert(m.metLoc);
-                    sEverSeenPartyZones[r].insert(m.metLoc);
-                }
-            }
-        }
-
-        // If a mon previously seen in peer's party is now gone from party (moved to cemetery box)
-        for (int seenLoc : sEverSeenPartyZones[r])
-        {
-            if (!currentPeerZones.count(seenLoc) && !sSessionDeadLocations.count(seenLoc))
-            {
-                sSessionDeadLocations.insert(seenLoc);
-                newDeadFound = true;
-                printf("[SOULLINK] Peer %d mon in zone %d disappeared (cemetery)! Marked DEAD.\n", r, seenLoc);
             }
         }
     }
@@ -1992,28 +1976,57 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
                         printf("[SOULLINK] Local mon in zone %d fainted! Marked DEAD.\n", m.metLoc);
                     }
                 }
-                else
+            }
+        }
+    }
+
+    // 2b. Scan PC Box 18 (CIMETIERE) periodically (every 60 frames = 1s) to pick up mons moved by ROM
+    if ((gBr.frame % 60) == 0)
+    {
+        melonDS::u32 savePtr = apRd32(nds, 0x021CFC34);
+        if (savePtr >= 0x02000000 && savePtr < 0x023E0000)
+        {
+            melonDS::u32 pcOff = apRd32(nds, savePtr + 0x250 + 0x2002C);
+            if (pcOff > 0 && pcOff < 0x200000)
+            {
+                melonDS::u32 box18Base = savePtr + 0x14 + pcOff + 17 * 4080;
+                for (int slot = 0; slot < 30; slot++)
                 {
-                    sEverSeenPartyZones[myRole].insert(m.metLoc);
+                    const melonDS::u8* bMon = apPtr(nds, box18Base + slot * 136);
+                    SoulLinkMon bm = ParsePartyMon(bMon);
+                    if (bm.valid && bm.metLoc > 0)
+                    {
+                        if (sSessionDeadLocations.insert(bm.metLoc).second)
+                        {
+                            newDeadFound = true;
+                            printf("[SOULLINK] Found dead mon in Cemetery Box 18 (species %d, zone %d)! Marked DEAD.\n",
+                                   bm.species, bm.metLoc);
+                        }
+                    }
                 }
             }
         }
     }
 
-    // 3. Broadcast newly found dead locations to peers (Tag 4)
-    if (mpnet::gNet.anyUp())
+    // 3. Broadcast dead locations to peers (Tag 4) with correct framing
+    if (mpnet::gNet.anyUp() && !sSessionDeadLocations.empty())
     {
-        if (newDeadFound || ((gBr.frame % 120) == 0 && !sSessionDeadLocations.empty()))
+        if (newDeadFound || ((gBr.frame % 60) == 0))
         {
+            melonDS::u8 dbuf[1024];
+            dbuf[0] = 4;
+            dbuf[1] = (melonDS::u8)myRole;
+            melonDS::u16 payloadSz = 0;
             for (int loc : sSessionDeadLocations)
             {
-                melonDS::u8 dbuf[6];
-                dbuf[0] = 4;
-                dbuf[1] = (melonDS::u8)myRole;
-                dbuf[2] = (melonDS::u8)(loc & 0xFF);
-                dbuf[3] = (melonDS::u8)(loc >> 8);
-                mpnet::gNet.sendAll(dbuf, 4);
+                if (4 + payloadSz + 2 > sizeof(dbuf)) break;
+                dbuf[4 + payloadSz]     = (melonDS::u8)(loc & 0xFF);
+                dbuf[4 + payloadSz + 1] = (melonDS::u8)(loc >> 8);
+                payloadSz += 2;
             }
+            dbuf[2] = (melonDS::u8)(payloadSz & 0xFF);
+            dbuf[3] = (melonDS::u8)(payloadSz >> 8);
+            mpnet::gNet.sendAll(dbuf, 4 + payloadSz);
         }
     }
 
@@ -2032,6 +2045,31 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
             SoulLinkMon info = ParsePartyMon(pBase + 8 + s * 236);
             if (info.valid && info.metLoc > 0 && sSessionDeadLocations.count(info.metLoc))
             {
+                printf("[SOULLINK] Applying death to linked Pokemon (species %d, loc %d) in slot %d!\n",
+                       info.species, info.metLoc, s);
+
+                // Move dead mon to Cemetery Box 18
+                melonDS::u32 savePtr = apRd32(nds, 0x021CFC34);
+                if (savePtr >= 0x02000000 && savePtr < 0x023E0000)
+                {
+                    melonDS::u32 pcOff = apRd32(nds, savePtr + 0x250 + 0x2002C);
+                    if (pcOff > 0 && pcOff < 0x200000)
+                    {
+                        melonDS::u32 box18Base = savePtr + 0x14 + pcOff + 17 * 4080;
+                        for (int bslot = 0; bslot < 30; bslot++)
+                        {
+                            melonDS::u8* bSlotPtr = apPtr(nds, box18Base + bslot * 136);
+                            melonDS::u32 bPid = *(const melonDS::u32*)bSlotPtr;
+                            if (bPid == 0)
+                            {
+                                memcpy(bSlotPtr, pBase + 8 + s * 236, 136);
+                                printf("[SOULLINK] Moved linked dead mon to Box 18 (CIMETIERE) slot %d!\n", bslot);
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 if (localCount > 1)
                 {
                     for (int k = s; k < (int)localCount - 1; k++)
@@ -2071,6 +2109,7 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
                         }
                     }
                     memcpy(monData + 0x88, partyWords, 100);
+                    *(melonDS::u16*)(monData + 0x88 + 6) = 0; // zero raw curHp
                 }
             }
         }
@@ -2337,10 +2376,16 @@ void BridgePump(melonDS::NDS* nds)
             }
             else if (tag == 4 && sz >= 2)
             {
-                melonDS::u16 deadLoc = (melonDS::u16)(rx[4] | (rx[5] << 8));
-                if (deadLoc > 0)
+                for (melonDS::u32 k = 0; k + 1 < sz; k += 2)
                 {
-                    sSessionDeadLocations.insert(deadLoc);
+                    melonDS::u16 deadLoc = (melonDS::u16)(rx[4 + k] | (rx[5 + k] << 8));
+                    if (deadLoc > 0)
+                    {
+                        if (sSessionDeadLocations.insert(deadLoc).second)
+                        {
+                            printf("[SOULLINK] Received dead zone %d from peer %d! Marked DEAD.\n", deadLoc, r);
+                        }
+                    }
                 }
             }
         }

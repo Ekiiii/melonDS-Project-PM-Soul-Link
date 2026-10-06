@@ -175,7 +175,8 @@ QJsonObject OverlayServer::parsePartyPokemon(const melonDS::u8* data, int slotIn
     }
 
     quint16 species = *(const quint16*)(decBytes + blockAPos + 0x00);
-    quint16 metLoc = *(const quint16*)(decBytes + blockDPos + 0x16);
+    quint16 metLoc = *(const quint16*)(decBytes + blockDPos + 0x18);
+    if (metLoc == 0) metLoc = *(const quint16*)(decBytes + blockDPos + 0x16);
 
     // Party stats (100 bytes at offsets +0x88 to +0xEB)
     quint16 flags = *(const quint16*)(data + 0x04);
@@ -834,7 +835,8 @@ void OverlayServer::buildHtml()
                     }
 
                     // Update live mutable stats in place
-                    if (mon.is_fainted) {
+                    const isEffectivelyDead = mon.is_fainted || linkDead;
+                    if (isEffectivelyDead) {
                         slotEl.classList.add('dead');
                         slotEl.querySelector('.dead-badge').style.display = 'block';
                     } else {
