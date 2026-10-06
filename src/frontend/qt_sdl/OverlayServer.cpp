@@ -120,6 +120,7 @@ void OverlayServer::onReadyRead()
                               "Content-Length: " + QByteArray::number(body.size()) + "\r\n"
                               "Connection: close\r\n\r\n" + body;
         socket->write(response);
+        socket->flush();
         socket->disconnectFromHost();
     }
     else if (path == "/overlay" || path == "/" || path == "/index.html") {
@@ -130,11 +131,13 @@ void OverlayServer::onReadyRead()
                               "Content-Length: " + QByteArray::number(body.size()) + "\r\n"
                               "Connection: close\r\n\r\n" + body;
         socket->write(response);
+        socket->flush();
         socket->disconnectFromHost();
     }
     else {
         QByteArray notFound = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
         socket->write(notFound);
+        socket->flush();
         socket->disconnectFromHost();
     }
 }
@@ -174,11 +177,40 @@ QJsonObject OverlayServer::parsePartyPokemon(const melonDS::u8* data, int slotIn
     quint16 species = *(const quint16*)(decBytes + blockAPos + 0x00);
     quint16 metLoc = *(const quint16*)(decBytes + blockDPos + 0x16);
 
-    // Unencrypted party stats
-    quint32 status = *(const quint32*)(data + 0x88);
-    quint8 level   = *(const quint8*)(data + 0x8C);
-    quint16 curHp  = *(const quint16*)(data + 0x8E);
-    quint16 maxHp  = *(const quint16*)(data + 0x90);
+    // Party stats (100 bytes at offsets +0x88 to +0xEB)
+    quint16 flags = *(const quint16*)(data + 0x04);
+    quint16 partyWords[50];
+    memcpy(partyWords, data + 0x88, 100);
+
+    bool isPartyDecrypted = (flags & 1) != 0;
+    if (!isPartyDecrypted) {
+        quint32 pSeed = pid;
+        for (int i = 0; i < 50; i++) {
+            pSeed = pSeed * 0x41C64E6Du + 0x6073u;
+            quint16 key = (quint16)(pSeed >> 16);
+            partyWords[i] ^= key;
+        }
+    }
+
+    const melonDS::u8* partyBytes = (const melonDS::u8*)partyWords;
+    quint32 status = *(const quint32*)(partyBytes + 0x00);
+    quint8 level   = *(const quint8*)(partyBytes + 0x04);
+    quint16 curHp  = *(const quint16*)(partyBytes + 0x06);
+    quint16 maxHp  = *(const quint16*)(partyBytes + 0x08);
+
+    // Sanity check: if decrypted values look invalid (e.g. level > 100 or maxHp == 0 or maxHp > 2000),
+    // test the unencrypted raw data as fallback
+    if (level == 0 || level > 100 || maxHp == 0 || maxHp > 2000) {
+        const melonDS::u8* rawBytes = data + 0x88;
+        quint8 rawLevel  = *(const quint8*)(rawBytes + 0x04);
+        quint16 rawMaxHp = *(const quint16*)(rawBytes + 0x08);
+        if (rawLevel >= 1 && rawLevel <= 100 && rawMaxHp > 0 && rawMaxHp <= 2000) {
+            status = *(const quint32*)(rawBytes + 0x00);
+            level  = rawLevel;
+            curHp  = *(const quint16*)(rawBytes + 0x06);
+            maxHp  = rawMaxHp;
+        }
+    }
 
     mon["slot"] = slotIndex + 1;
     mon["pid"] = (qint64)pid;
@@ -401,44 +433,44 @@ void OverlayServer::buildHtml()
             text-shadow: 1px 1px 0 #000;
         }
 
-        /* Slots Grid - Strictly Square in BOTH layouts! */
+        /* Slots Grid - Enlarged Slots for bigger Pokemons! */
         .slots-grid {
             display: grid;
-            gap: 6px;
+            gap: 8px;
         }
         .layout-horizontal .slots-grid {
-            grid-template-columns: repeat(6, 116px);
+            grid-template-columns: repeat(6, 126px);
             justify-content: space-between;
         }
         .layout-vertical .slots-grid {
-            grid-template-columns: repeat(2, 136px);
+            grid-template-columns: repeat(2, 140px);
             justify-content: center;
         }
 
-        /* Strictly Square Mon Card */
+        /* Mon Card */
         .mon-card {
-            background: rgba(24, 31, 51, 0.9);
+            background: rgba(20, 26, 44, 0.92);
             border: 2px solid #334155;
             outline: 1px solid #0f172a;
-            box-shadow: inset 0 0 0 1px #475569;
-            border-radius: 4px;
-            padding: 5px 4px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0,0,0,0.4);
+            border-radius: 6px;
+            padding: 6px 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
             position: relative;
             overflow: hidden;
-            transition: all 0.2s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .layout-horizontal .mon-card {
-            width: 116px;
-            height: 116px; /* Exactly square */
+            width: 126px;
+            height: 134px;
         }
         .layout-vertical .mon-card {
-            width: 136px;
-            height: 136px; /* Exactly square */
+            width: 140px;
+            height: 142px;
         }
 
         .mon-card.dead {
@@ -464,36 +496,40 @@ void OverlayServer::buildHtml()
             text-shadow: 1px 1px 0 #000;
         }
 
-        /* Sprite Frame */
+        /* Sprite Frame - Much larger for clear Pokemon visibility! */
         .sprite-frame {
-            width: 48px;
-            height: 48px;
+            width: 70px;
+            height: 70px;
             background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 80%);
-            border: 2px solid #1e293b;
-            box-shadow: inset 0 0 0 1px #334155;
-            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6);
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             position: relative;
+            margin: 2px 0;
         }
         .layout-vertical .sprite-frame {
-            width: 58px;
-            height: 58px;
+            width: 76px;
+            height: 76px;
         }
 
         .sprite {
-            max-width: 44px;
-            max-height: 44px;
+            max-width: 66px;
+            max-height: 66px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
             image-rendering: pixelated;
         }
         .layout-vertical .sprite {
-            max-width: 52px;
-            max-height: 52px;
+            max-width: 72px;
+            max-height: 72px;
         }
 
-        /* Mon Info Area inside square */
+        /* Mon Info Area */
         .mon-info {
             width: 100%;
             display: flex;
@@ -511,20 +547,21 @@ void OverlayServer::buildHtml()
 
         .mon-name {
             font-size: 7.5px;
+            font-weight: bold;
             color: #ffffff;
             text-shadow: 1px 1px 0 #000;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 72px;
+            max-width: 78px;
         }
         .layout-vertical .mon-name {
             font-size: 8px;
-            max-width: 86px;
+            max-width: 90px;
         }
 
         .mon-level {
-            font-size: 7px;
+            font-size: 7.5px;
             color: #facc15;
             text-shadow: 1px 1px 0 #78350f;
             white-space: nowrap;
@@ -537,6 +574,7 @@ void OverlayServer::buildHtml()
             align-items: center;
             gap: 2px;
             width: 100%;
+            margin-top: 1px;
         }
 
         .hp-badge {
@@ -573,7 +611,7 @@ void OverlayServer::buildHtml()
         .hp-bar-fill.crit { background: #ef4444; }
 
         .hp-numbers {
-            font-size: 6.5px;
+            font-size: 7px;
             color: #94a3b8;
             text-shadow: 1px 1px 0 #000;
             text-align: right;
@@ -582,13 +620,13 @@ void OverlayServer::buildHtml()
 
         /* Soul Link Badge */
         .link-badge {
-            font-size: 6px;
+            font-size: 6.5px;
             background: #581c87;
             border: 1px solid #c084fc;
             box-shadow: 1px 1px 0 #000;
             color: #f5d0fe;
             text-shadow: 1px 1px 0 #000;
-            padding: 1px 2px;
+            padding: 2px 3px;
             border-radius: 2px;
             white-space: nowrap;
             overflow: hidden;
@@ -609,27 +647,27 @@ void OverlayServer::buildHtml()
             padding: 8px;
         }
 
-        /* Empty Square Slot */
+        /* Empty Slot */
         .empty-slot {
             border: 2px dashed #334155;
             background: rgba(15, 23, 42, 0.35);
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 4px;
             color: #475569;
-            font-size: 7px;
+            font-size: 7.5px;
             text-shadow: 1px 1px 0 #000;
         }
         .layout-horizontal .empty-slot {
-            width: 116px;
-            height: 116px;
+            width: 126px;
+            height: 134px;
         }
         .layout-vertical .empty-slot {
-            width: 136px;
-            height: 136px;
+            width: 140px;
+            height: 142px;
         }
     </style>
 </head>
@@ -674,94 +712,179 @@ void OverlayServer::buildHtml()
             return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/${species}.png`;
         }
 
-        function renderPlayerCard(player, pairs) {
-            const box = document.createElement('div');
-            box.className = 'team-box';
-            const color = getRoleColor(player.role || 1);
-            box.style.borderColor = color + 'aa';
+        let lastResponseText = '';
 
-            const title = document.createElement('div');
-            title.className = 'team-title';
-            title.style.color = color;
-            title.innerHTML = `
-                <span>${player.name}</span>
-                <span class="alive-badge">${player.alive_count || 0}/6 Vivants</span>
-            `;
-            box.appendChild(title);
+        function updatePlayersDOM(players, pairs) {
+            const currentRoles = new Set(players.map(p => p.role || 1));
+            const existingBoxes = container.querySelectorAll('.team-box');
+            existingBoxes.forEach(box => {
+                const r = parseInt(box.dataset.role);
+                if (!currentRoles.has(r)) box.remove();
+            });
 
-            const grid = document.createElement('div');
-            grid.className = 'slots-grid';
-
-            for (let i = 0; i < 6; i++) {
-                const mon = player.team && player.team[i] ? player.team[i] : null;
-                if (!mon || !mon.species) {
-                    const empty = document.createElement('div');
-                    empty.className = 'empty-slot';
-                    empty.innerHTML = `<span>◓ Slot ${i+1}</span><span style="opacity:0.4;">Vide</span>`;
-                    grid.appendChild(empty);
-                    continue;
+            for (const player of players) {
+                const role = player.role || 1;
+                let box = container.querySelector(`.team-box[data-role="${role}"]`);
+                if (!box) {
+                    box = document.createElement('div');
+                    box.className = 'team-box';
+                    box.dataset.role = role;
+                    box.innerHTML = `
+                        <div class="team-title">
+                            <span class="p-name"></span>
+                            <span class="alive-badge"></span>
+                        </div>
+                        <div class="slots-grid"></div>
+                    `;
+                    container.appendChild(box);
                 }
 
-                const hpPct = mon.max_hp > 0 ? Math.max(0, Math.min(100, (mon.hp / mon.max_hp) * 100)) : 0;
-                let hpClass = '';
-                if (hpPct <= 20) hpClass = 'crit';
-                else if (hpPct <= 50) hpClass = 'warn';
+                const color = getRoleColor(role);
+                box.style.borderColor = color + 'aa';
+                const titleEl = box.querySelector('.team-title');
+                titleEl.style.color = color;
+                box.querySelector('.p-name').textContent = player.name;
+                box.querySelector('.alive-badge').textContent = `${player.alive_count || 0}/6 Vivants`;
 
-                let linkHtml = '';
-                if (pairs && pairs.length > 0) {
-                    for (const p of pairs) {
-                        const isMember = (p.members && p.members.some(m => m.role === player.role && m.slot === (i + 1)))
-                                      || (player.is_me && p.p1_slot === (i + 1))
-                                      || (!player.is_me && p.p2_slot === (i + 1));
-                        if (isMember) {
-                            if (p.status === 'DEAD') {
-                                linkHtml = `<span class="link-badge dead">🔗 ÂME BRISÉE</span>`;
-                            } else {
-                                linkHtml = `<span class="link-badge">🔗 LIÉ [Zone ${p.location_id}]</span>`;
+                const grid = box.querySelector('.slots-grid');
+                for (let i = 0; i < 6; i++) {
+                    const mon = player.team && player.team[i] ? player.team[i] : null;
+                    let slotEl = grid.children[i];
+
+                    if (!mon || !mon.species) {
+                        if (!slotEl || !slotEl.classList.contains('empty-slot') || slotEl.dataset.slotIdx != i) {
+                            const newEmpty = document.createElement('div');
+                            newEmpty.className = 'empty-slot';
+                            newEmpty.dataset.slotIdx = i;
+                            newEmpty.innerHTML = `<span>◓ Slot ${i+1}</span><span style="opacity:0.4;">Vide</span>`;
+                            if (slotEl) grid.replaceChild(newEmpty, slotEl);
+                            else grid.appendChild(newEmpty);
+                        }
+                        continue;
+                    }
+
+                    const species = mon.species;
+                    const hpPct = mon.max_hp > 0 ? Math.max(0, Math.min(100, (mon.hp / mon.max_hp) * 100)) : 0;
+                    let hpClass = '';
+                    if (hpPct <= 20) hpClass = 'crit';
+                    else if (hpPct <= 50) hpClass = 'warn';
+
+                    let linkText = '';
+                    let linkDead = false;
+                    if (pairs && pairs.length > 0) {
+                        for (const p of pairs) {
+                            const isMember = (p.members && p.members.some(m => m.role === role && m.slot === (i + 1)))
+                                          || (player.is_me && p.p1_slot === (i + 1))
+                                          || (!player.is_me && p.p2_slot === (i + 1));
+                            if (isMember) {
+                                if (p.status === 'DEAD') {
+                                    linkText = '🔗 ÂME BRISÉE';
+                                    linkDead = true;
+                                } else {
+                                    linkText = `🔗 LIÉ [Zone ${p.location_id}]`;
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
-                }
 
-                const name = getMonName(mon.species);
-                const card = document.createElement('div');
-                card.className = `mon-card ${mon.is_fainted ? 'dead' : ''}`;
-                const deadBadge = mon.is_fainted ? '<div class="dead-badge">💀 K.O.</div>' : '';
+                    const name = getMonName(species);
 
-                card.innerHTML = `
-                    ${deadBadge}
-                    <div class="sprite-frame">
-                        <img class="sprite" src="${getSpriteUrl(mon.species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${mon.species});" alt="${name}">
-                    </div>
-                    <div class="mon-info">
-                        <div class="name-row">
-                            <span class="mon-name" title="${name}">${name}</span>
-                            <span class="mon-level">Nv.${mon.level}</span>
-                        </div>
-                        <div class="hp-container">
-                            <div class="hp-badge">PV</div>
-                            <div class="hp-bar-track">
-                                <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
+                    // Create card element if missing or previously empty slot
+                    if (!slotEl || !slotEl.classList.contains('mon-card')) {
+                        const newCard = document.createElement('div');
+                        newCard.className = 'mon-card';
+                        newCard.dataset.slotIdx = i;
+                        newCard.dataset.species = species;
+                        newCard.innerHTML = `
+                            <div class="dead-badge" style="display:none;">💀 K.O.</div>
+                            <div class="name-row">
+                                <span class="mon-name" title="${name}">${name}</span>
+                                <span class="mon-level">Nv.${mon.level}</span>
                             </div>
-                        </div>
-                        <div class="hp-numbers">${mon.hp}/${mon.max_hp}</div>
-                        ${linkHtml}
-                    </div>
-                `;
-                grid.appendChild(card);
-            }
+                            <div class="sprite-frame">
+                                <img class="sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
+                            </div>
+                            <div class="mon-info">
+                                <div class="hp-container">
+                                    <div class="hp-badge">PV</div>
+                                    <div class="hp-bar-track">
+                                        <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="hp-numbers">${mon.hp}/${mon.max_hp}</div>
+                                <div class="link-badge-container"></div>
+                            </div>
+                        `;
+                        if (slotEl) grid.replaceChild(newCard, slotEl);
+                        else grid.appendChild(newCard);
+                        slotEl = newCard;
+                    }
 
-            box.appendChild(grid);
-            return box;
+                    // Card already exists: ONLY update img.src if species actually changed!
+                    // This prevents resetting the idle GIF animation!
+                    if (slotEl.dataset.species !== String(species)) {
+                        slotEl.dataset.species = species;
+                        const img = slotEl.querySelector('.sprite');
+                        img.src = getSpriteUrl(species);
+                        img.alt = name;
+                        const nameEl = slotEl.querySelector('.mon-name');
+                        nameEl.textContent = name;
+                        nameEl.title = name;
+                    }
+
+                    // Update live mutable stats in place
+                    if (mon.is_fainted) {
+                        slotEl.classList.add('dead');
+                        slotEl.querySelector('.dead-badge').style.display = 'block';
+                    } else {
+                        slotEl.classList.remove('dead');
+                        slotEl.querySelector('.dead-badge').style.display = 'none';
+                    }
+
+                    slotEl.querySelector('.mon-level').textContent = `Nv.${mon.level}`;
+                    const barFill = slotEl.querySelector('.hp-bar-fill');
+                    barFill.className = `hp-bar-fill ${hpClass}`;
+                    barFill.style.width = `${hpPct}%`;
+                    slotEl.querySelector('.hp-numbers').textContent = `${mon.hp}/${mon.max_hp}`;
+
+                    const linkContainer = slotEl.querySelector('.link-badge-container');
+                    if (linkText) {
+                        linkContainer.innerHTML = `<span class="link-badge ${linkDead ? 'dead' : ''}">${linkText}</span>`;
+                    } else {
+                        linkContainer.innerHTML = '';
+                    }
+                }
+            }
         }
 
         async function pollTeams() {
             try {
                 const res = await fetch('/api/teams');
                 if (!res.ok) return;
-                const data = await res.json();
-                if (!data.active) return;
+                const text = await res.text();
+                if (text === lastResponseText) return;
+                lastResponseText = text;
+                const data = JSON.parse(text);
+
+                if (!data.active) {
+                    if (!document.getElementById('standby-card')) {
+                        container.innerHTML = `
+                            <div id="standby-card" class="team-box" style="text-align:center; padding: 25px 20px; max-width: 480px; margin: auto;">
+                                <div class="team-title" style="justify-content: center; font-size: 10px; border-bottom: none; margin-bottom: 0;">
+                                    ⏳ En attente de synchronisation...
+                                </div>
+                                <div style="font-size: 7.5px; color: #94a3b8; margin-top: 10px; line-height: 1.6;">
+                                    Lancez votre partie de Pokémon Platine pour afficher l'équipe sur l'overlay.
+                                </div>
+                            </div>`;
+                    }
+                    return;
+                }
+
+                if (document.getElementById('standby-card')) {
+                    container.innerHTML = '';
+                }
 
                 let playersToRender = [];
                 if (data.players && data.players.length > 0) {
@@ -776,16 +899,14 @@ void OverlayServer::buildHtml()
                         if (p) playersToRender.push(p);
                         else playersToRender = data.players;
                     }
-                } else {
-                    if (data.player1) {
-                        playersToRender.push({
-                            role: 1,
-                            name: 'Joueur 1 (Moi)',
-                            is_me: true,
-                            alive_count: data.player1.filter(m => !m.is_fainted).length,
-                            team: data.player1
-                        });
-                    }
+                } else if (data.player1) {
+                    playersToRender.push({
+                        role: 1,
+                        name: 'Joueur 1 (Moi)',
+                        is_me: true,
+                        alive_count: data.player1.filter(m => !m.is_fainted).length,
+                        team: data.player1
+                    });
                     if (targetPlayer === 'all' && data.player2 && data.player2.length > 0) {
                         playersToRender.push({
                             role: 2,
@@ -797,10 +918,7 @@ void OverlayServer::buildHtml()
                     }
                 }
 
-                container.innerHTML = '';
-                for (const player of playersToRender) {
-                    container.appendChild(renderPlayerCard(player, data.pairs));
-                }
+                updatePlayersDOM(playersToRender, data.pairs);
             } catch (err) {}
         }
 

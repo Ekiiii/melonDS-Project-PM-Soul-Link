@@ -39,6 +39,8 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <set>
+#include <map>
 
 #include <SDL2/SDL.h>
 
@@ -1837,6 +1839,244 @@ melonDS::u8* apPtr(melonDS::NDS* nds, melonDS::u32 addr)
     return &nds->MainRAM[addr & nds->MainRAMMask];
 }
 
+struct SoulLinkMon {
+    bool valid = false;
+    melonDS::u16 species = 0;
+    melonDS::u16 metLoc = 0;
+    melonDS::u16 curHp = 0;
+    melonDS::u16 maxHp = 0;
+    melonDS::u8 level = 0;
+    bool isFainted = false;
+};
+
+static SoulLinkMon ParsePartyMon(const melonDS::u8* data)
+{
+    SoulLinkMon info;
+    if (!data) return info;
+    melonDS::u32 pid = *(const melonDS::u32*)(data + 0x00);
+    melonDS::u16 flags = *(const melonDS::u16*)(data + 0x04);
+    melonDS::u16 checksum = *(const melonDS::u16*)(data + 0x06);
+    if (pid == 0) return info;
+
+    // Decrypt BoxMon 128 bytes
+    melonDS::u16 encWords[64];
+    memcpy(encWords, data + 0x08, 128);
+    melonDS::u32 seed = checksum;
+    melonDS::u16 decWords[64];
+    for (int i = 0; i < 64; i++) {
+        seed = seed * 0x41C64E6Du + 0x6073u;
+        melonDS::u16 key = (melonDS::u16)(seed >> 16);
+        decWords[i] = encWords[i] ^ key;
+    }
+    const melonDS::u8* decBytes = (const melonDS::u8*)decWords;
+    melonDS::u32 orderIdx = ((pid & 0x3E000u) >> 13) % 24;
+    static const char* const s_Orders[24] = {
+        "ABCD", "ABDC", "ACBD", "ACDB", "ADBC", "ADCB",
+        "BACD", "BADC", "BCAD", "BCDA", "BDAC", "BDCA",
+        "CABD", "CADB", "CBAD", "CBDA", "CDAB", "CDBA",
+        "DABC", "DACB", "DBAC", "DBCA", "DCAB", "DCBA"
+    };
+    const char* order = s_Orders[orderIdx];
+    int blockAPos = 0, blockDPos = 0;
+    for (int b = 0; b < 4; b++) {
+        if (order[b] == 'A') blockAPos = b * 32;
+        if (order[b] == 'D') blockDPos = b * 32;
+    }
+    info.species = *(const melonDS::u16*)(decBytes + blockAPos + 0x00);
+    info.metLoc  = *(const melonDS::u16*)(decBytes + blockDPos + 0x16);
+
+    // Decrypt Party stats (100 bytes at +0x88)
+    melonDS::u16 partyWords[50];
+    memcpy(partyWords, data + 0x88, 100);
+    bool isPartyDecrypted = (flags & 1) != 0;
+    if (!isPartyDecrypted) {
+        melonDS::u32 pSeed = pid;
+        for (int i = 0; i < 50; i++) {
+            pSeed = pSeed * 0x41C64E6Du + 0x6073u;
+            melonDS::u16 key = (melonDS::u16)(pSeed >> 16);
+            partyWords[i] ^= key;
+        }
+    }
+    const melonDS::u8* partyBytes = (const melonDS::u8*)partyWords;
+    info.level  = *(const melonDS::u8*)(partyBytes + 0x04);
+    info.curHp  = *(const melonDS::u16*)(partyBytes + 0x06);
+    info.maxHp  = *(const melonDS::u16*)(partyBytes + 0x08);
+
+    if (info.level == 0 || info.level > 100 || info.maxHp == 0 || info.maxHp > 2000) {
+        const melonDS::u8* rawBytes = data + 0x88;
+        melonDS::u8 rawLevel  = *(const melonDS::u8*)(rawBytes + 0x04);
+        melonDS::u16 rawMaxHp = *(const melonDS::u16*)(rawBytes + 0x08);
+        if (rawLevel >= 1 && rawLevel <= 100 && rawMaxHp > 0 && rawMaxHp <= 2000) {
+            info.level = rawLevel;
+            info.curHp = *(const melonDS::u16*)(rawBytes + 0x06);
+            info.maxHp = rawMaxHp;
+        }
+    }
+    info.isFainted = (info.curHp == 0);
+    info.valid = (info.species > 0);
+    return info;
+}
+
+static std::set<int> sSessionDeadLocations;
+static std::map<int, std::set<int>> sEverSeenPartyZones;
+
+static void SoulLink_SyncDeaths(melonDS::NDS* nds)
+{
+    if (!nds || !gBr.partyExp || gBr.partySize < 8) return;
+
+    int myRole = mpnet::gNet.myRole();
+    if (myRole < 1 || myRole > 8) myRole = 1;
+
+    bool newDeadFound = false;
+
+    // 1. Inspect peers' parties
+    for (int r = 1; r <= 8; r++)
+    {
+        if (r == myRole) continue;
+        const melonDS::u8* peerParty = nullptr;
+        if (gBr.partyN) peerParty = apPtr(nds, gBr.partyN + (r - 1) * gBr.partySize);
+        else if (r == 2 && gBr.partyImp) peerParty = apPtr(nds, gBr.partyImp);
+
+        if (!peerParty) continue;
+        melonDS::u32 pCount = *(const melonDS::u32*)(peerParty + 4);
+        if (pCount == 0 || pCount > 6) continue;
+
+        std::set<int> currentPeerZones;
+        for (melonDS::u32 i = 0; i < pCount; i++)
+        {
+            SoulLinkMon m = ParsePartyMon(peerParty + 8 + i * 236);
+            if (m.valid && m.metLoc > 0)
+            {
+                if (m.isFainted)
+                {
+                    if (sSessionDeadLocations.insert(m.metLoc).second)
+                    {
+                        newDeadFound = true;
+                        printf("[SOULLINK] Peer %d has fainted mon in zone %d! Marked DEAD.\n", r, m.metLoc);
+                    }
+                }
+                else
+                {
+                    currentPeerZones.insert(m.metLoc);
+                    sEverSeenPartyZones[r].insert(m.metLoc);
+                }
+            }
+        }
+
+        // If a mon previously seen in peer's party is now gone from party (moved to cemetery box)
+        for (int seenLoc : sEverSeenPartyZones[r])
+        {
+            if (!currentPeerZones.count(seenLoc) && !sSessionDeadLocations.count(seenLoc))
+            {
+                sSessionDeadLocations.insert(seenLoc);
+                newDeadFound = true;
+                printf("[SOULLINK] Peer %d mon in zone %d disappeared (cemetery)! Marked DEAD.\n", r, seenLoc);
+            }
+        }
+    }
+
+    // 2. Inspect local party
+    melonDS::u32 localCount = apRd32(nds, gBr.partyExp + 4);
+    if (localCount > 0 && localCount <= 6)
+    {
+        for (melonDS::u32 i = 0; i < localCount; i++)
+        {
+            SoulLinkMon m = ParsePartyMon(apPtr(nds, gBr.partyExp) + 8 + i * 236);
+            if (m.valid && m.metLoc > 0)
+            {
+                if (m.isFainted)
+                {
+                    if (sSessionDeadLocations.insert(m.metLoc).second)
+                    {
+                        newDeadFound = true;
+                        printf("[SOULLINK] Local mon in zone %d fainted! Marked DEAD.\n", m.metLoc);
+                    }
+                }
+                else
+                {
+                    sEverSeenPartyZones[myRole].insert(m.metLoc);
+                }
+            }
+        }
+    }
+
+    // 3. Broadcast newly found dead locations to peers (Tag 4)
+    if (mpnet::gNet.anyUp())
+    {
+        if (newDeadFound || ((gBr.frame % 120) == 0 && !sSessionDeadLocations.empty()))
+        {
+            for (int loc : sSessionDeadLocations)
+            {
+                melonDS::u8 dbuf[6];
+                dbuf[0] = 4;
+                dbuf[1] = (melonDS::u8)myRole;
+                dbuf[2] = (melonDS::u8)(loc & 0xFF);
+                dbuf[3] = (melonDS::u8)(loc >> 8);
+                mpnet::gNet.sendAll(dbuf, 4);
+            }
+        }
+    }
+
+    // 4. Apply deaths to local party if NOT in battle
+    bool inBattle = false;
+    if (gBr.exportBlk)
+    {
+        inBattle = (apRd8(nds, gBr.exportBlk + 0x10) != 0);
+    }
+
+    if (!inBattle && localCount > 0 && localCount <= 6)
+    {
+        melonDS::u8* pBase = apPtr(nds, gBr.partyExp);
+        for (int s = (int)localCount - 1; s >= 0; s--)
+        {
+            SoulLinkMon info = ParsePartyMon(pBase + 8 + s * 236);
+            if (info.valid && info.metLoc > 0 && sSessionDeadLocations.count(info.metLoc))
+            {
+                if (localCount > 1)
+                {
+                    for (int k = s; k < (int)localCount - 1; k++)
+                    {
+                        memcpy(pBase + 8 + k * 236, pBase + 8 + (k + 1) * 236, 236);
+                    }
+                    memset(pBase + 8 + (localCount - 1) * 236, 0, 236);
+                    localCount--;
+                    apWr32(nds, gBr.partyExp + 4, localCount);
+                    printf("[SOULLINK] Removed linked dead Pokemon (species %d, loc %d) from slot %d! Remaining: %u\n",
+                           info.species, info.metLoc, s, localCount);
+                }
+                else
+                {
+                    // Last mon: zero HP so game whiteout triggers
+                    melonDS::u8* monData = pBase + 8 + s * 236;
+                    melonDS::u32 pid = *(const melonDS::u32*)(monData + 0x00);
+                    melonDS::u16 flags = *(const melonDS::u16*)(monData + 0x04);
+                    melonDS::u16 partyWords[50];
+                    memcpy(partyWords, monData + 0x88, 100);
+                    bool isPartyDecrypted = (flags & 1) != 0;
+                    if (!isPartyDecrypted)
+                    {
+                        melonDS::u32 pSeed = pid;
+                        for (int w = 0; w < 50; w++) {
+                            pSeed = pSeed * 0x41C64E6Du + 0x6073u;
+                            partyWords[w] ^= (melonDS::u16)(pSeed >> 16);
+                        }
+                    }
+                    partyWords[3] = 0; // curHp = 0
+                    if (!isPartyDecrypted)
+                    {
+                        melonDS::u32 pSeed = pid;
+                        for (int w = 0; w < 50; w++) {
+                            pSeed = pSeed * 0x41C64E6Du + 0x6073u;
+                            partyWords[w] ^= (melonDS::u16)(pSeed >> 16);
+                        }
+                    }
+                    memcpy(monData + 0x88, partyWords, 100);
+                }
+            }
+        }
+    }
+}
+
 void NetTick()
 {
     gBr.frame++;
@@ -1949,6 +2189,35 @@ void BridgePump(melonDS::NDS* nds)
     int myRole = mpnet::gNet.myRole();
     apWr8(nds, gBr.ctl + 8, (u8)myRole);
 
+    // Overlay server update: independent of wireless activation so stream overlay always works!
+    if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0 && gBr.partyExp)
+    {
+        OverlayServer::Instance().UpdateTeamsMulti(
+            apPtr(nds, gBr.partyExp),
+            gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
+            gBr.partySize,
+            mpnet::gNet.myRole(),
+            mpnet::gNet.rname,
+            gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr
+        );
+    }
+
+    // Party sync: continuously sync party across peers on change OR periodically every 60 frames (~1s)
+    if (mpnet::gNet.anyUp() && gBr.partyExp && gBr.partySize >= 8 && gBr.partySize <= 2048)
+    {
+        bool forceSync = ((gBr.frame % 60) == 0);
+        if (forceSync || gBr.lastParty.size() != gBr.partySize
+            || memcmp(gBr.lastParty.data(), apPtr(nds, gBr.partyExp), gBr.partySize) != 0)
+        {
+            gBr.lastParty.assign(apPtr(nds, gBr.partyExp), apPtr(nds, gBr.partyExp) + gBr.partySize);
+            u8 pbuf[2100];
+            pbuf[0] = 2; pbuf[1] = (u8)myRole;
+            pbuf[2] = (u8)(gBr.partySize & 0xFF); pbuf[3] = (u8)(gBr.partySize >> 8);
+            memcpy(pbuf + 4, gBr.lastParty.data(), gBr.partySize);
+            mpnet::gNet.sendAll(pbuf, 4 + gBr.partySize);
+        }
+    }
+
     if (inGame && mpnet::gNet.anyUp())
     {
         u8 buf[2100];
@@ -1959,29 +2228,6 @@ void BridgePump(melonDS::NDS* nds)
         memcpy(buf + 4, apPtr(nds, gBr.exportBlk), gBr.blkSize);
         memcpy(buf + 4 + gBr.blkSize, apPtr(nds, gBr.owExp), 48);
         mpnet::gNet.sendAll(buf, 4 + gBr.blkSize + 48); gBr.dbgTx++;
-
-        // party: on content change
-        if (gBr.lastParty.size() != gBr.partySize
-            || memcmp(gBr.lastParty.data(), apPtr(nds, gBr.partyExp), gBr.partySize) != 0)
-        {
-            gBr.lastParty.assign(apPtr(nds, gBr.partyExp), apPtr(nds, gBr.partyExp) + gBr.partySize);
-            buf[0] = 2; buf[1] = (u8)myRole;
-            buf[2] = (u8)(gBr.partySize & 0xFF); buf[3] = (u8)(gBr.partySize >> 8);
-            memcpy(buf + 4, gBr.lastParty.data(), gBr.partySize);
-            mpnet::gNet.sendAll(buf, 4 + gBr.partySize);
-        }
-
-        if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0 && gBr.partyExp)
-        {
-            OverlayServer::Instance().UpdateTeamsMulti(
-                apPtr(nds, gBr.partyExp),
-                gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
-                gBr.partySize,
-                mpnet::gNet.myRole(),
-                mpnet::gNet.rname,
-                gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr
-            );
-        }
 
         // pkt channel: on content change
         if (gBr.lastPkt.size() != gBr.pktSize
@@ -2022,7 +2268,7 @@ void BridgePump(melonDS::NDS* nds)
                 for (int pj = 0; pj < 7; pj++)
                     if (pj != pi) mpnet::gNet.enqueue(pj, rx, n);
 
-            if (tag >= 1 && tag <= 3)
+            if (tag >= 1 && tag <= 4)
             {
                 // Peer NEWLY game-active (activated Wireless Play or
                 // reconnected): resend on-change channels — anything sent
@@ -2073,25 +2319,35 @@ void BridgePump(melonDS::NDS* nds)
             }
             else if (tag == 2 && sz == gBr.partySize)
             {
-                melonDS::u8 pairRole = apRd8(nds, gBr.owExp + 0x18);
-                // Ever-game-active latch, NOT recent traffic: mid-battle
-                // peers freeze their exports and an aging count re-opened
-                // the legacy door exactly while a pair fought (4P bug).
+                melonDS::u8 pairRole = gBr.owExp ? apRd8(nds, gBr.owExp + 0x18) : 0;
                 int gamePeers = 0;
                 for (int gr = 1; gr <= 8; gr++)
                     if (gr != myRole && sGameEver[gr]) gamePeers++;
                 bool strict = (gamePeers >= 2);
                 if ((pairRole == 0 && !strict) || r == (int)pairRole)
-                    memcpy(apPtr(nds, gBr.partyImp), rx + 4, sz);
+                {
+                    if (gBr.partyImp) memcpy(apPtr(nds, gBr.partyImp), rx + 4, sz);
+                }
                 if (gBr.partyN) memcpy(apPtr(nds, gBr.partyN + (r-1)*sz), rx + 4, sz);
             }
             else if (tag == 3 && sz == gBr.pktSize)
             {
-                memcpy(apPtr(nds, gBr.pktImp + (r-1)*sz), rx + 4, sz);
+                if (gBr.pktImp) memcpy(apPtr(nds, gBr.pktImp + (r-1)*sz), rx + 4, sz);
                 gBr.dbgPktRx++;
+            }
+            else if (tag == 4 && sz >= 2)
+            {
+                melonDS::u16 deadLoc = (melonDS::u16)(rx[4] | (rx[5] << 8));
+                if (deadLoc > 0)
+                {
+                    sSessionDeadLocations.insert(deadLoc);
+                }
             }
         }
     }
+
+    // Soul Link: synchronize dead Pokémon across connected players
+    SoulLink_SyncDeaths(nds);
 
     // PAIR REBIND / GHOST PURGE (ported from the DeSmuME bridge).  On a
     // pairRole change to a REAL role, replay that role's latest cached
