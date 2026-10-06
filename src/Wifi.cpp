@@ -24,6 +24,13 @@
 #include "WifiAP.h"
 #include "Platform.h"
 
+namespace melonDS {
+// hang diagnostics: breadcrumb written from the emu thread, watched externally
+volatile unsigned int g_wifiCrumb = 0;
+volatile unsigned int g_wifiCrumbSeq = 0;
+volatile unsigned int g_asyncSpin = 0;
+}
+
 namespace melonDS
 {
 using Platform::Log;
@@ -963,7 +970,10 @@ bool Wifi::ProcessTX(TXSlot* slot, int num)
                 u32 curclient = 1 << nclient;
 
                 if (!(MPClientFail & curclient))
+                {
                     MPClientReplyRX(nclient);
+                    MPAsyncRes &= ~curclient;   // async: pending reply consumed
+                }
 
                 MPReplyTimer += 10 + IOPORT(W_CmdReplyTime);
                 MPClientMask &= ~curclient;
@@ -1062,6 +1072,45 @@ bool Wifi::ProcessTX(TXSlot* slot, int num)
                 u16 res = 0;
                 if (MPClientMask)
                     res = Platform::MP_RecvReplies(MPClientReplies, USTimestamp, MPClientMask, NDS.UserData);
+
+                // async wireless mode: replies need REAL time to cross
+                // the socket and the peer's frame scheduling (0-17 ms),
+                // but emulated time sprints ~10x real during a burst, so
+                // an emulated-only wait misses them whenever the two
+                // instances' schedulers are badly phased (the multi-
+                // second droughts).  First do a bounded REAL-time wait —
+                // it consumes the frame limiter's idle slack (~12 ms per
+                // frame), costing no frame rate on a healthy host.
+                if (Platform::MP_GetAsyncMode(NDS.UserData)
+                    && MPClientMask && ((res & MPClientMask) != MPClientMask))
+                {
+                    for (int spin = 0; spin < 12; spin++)
+                    {
+                        Platform::Sleep(1000);
+                        res |= Platform::MP_RecvReplies(MPClientReplies, USTimestamp,
+                            MPClientMask & ~res, NDS.UserData);
+                        if ((res & MPClientMask) == MPClientMask)
+                            break;
+                    }
+                }
+
+                // Still missing (peer busy, or real network latency):
+                // STRETCH the exchange across emulated time as a backstop.
+                // Successful exchanges end early; the cap must stay under
+                // the WM library's own command window (33 ms works; 120 ms
+                // tears the link down — measured).  Playing back anything
+                // but same-exchange-fresh replies breaks the WM link layer
+                // (measured twice), so pipelining is not an option.
+                if (Platform::MP_GetAsyncMode(NDS.UserData)
+                    && MPClientMask && ((res & MPClientMask) != MPClientMask))
+                {
+                    MPAsyncRes = res;
+                    MPAsyncWaitUS = 0;
+                    slot->CurPhase = 14;
+                    slot->CurPhaseTime = 1024;
+                    break;
+                }
+
                 MPClientFail &= ~res;
 
                 // TODO: 112 likely includes the ack preamble, which needs adjusted
@@ -1181,6 +1230,32 @@ bool Wifi::ProcessTX(TXSlot* slot, int num)
             }
         }
         return true;
+
+    case 14: // async wireless: waiting (in emulated time) for MP replies
+        {
+            melonDS::g_wifiCrumb = 1400 + (MPAsyncWaitUS / 1024);
+            melonDS::g_wifiCrumbSeq++;
+            melonDS::g_asyncSpin++;
+            u16 want = MPClientMask & ~MPAsyncRes;
+            u16 res = 0;
+            if (want)
+                res = Platform::MP_RecvReplies(MPClientReplies, USTimestamp, want, NDS.UserData);
+            MPAsyncRes |= res;
+            MPAsyncWaitUS += 1024;
+
+            if (((MPAsyncRes & MPClientMask) == MPClientMask)
+                || MPAsyncWaitUS >= 33000)  /* 33ms: WM lib has its own command timeout between 33-120ms emulated — beyond it the link tears down (measured); 33ms is the envelope */
+            {
+                MPClientFail &= ~MPAsyncRes;
+                slot->CurPhase = 2;
+                slot->CurPhaseTime = 112 + ((10 + IOPORT(W_CmdReplyTime)) * NumClients(MPClientMask));
+            }
+            else
+            {
+                slot->CurPhaseTime = 1024;   // poll again in ~1ms emulated
+            }
+        }
+        return false;
 
     case 13: // MP transfer failed (timeout)
         {
@@ -1537,6 +1612,7 @@ void Wifi::MPClientReplyRX(int client)
     u8* reply = &MPClientReplies[(client-1)*1024];
     framelen = *(u16*)&reply[10];
 
+
     txrate = reply[8];
 
     // TODO: what are the maximum crop values?
@@ -1715,6 +1791,15 @@ bool Wifi::CheckRX(int type) // 0=regular 1=MP replies 2=MP host frames
         {
             u32 runahead = *(u32*)&RXBuffer[0];
 
+            // async wireless: the host's runahead is computed on its
+            // STRETCHED timeline and overshoots ours — honoring it makes
+            // the client sleep through the ack->next-CMD gap, batch-process
+            // them, and reply from a stale slot (the ~3.4-exchange datagram
+            // turnaround that starved the child uplink).  Poll continuously
+            // instead; the per-tick MP poll is cheap.
+            if (Platform::MP_GetAsyncMode(NDS.UserData))
+                runahead = 0;
+
             NextSync += runahead;
         }
     }
@@ -1758,6 +1843,8 @@ void Wifi::MSTimer()
 
 void Wifi::USTimer(u32 param)
 {
+    melonDS::g_wifiCrumb = 1000;
+    melonDS::g_wifiCrumbSeq++;
     USTimestamp += kTimerInterval;
 
     if (IsMPClient && (!ComStatus))

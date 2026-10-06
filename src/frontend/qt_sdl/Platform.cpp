@@ -511,6 +511,11 @@ u16 MP_RecvReplies(u8* data, u64 timestamp, u16 aidmask, void* userdata)
     return MPInterface::Get().RecvReplies(inst, data, timestamp, aidmask);
 }
 
+bool MP_GetAsyncMode(void* userdata)
+{
+    return MPInterface::Get().GetAsyncMode();
+}
+
 
 int Net_SendPacket(u8* data, int len, void* userdata)
 {

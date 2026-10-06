@@ -239,6 +239,11 @@ private:
 
     u8 MPClientReplies[15*1024];
 
+    // async wireless mode: replies gathered so far / emulated time spent
+    // waiting, while the MP exchange is stretched across real time
+    u16 MPAsyncRes = 0;
+    u32 MPAsyncWaitUS = 0;
+
     u16 MPLastSeqno;
 
     int USUntilPowerOn;

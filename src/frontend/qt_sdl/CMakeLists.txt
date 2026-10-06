@@ -7,6 +7,8 @@ set(SOURCES_QT_SDL
     main_shaders.h
     Screen.cpp
     Window.cpp
+    OverlayServer.h
+    OverlayServer.cpp
     EmuInstance.cpp
     EmuInstanceAudio.cpp
     EmuInstanceInput.cpp

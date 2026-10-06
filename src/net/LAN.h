@@ -92,6 +92,14 @@ public:
     std::map<u32, DiscoveryData> GetDiscoveryList();
     std::vector<Player> GetPlayerList();
     int GetNumPlayers() { return NumPlayers; }
+    bool GetIsHost() { return IsHost; }
+    int GetMyPlayerID() { return MyPlayer.ID; }
+    melonDS::u32 GetHostAddress() { return HostAddress; }   // connected host IP (network byte order)
+
+    // fork-bridge channel: mailbox sync frames (packet type >= 4) get
+    // their own queue so game MP traffic never sees them
+    int BridgeRecv(u8* buf, int maxlen);
+    int BridgeSend(u8* data, int len) { return SendPacketGeneric(4, data, len, 0); }
     int GetMaxPlayers() { return MaxPlayers; }
 
     void Process() override;
@@ -135,7 +143,18 @@ private:
     ENetPeer* LastHostPeer;
     std::queue<ENetPacket*> RXQueue;
 
+    // async wireless mode: MP frames (CMD/reply/ack) get their own queue so
+    // the misc-frame lookup cannot destroy queued late MP frames.
+    std::queue<ENetPacket*> RXQueueMP;
+    std::queue<ENetPacket*> RXQueueBridge;
+    void ProcessLANAsync(int type);
+
     u32 FrameCount;
+
+    // Host: ms-timestamp a slot entered Player_Connecting, so a client that
+    // connects then vanishes mid-handshake (CPU-starved timeout, crash, silent
+    // enet_peer_reset) doesn't leak its slot forever and wedge the roster full.
+    u32 ConnectingSince[16];
 
     void ProcessDiscovery();
 

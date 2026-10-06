@@ -222,6 +222,7 @@ void setMPInterface(MPInterfaceType type)
     // set receive timeout
     // TODO: different settings per interface?
     MPInterface::Get().SetRecvTimeout(Config::GetGlobalTable().GetInt("MP.RecvTimeout"));
+    MPInterface::Get().SetAsyncMode(Config::GetGlobalTable().GetBool("MP.AsyncMode"));
 
     // update UI appropriately
     // TODO: decide how to deal with multi-window when it becomes a thing

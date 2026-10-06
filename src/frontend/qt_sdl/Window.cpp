@@ -38,9 +38,22 @@
 #include <QPainter>
 #include <QKeyEvent>
 #include <QMimeData>
+#include <QTimer>
+#include <QSharedMemory>
 #include <QVector>
 #include <QCommandLineParser>
 #include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLineEdit>
+#include <QLabel>
+#include <QPushButton>
+#include <QClipboard>
+#include <QGuiApplication>
+#include "OverlayServer.h"
 
 #include "main.h"
 #include "CheatsDialog.h"
@@ -66,6 +79,7 @@
 #include "Savestate.h"
 #include "MPInterface.h"
 #include "LANDialog.h"
+#include "MpOnline.h"
 
 //#include "main_shaders.h"
 
@@ -424,6 +438,46 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 actLANStartClient = submenu->addAction("Join LAN game");
                 connect(actLANStartClient, &QAction::triggered, this, &MainWindow::onLANStartClient);
 
+                submenu->addSeparator();
+
+                actOnlineStartHost = submenu->addAction("Host Online Game...");
+                actOnlineStartHost->setMenuRole(QAction::NoRole);
+                connect(actOnlineStartHost, &QAction::triggered, this, &MainWindow::onOnlineStartHost);
+
+                actOnlineStartClient = submenu->addAction("Join Online Game...");
+                actOnlineStartClient->setMenuRole(QAction::NoRole);
+                connect(actOnlineStartClient, &QAction::triggered, this, &MainWindow::onOnlineStartClient);
+
+                actOnlineCustomRelay = submenu->addAction("Custom Relay Server");
+                actOnlineCustomRelay->setMenuRole(QAction::NoRole);
+                actOnlineCustomRelay->setCheckable(true);
+                actOnlineCustomRelay->setChecked(globalCfg.GetBool("Online.ShowRelayServer"));
+                connect(actOnlineCustomRelay, &QAction::triggered, this, &MainWindow::onOnlineCustomRelay);
+
+                submenu->addSeparator();
+
+                QMenu* overlaySubmenu = submenu->addMenu("Twitch Overlay (Soullocke)");
+
+                actOverlayEnable = overlaySubmenu->addAction("Activer l'Overlay Twitch");
+                actOverlayEnable->setMenuRole(QAction::NoRole);
+                actOverlayEnable->setCheckable(true);
+                bool overlayOn = globalCfg.GetBool("Overlay.Enabled", true);
+                actOverlayEnable->setChecked(overlayOn);
+                if (overlayOn) OverlayServer::Instance().Start(8080);
+                connect(actOverlayEnable, &QAction::toggled, this, &MainWindow::onToggleOverlay);
+
+                actOverlayCopyLink = overlaySubmenu->addAction("Copier le lien pour OBS (Horizontal)");
+                actOverlayCopyLink->setMenuRole(QAction::NoRole);
+                connect(actOverlayCopyLink, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkHorizontal);
+
+                actOverlayCopyLinkVertical = overlaySubmenu->addAction("Copier le lien pour OBS (Vertical)");
+                actOverlayCopyLinkVertical->setMenuRole(QAction::NoRole);
+                connect(actOverlayCopyLinkVertical, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkVertical);
+
+                actOverlayOpenBrowser = overlaySubmenu->addAction("Ouvrir l'Overlay dans le navigateur");
+                actOverlayOpenBrowser->setMenuRole(QAction::NoRole);
+                connect(actOverlayOpenBrowser, &QAction::triggered, this, &MainWindow::onOpenOverlayBrowser);
+
                 /*submenu->addSeparator();
 
                 actNPStartHost = submenu->addAction("NETPLAY HOST");
@@ -657,7 +711,39 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
         // if the window was closed in fullscreen do not restore this
         setWindowState(windowState() & ~Qt::WindowFullScreen);
     }
+
     show();
+
+    // Multi-instance: separate PROCESSES each think they are instance 0
+    // (melonDS instance ids are per-process), so both restore the same
+    // saved geometry and stack exactly on top of each other.  Detect a
+    // second process via a cross-process marker (or the harness env) and
+    // offset it to the RIGHT, post-show (pre-show moves get overridden).
+    {
+        int slot = 0;
+        const char* ap = getenv("MELONDS_AP");
+        if (ap && !strcmp(ap, "join"))
+        {
+            slot = 1;
+        }
+        else if (!ap)
+        {
+            static QSharedMemory* firstWinClaim = nullptr;
+            if (!firstWinClaim)
+            {
+                firstWinClaim = new QSharedMemory("melonDS-first-window-claim");
+                if (!firstWinClaim->create(1))
+                    slot = 1;   // another process already owns the spot
+            }
+        }
+        if (slot > 0)
+        {
+            QTimer::singleShot(400, this, [this, slot]() {
+                int step = frameGeometry().width() + 8;
+                move(x() + step * slot, y());
+            });
+        }
+    }
 
     panel = nullptr;
     createScreenPanel();
@@ -1753,6 +1839,323 @@ void MainWindow::onLANStartClient()
     LANStartClientDialog::openDlg(this);
 }
 
+// ---------------------------------------------------------------------------
+// Online relay lobby (PMRELAY1).  Both sides dial OUT to a neutral relay that
+// splices their streams: no port forwarding, no router setup, and neither
+// player ever sees the other's IP.  LAN hosting and direct IP joining are
+// untouched; this is a separate path that does not use melonDS's own LAN
+// session at all.
+// ---------------------------------------------------------------------------
+
+// Pre-set to the community relay so a player never has to type an address.
+// Anything they saved earlier wins, which is what keeps self-hosted relays
+// sticky once they have been used.
+QString MainWindow::onlineRelayServer()
+{
+    QString s = globalCfg.GetQString("Online.RelayServer").trimmed();
+    if (s.isEmpty()) s = MpOnlineDefaultRelay;
+    return s;
+}
+
+QString MainWindow::onlineDefaultName()
+{
+    QString n = globalCfg.GetQString("Online.PlayerName").trimmed();
+    if (n.isEmpty()) n = QString::fromStdString(localCfg.GetString("Firmware.Username")).trimmed();
+    if (n.isEmpty()) n = "Player";
+    return n;
+}
+
+// Persist the relay ONLY when it is genuinely custom.  Writing the baked
+// default into the config would pin this player to today's address: a future
+// default shipped in a later build would be shadowed by their saved copy
+// forever.  Storing nothing keeps them following whatever the build defaults
+// to, and un-pins anyone an earlier build already pinned.
+void MainWindow::onlineSaveRelay(const QString& srv)
+{
+    if (srv == QString(MpOnlineDefaultRelay))
+        globalCfg.SetQString("Online.RelayServer", "");
+    else
+        globalCfg.SetQString("Online.RelayServer", srv);
+}
+
+void MainWindow::onOnlineCustomRelay(bool checked)
+{
+    globalCfg.SetBool("Online.ShowRelayServer", checked);
+    Config::Save();
+}
+
+void MainWindow::onToggleOverlay(bool checked)
+{
+    globalCfg.SetBool("Overlay.Enabled", checked);
+    Config::Save();
+    if (checked) {
+        OverlayServer::Instance().Start(8080);
+    } else {
+        OverlayServer::Instance().Stop();
+    }
+}
+
+void MainWindow::onCopyOverlayLinkHorizontal()
+{
+    QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?layout=horizontal");
+    QMessageBox::information(this, "Twitch Overlay - Project PM",
+        "Lien copie dans le presse-papiers !\n\n"
+        "URL : http://localhost:8080/overlay?layout=horizontal\n\n"
+        "Instructions OBS Studio :\n"
+        "1. Dans vos sources, ajoutez une 'Source Navigateur' (Browser Source)\n"
+        "2. Collez cette URL\n"
+        "3. Definissez la resolution : Largeur 1920, Hauteur 220\n"
+        "4. Le fond est deja 100% transparent !");
+}
+
+void MainWindow::onCopyOverlayLinkVertical()
+{
+    QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?layout=vertical");
+    QMessageBox::information(this, "Twitch Overlay - Project PM",
+        "Lien copie dans le presse-papiers !\n\n"
+        "URL : http://localhost:8080/overlay?layout=vertical\n\n"
+        "Instructions OBS Studio :\n"
+        "1. Dans vos sources, ajoutez une 'Source Navigateur' (Browser Source)\n"
+        "2. Collez cette URL\n"
+        "3. Definissez la resolution : Largeur 380, Hauteur 900\n"
+        "4. Le fond est deja 100% transparent !");
+}
+
+void MainWindow::onOpenOverlayBrowser()
+{
+    QDesktopServices::openUrl(QUrl("http://localhost:8080/overlay"));
+}
+
+void MainWindow::onOnlineStartHost()
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle("Host Online Game");
+
+    // The relay box appears only for players who turned on Custom Relay Server.
+    // By default hosting is just: type a name, get a code.
+    bool custom = globalCfg.GetBool("Online.ShowRelayServer");
+
+    QFormLayout* form = new QFormLayout(&dlg);
+    QLineEdit* edName = new QLineEdit(onlineDefaultName(), &dlg);
+    edName->setMaxLength(31);
+    form->addRow("Your name:", edName);
+
+    QLineEdit* edSrv = nullptr;
+    if (custom)
+    {
+        edSrv = new QLineEdit(onlineRelayServer(), &dlg);
+        edSrv->setPlaceholderText("relay.example.com:7833");
+        form->addRow("Relay server:", edSrv);
+    }
+
+    QString noteText = "Players join with the room code you get back. No port "
+                       "forwarding is needed and nobody sees anyone else's IP address.";
+    if (custom) noteText += " Leave the relay blank to go back to the community one.";
+    QLabel* note = new QLabel(noteText, &dlg);
+    note->setWordWrap(true);
+    form->addRow(note);
+
+    QDialogButtonBox* bb = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+    form->addRow(bb);
+    connect(bb, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(bb, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    QString srv;
+    if (edSrv)
+    {
+        srv = edSrv->text().trimmed();
+        if (srv.isEmpty()) srv = MpOnlineDefaultRelay;      // blanked on purpose
+    }
+    else srv = onlineRelayServer();
+
+    QString name = edName->text().trimmed();
+    if (name.isEmpty()) name = "Player";
+
+    // Resolve here, on the UI thread: the emulation thread must never block on DNS.
+    MpOnlineTarget target;
+    if (!MpOnlineResolve(srv.toStdString().c_str(), MpOnlineDefaultPort, &target))
+    {
+        QMessageBox::warning(this, "Host Online Game",
+            "Could not find the relay server " + srv + ".\nCheck the address and your connection.");
+        return;
+    }
+
+    onlineSaveRelay(srv);
+    globalCfg.SetQString("Online.PlayerName", name);
+    Config::Save();
+
+    MpOnlineHost(target, name.toStdString().c_str());
+    showOnlineStatus();
+}
+
+void MainWindow::onOnlineStartClient()
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle("Join Online Game");
+
+    bool custom = globalCfg.GetBool("Online.ShowRelayServer");
+
+    QFormLayout* form = new QFormLayout(&dlg);
+    QLineEdit* edName = new QLineEdit(onlineDefaultName(), &dlg);
+    edName->setMaxLength(31);
+    QLineEdit* edCode = new QLineEdit(&dlg);
+    edCode->setMaxLength(5);
+    edCode->setPlaceholderText("ABCDE");
+    form->addRow("Your name:", edName);
+
+    QLineEdit* edSrv = nullptr;
+    if (custom)
+    {
+        edSrv = new QLineEdit(onlineRelayServer(), &dlg);
+        edSrv->setPlaceholderText("relay.example.com:7833");
+        form->addRow("Relay server:", edSrv);
+    }
+    form->addRow("Room code:", edCode);
+
+    QString noteText = "Ask the host for the 5 character room code shown on their screen.";
+    if (custom) noteText += " Match the host's relay, or leave it blank for the community one.";
+    QLabel* note = new QLabel(noteText, &dlg);
+    note->setWordWrap(true);
+    form->addRow(note);
+
+    QDialogButtonBox* bb = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+    form->addRow(bb);
+    connect(bb, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(bb, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    QString srv;
+    if (edSrv)
+    {
+        srv = edSrv->text().trimmed();
+        if (srv.isEmpty()) srv = MpOnlineDefaultRelay;      // blanked on purpose
+    }
+    else srv = onlineRelayServer();
+
+    QString name = edName->text().trimmed();
+    QString code = edCode->text().trimmed().toUpper();
+    if (code.length() != 5)
+    {
+        QMessageBox::warning(this, "Join Online Game", "Room codes are 5 characters long.");
+        return;
+    }
+    if (name.isEmpty()) name = "Player";
+
+    MpOnlineTarget target;
+    if (!MpOnlineResolve(srv.toStdString().c_str(), MpOnlineDefaultPort, &target))
+    {
+        QMessageBox::warning(this, "Join Online Game",
+            "Could not find the relay server " + srv + ".\nCheck the address and your connection.");
+        return;
+    }
+
+    onlineSaveRelay(srv);
+    globalCfg.SetQString("Online.PlayerName", name);
+    Config::Save();
+
+    MpOnlineJoin(target, code.toStdString().c_str(), name.toStdString().c_str());
+    showOnlineStatus();
+}
+
+void MainWindow::showOnlineStatus()
+{
+    if (!onlineStatusDlg)
+    {
+        onlineStatusDlg = new QDialog(this);
+        onlineStatusDlg->setWindowTitle("Online Game");
+        // A parented QDialog has no minimize box and no taskbar entry, so the
+        // online status window could only be closed, never minimized (unlike
+        // the LAN dialog).  Promote it to a real top-level window with the
+        // minimize + close hints so it behaves like every other window.
+        onlineStatusDlg->setWindowFlags(Qt::Window
+            | Qt::CustomizeWindowHint | Qt::WindowTitleHint
+            | Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
+
+        QVBoxLayout* lay = new QVBoxLayout(onlineStatusDlg);
+        onlineStatusLabel = new QLabel("Online - starting...", onlineStatusDlg);
+        onlineStatusLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        onlineStatusLabel->setMinimumWidth(360);
+        lay->addWidget(onlineStatusLabel);
+
+        QHBoxLayout* row = new QHBoxLayout();
+        QPushButton* copyBtn = new QPushButton("Copy room code", onlineStatusDlg);
+        QPushButton* stopBtn = new QPushButton("Leave online game", onlineStatusDlg);
+        QPushButton* hideBtn = new QPushButton("Hide", onlineStatusDlg);
+        row->addWidget(copyBtn);
+        row->addWidget(stopBtn);
+        row->addWidget(hideBtn);
+        lay->addLayout(row);
+
+        connect(copyBtn, &QPushButton::clicked, this, []()
+        {
+            MpOnlineStatus st;
+            MpOnlineGetStatus(&st);
+            if (st.code[0]) QApplication::clipboard()->setText(QString(st.code));
+        });
+        connect(stopBtn, &QPushButton::clicked, this, [this]()
+        {
+            MpOnlineStop();
+            updateOnlineStatus();
+        });
+        connect(hideBtn, &QPushButton::clicked, this, [this]() { onlineStatusDlg->hide(); });
+
+        onlineStatusTimer = new QTimer(onlineStatusDlg);
+        connect(onlineStatusTimer, &QTimer::timeout, this, &MainWindow::updateOnlineStatus);
+        onlineStatusTimer->start(500);
+    }
+
+    updateOnlineStatus();
+    onlineStatusDlg->show();
+    onlineStatusDlg->raise();
+}
+
+void MainWindow::updateOnlineStatus()
+{
+    if (!onlineStatusLabel) return;
+
+    MpOnlineStatus st;
+    MpOnlineGetStatus(&st);
+
+    QString s;
+    if (st.mode == 1)
+    {
+        if (st.code[0])
+            s = QString("Online - room code %1 on %2").arg(st.code).arg(st.server);
+        else
+            s = QString("Online - %1").arg(st.text[0] ? st.text : "connecting to the relay...");
+        s += QString("\nPlayers connected: %1").arg(st.peers);
+    }
+    else if (st.mode == 2)
+    {
+        s = QString("Online - room %1 (%2)")
+            .arg(st.code[0] ? st.code : "-")
+            .arg(st.text[0] ? st.text : "connecting...");
+    }
+    else
+    {
+        s = "Online - not connected";
+    }
+    if (st.pending) s += "\nStarting: waiting for emulation to run.";
+
+    // Roster: names arrive over the shared lobby frame, so players show up here
+    // as soon as they connect, well before anyone starts playing.
+    QString roster;
+    for (int r = 1; r <= 8; r++)
+    {
+        if (!st.roster[r][0]) continue;
+        roster += QString("\n  %1. %2").arg(r).arg(st.roster[r]);
+        if (r == 1) roster += " (host)";
+        else if (st.rosterPing[r] > 0) roster += QString(" (%1 ms)").arg(st.rosterPing[r]);
+        if (r == st.myRole) roster += " (you)";
+    }
+    if (!roster.isEmpty()) s += "\nPlayers:" + roster;
+
+    onlineStatusLabel->setText(s);
+}
+
 void MainWindow::onNPStartHost()
 {
     //Netplay::StartHost();
@@ -1961,6 +2364,7 @@ void MainWindow::onMPSettingsFinished(int res)
     emuInstance->mpAudioMode = globalCfg.GetInt("MP.AudioMode");
     emuInstance->updateAudioMuteByWindowFocus();
     MPInterface::Get().SetRecvTimeout(globalCfg.GetInt("MP.RecvTimeout"));
+    MPInterface::Get().SetAsyncMode(globalCfg.GetBool("MP.AsyncMode"));
 
     emuThread->emuUnpause();
 }

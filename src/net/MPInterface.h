@@ -55,6 +55,13 @@ public:
     [[nodiscard]] int GetRecvTimeout() const noexcept { return RecvTimeout; }
     void SetRecvTimeout(int timeout) noexcept { RecvTimeout = timeout; }
 
+    // Async wireless mode: never block the emu thread waiting for remote
+    // packets, and accept late MP replies instead of discarding them.
+    // Vanilla link code desyncs under this; latency-tolerant romhack
+    // protocols keep working and gain internet-viable behavior.
+    [[nodiscard]] bool GetAsyncMode() const noexcept { return AsyncMode; }
+    void SetAsyncMode(bool async) noexcept { AsyncMode = async; }
+
     // function called every video frame
     virtual void Process() = 0;
 
@@ -71,6 +78,7 @@ public:
 
 protected:
     int RecvTimeout = 25;
+    bool AsyncMode = false;
 
 private:
     static MPInterfaceType CurrentType;

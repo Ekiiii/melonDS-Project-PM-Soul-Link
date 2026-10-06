@@ -302,6 +302,8 @@ LANDialog::LANDialog(QWidget* parent) : QDialog(parent), ui(new Ui::LANDialog)
 {
     ui->setupUi(this);
     setAttribute(Qt::WA_DeleteOnClose);
+    // the lobby stays open for the whole session — let players minimize it
+    setWindowFlag(Qt::WindowMinimizeButtonHint, true);
 
     QStandardItemModel* model = new QStandardItemModel();
     ui->tvPlayerList->setModel(model);
