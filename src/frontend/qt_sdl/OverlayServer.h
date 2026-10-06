@@ -23,6 +23,8 @@ public:
     quint16 GetPort() const { return serverPort; }
 
     void UpdateTeams(const melonDS::u8* partyExp, const melonDS::u8* partyImp, melonDS::u32 partySize);
+    void UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS::u8* partyN, melonDS::u32 partySize,
+                          int myRole, const char roster[9][24], const melonDS::u8* partyImp = nullptr);
 
 private slots:
     void onNewConnection();
