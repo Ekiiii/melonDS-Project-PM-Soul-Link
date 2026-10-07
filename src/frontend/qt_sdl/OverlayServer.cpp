@@ -127,6 +127,9 @@ void OverlayServer::onReadyRead()
         QByteArray body = cachedHtml;
         QByteArray response = "HTTP/1.1 200 OK\r\n"
                               "Content-Type: text/html; charset=utf-8\r\n"
+                              "Cache-Control: no-cache, no-store, must-revalidate\r\n"
+                              "Pragma: no-cache\r\n"
+                              "Expires: 0\r\n"
                               "Access-Control-Allow-Origin: *\r\n"
                               "Content-Length: " + QByteArray::number(body.size()) + "\r\n"
                               "Connection: close\r\n\r\n" + body;
@@ -452,7 +455,7 @@ void OverlayServer::buildHtml()
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch Soul Link Overlay - Project PM</title>
+    <title>Overlay Twitch Soul Link - Project PM</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -723,7 +726,7 @@ void OverlayServer::buildHtml()
 
         /* Soul Link Badge */
         .link-badge {
-            font-size: 6px;
+            font-size: 6.5px;
             background: #581c87;
             border: 1px solid #c084fc;
             box-shadow: 1px 1px 0 #000;
@@ -733,9 +736,10 @@ void OverlayServer::buildHtml()
             border-radius: 2px;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
             display: block;
             text-align: center;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
         }
         .link-badge.dead {
             background: #450a0a;
@@ -847,7 +851,7 @@ void OverlayServer::buildHtml()
                 const titleEl = box.querySelector('.team-title');
                 titleEl.style.color = color;
                 box.querySelector('.p-name').textContent = player.name;
-                box.querySelector('.alive-badge').textContent = `${player.alive_count || 0}/6 Alive`;
+                box.querySelector('.alive-badge').textContent = `${player.alive_count || 0}/6 EN VIE`;
 
                 const grid = box.querySelector('.slots-grid');
                 for (let i = 0; i < 6; i++) {
@@ -890,18 +894,18 @@ void OverlayServer::buildHtml()
                                           || (p.location_id === mon.met_location);
                             if (isMember) {
                                 if (p.status === 'DEAD') {
-                                    linkText = '🔗 BROKEN SOUL';
+                                    linkText = '🔗 ÂME BRISÉE';
                                     linkDead = true;
                                 } else {
                                     const partner = p.members ? p.members.find(m => m.role !== role) : null;
                                     if (partner && partner.in_box) {
                                         if (partner.box_num > 0) {
-                                            linkText = `🔗 LINKED [Z.${p.location_id}] (PC B${partner.box_num})`;
+                                            linkText = `🔗 LIÉ [Z.${p.location_id}] (PC B${partner.box_num})`;
                                         } else {
-                                            linkText = `🔗 LINKED [Zone ${p.location_id}] (PC)`;
+                                            linkText = `🔗 LIÉ [Zone ${p.location_id}] (PC)`;
                                         }
                                     } else {
-                                        linkText = `🔗 LINKED [Zone ${p.location_id}]`;
+                                        linkText = `🔗 LIÉ [Zone ${p.location_id}]`;
                                     }
                                 }
                                 break;
@@ -927,7 +931,7 @@ void OverlayServer::buildHtml()
                                 <circle cx="50" cy="50" r="10" fill="#ffffff" />
                                 <circle cx="50" cy="50" r="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
                             </svg>
-                            <div class="dead-badge" style="display:none;">💀 FAINTED</div>
+                            <div class="dead-badge" style="display:none;">💀 K.O.</div>
                             <div class="card-top">
                                 <div class="name-row">
                                     <span class="mon-name" title="${name}">${name}</span>
@@ -985,7 +989,9 @@ void OverlayServer::buildHtml()
 
                     const linkContainer = slotEl.querySelector('.link-badge-container');
                     if (linkText) {
-                        linkContainer.innerHTML = `<span class="link-badge ${linkDead ? 'dead' : ''}">${linkText}</span>`;
+                        const isLong = linkText.length > 17;
+                        const fSize = isLong ? '5.5px' : '6.5px';
+                        linkContainer.innerHTML = `<span class="link-badge ${linkDead ? 'dead' : ''}" style="font-size: ${fSize};" title="${linkText}">${linkText}</span>`;
                     } else {
                         linkContainer.innerHTML = '';
                     }
@@ -1007,10 +1013,10 @@ void OverlayServer::buildHtml()
                         container.innerHTML = `
                             <div id="standby-card" class="team-box" style="text-align:center; padding: 25px 20px; max-width: 480px; margin: auto;">
                                 <div class="team-title" style="justify-content: center; font-size: 10px; border-bottom: none; margin-bottom: 0;">
-                                    ⏳ Waiting for game sync...
+                                    ⏳ En attente de synchronisation du jeu...
                                 </div>
                                 <div style="font-size: 7.5px; color: #94a3b8; margin-top: 10px; line-height: 1.6;">
-                                    Launch your Pokémon Platinum game to display teams on the overlay.
+                                    Lancez votre jeu Pokémon Platine pour afficher les équipes sur l'overlay.
                                 </div>
                             </div>`;
                     }
