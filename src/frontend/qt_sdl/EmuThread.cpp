@@ -1991,6 +1991,7 @@ static void SoulLink_UpdateOverlayDeaths(melonDS::NDS* nds)
         }
     }
 
+    sSessionDeadLocations.clear();
     if (sSharedStateAddr)
     {
         // Version 2 has localDeadBits at +8 (18 bytes) and remoteDeadBits at +26 (18 bytes)
