@@ -339,6 +339,25 @@ public:
     QAction* actAudioSync;
 
     QAction* actAbout;
+
+    void retranslateUI();
+
+    QMenu* menuFile = nullptr;
+    QMenu* menuSystem = nullptr;
+    QMenu* menuView = nullptr;
+    QMenu* menuConfig = nullptr;
+    QMenu* menuHelp = nullptr;
+    QMenu* menuInsertGBAAddon = nullptr;
+    QMenu* menuSaveState = nullptr;
+    QMenu* menuLoadState = nullptr;
+    QMenu* menuMultiplayer = nullptr;
+    QMenu* overlaySubmenu = nullptr;
+    QMenu* menuScreenSize = nullptr;
+    QMenu* menuScreenRotation = nullptr;
+    QMenu* menuScreenGap = nullptr;
+    QMenu* menuScreenLayout = nullptr;
+    QMenu* menuScreenSizing = nullptr;
+    QMenu* menuAspectRatio = nullptr;
 };
 
 #endif // WINDOW_H

@@ -69,6 +69,7 @@ public:
 
     void osdSetEnabled(bool enabled);
     void osdAddMessage(unsigned int color, const char* msg);
+    void updateSplashText();
 
     virtual void drawScreen() {}// = 0;
 

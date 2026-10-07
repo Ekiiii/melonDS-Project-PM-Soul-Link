@@ -13,6 +13,8 @@ set(SOURCES_QT_SDL
     DirectP2P.cpp
     DirectP2PDialog.h
     DirectP2PDialog.cpp
+    Translation.h
+    Translation.cpp
     EmuInstance.cpp
     EmuInstanceAudio.cpp
     EmuInstanceInput.cpp

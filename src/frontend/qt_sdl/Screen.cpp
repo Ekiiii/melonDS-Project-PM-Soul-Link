@@ -89,17 +89,15 @@ ScreenPanel::ScreenPanel(QWidget* parent) : QWidget(parent)
 
     splashLogo = QPixmap(":/melon-logo");
 
-    strncpy(splashText[0].text, "File->Open ROM...", 256);
     splashText[0].id = 0x80000000;
     splashText[0].color = 0;
-    splashText[0].rendered = false;
     splashText[0].rainbowstart = -1;
 
-    strncpy(splashText[1].text, "to get started", 256);
     splashText[1].id = 0x80000001;
     splashText[1].color = 0;
-    splashText[1].rendered = false;
     splashText[1].rainbowstart = -1;
+
+    updateSplashText();
 
     std::string url = MELONDS_URL;
     int urlpos = url.find("://");
@@ -109,6 +107,24 @@ ScreenPanel::ScreenPanel(QWidget* parent) : QWidget(parent)
     splashText[2].color = 0;
     splashText[2].rendered = false;
     splashText[2].rainbowstart = -1;
+}
+
+void ScreenPanel::updateSplashText()
+{
+    QString lang = Config::GetGlobalTable().GetQString("UI.Language");
+    if (lang == "fr")
+    {
+        strncpy(splashText[0].text, "Fichier->Ouvrir ROM...", 256);
+        strncpy(splashText[1].text, "pour commencer", 256);
+    }
+    else
+    {
+        strncpy(splashText[0].text, "File->Open ROM...", 256);
+        strncpy(splashText[1].text, "to get started", 256);
+    }
+    splashText[0].rendered = false;
+    splashText[1].rendered = false;
+    update();
 }
 
 ScreenPanel::~ScreenPanel()

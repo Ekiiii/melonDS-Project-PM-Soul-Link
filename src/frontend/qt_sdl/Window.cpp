@@ -55,6 +55,7 @@
 #include <QGuiApplication>
 #include "OverlayServer.h"
 #include "DirectP2PDialog.h"
+#include "Translation.h"
 
 #include "main.h"
 #include "CheatsDialog.h"
@@ -255,7 +256,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
     {
         QMenuBar * menubar = new QMenuBar();
         {
-            QMenu * menu = menubar->addMenu("File");
+            menuFile = menubar->addMenu("File");
+            QMenu * menu = menuFile;
 
             actOpenROM = menu->addAction("Open ROM...");
             connect(actOpenROM, &QAction::triggered, this, &MainWindow::onOpenFile);
@@ -292,7 +294,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             connect(actInsertGBACart, &QAction::triggered, this, &MainWindow::onInsertGBACart);
 
             {
-                QMenu * submenu = menu->addMenu("Insert add-on cart");
+                menuInsertGBAAddon = menu->addMenu("Insert add-on cart");
+                QMenu * submenu = menuInsertGBAAddon;
                 QAction *act;
 
                 int addons[] = {
@@ -328,7 +331,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             menu->addSeparator();
 
             {
-                QMenu * submenu = menu->addMenu("Save state");
+                menuSaveState = menu->addMenu("Save state");
+                QMenu * submenu = menuSaveState;
 
                 for (int i = 1; i < 9; i++)
                 {
@@ -344,7 +348,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 connect(actSaveState[0], &QAction::triggered, this, &MainWindow::onSaveState);
             }
             {
-                QMenu * submenu = menu->addMenu("Load state");
+                menuLoadState = menu->addMenu("Load state");
+                QMenu * submenu = menuLoadState;
 
                 for (int i = 1; i < 9; i++)
                 {
@@ -378,7 +383,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             actQuit->setShortcut(QKeySequence(QKeySequence::StandardKey::Quit));
         }
         {
-            QMenu * menu = menubar->addMenu("System");
+            menuSystem = menubar->addMenu("System");
+            QMenu * menu = menuSystem;
 
             actPause = menu->addAction("Pause");
             actPause->setCheckable(true);
@@ -426,7 +432,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
             {
                 menu->addSeparator();
-                QMenu * submenu = menu->addMenu("Multiplayer");
+                menuMultiplayer = menu->addMenu("Multiplayer");
+                QMenu * submenu = menuMultiplayer;
 
                 actMPNewInstance = submenu->addAction("Launch new instance");
                 connect(actMPNewInstance, &QAction::triggered, this, &MainWindow::onMPNewInstance);
@@ -463,7 +470,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 submenu->addSeparator();
 
-                QMenu* overlaySubmenu = submenu->addMenu("Twitch / OBS Overlay (Soul Link)");
+                overlaySubmenu = submenu->addMenu("Twitch / OBS Overlay (Soul Link)");
 
                 actOverlayEnable = overlaySubmenu->addAction("Enable Twitch / OBS Overlay (Port 8080)");
                 actOverlayEnable->setMenuRole(QAction::NoRole);
@@ -512,10 +519,12 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             }
         }
         {
-            QMenu * menu = menubar->addMenu("View");
+            menuView = menubar->addMenu("View");
+            QMenu * menu = menuView;
 
             {
-                QMenu * submenu = menu->addMenu("Screen size");
+                menuScreenSize = menu->addMenu("Screen size");
+                QMenu * submenu = menuScreenSize;
 
                 for (int i = 0; i < 4; i++)
                 {
@@ -526,7 +535,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 }
             }
             {
-                QMenu * submenu = menu->addMenu("Screen rotation");
+                menuScreenRotation = menu->addMenu("Screen rotation");
+                QMenu * submenu = menuScreenRotation;
                 grpScreenRotation = new QActionGroup(submenu);
 
                 for (int i = 0; i < screenRot_MAX; i++)
@@ -541,7 +551,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 connect(grpScreenRotation, &QActionGroup::triggered, this, &MainWindow::onChangeScreenRotation);
             }
             {
-                QMenu * submenu = menu->addMenu("Screen gap");
+                menuScreenGap = menu->addMenu("Screen gap");
+                QMenu * submenu = menuScreenGap;
                 grpScreenGap = new QActionGroup(submenu);
 
                 const int screengap[] = {0, 1, 8, 64, 90, 128};
@@ -558,7 +569,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 connect(grpScreenGap, &QActionGroup::triggered, this, &MainWindow::onChangeScreenGap);
             }
             {
-                QMenu * submenu = menu->addMenu("Screen layout");
+                menuScreenLayout = menu->addMenu("Screen layout");
+                QMenu * submenu = menuScreenLayout;
                 grpScreenLayout = new QActionGroup(submenu);
 
                 const char *screenlayout[] = {"Natural", "Vertical", "Horizontal", "Hybrid"};
@@ -580,7 +592,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 connect(actScreenSwap, &QAction::triggered, this, &MainWindow::onChangeScreenSwap);
             }
             {
-                QMenu * submenu = menu->addMenu("Screen sizing");
+                menuScreenSizing = menu->addMenu("Screen sizing");
+                QMenu * submenu = menuScreenSizing;
                 grpScreenSizing = new QActionGroup(submenu);
 
                 const char *screensizing[] = {"Even", "Emphasize top", "Emphasize bottom", "Auto", "Top only",
@@ -603,7 +616,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 connect(actIntegerScaling, &QAction::triggered, this, &MainWindow::onChangeIntegerScaling);
             }
             {
-                QMenu * submenu = menu->addMenu("Aspect ratio");
+                menuAspectRatio = menu->addMenu("Aspect ratio");
+                QMenu * submenu = menuAspectRatio;
                 grpScreenAspectTop = new QActionGroup(submenu);
                 grpScreenAspectBot = new QActionGroup(submenu);
                 actScreenAspectTop = new QAction *[AspectRatiosNum];
@@ -651,7 +665,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             connect(actShowOSD, &QAction::triggered, this, &MainWindow::onChangeShowOSD);
         }
         {
-            QMenu * menu = menubar->addMenu("Config");
+            menuConfig = menubar->addMenu("Config");
+            QMenu * menu = menuConfig;
 
             actEmuSettings = menu->addAction("Emu settings");
             connect(actEmuSettings, &QAction::triggered, this, &MainWindow::onOpenEmuSettings);
@@ -714,7 +729,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             connect(actLangFr, &QAction::triggered, this, [this]() { onSetLanguage("fr"); });
         }
         {
-            QMenu * menu = menubar->addMenu("Help");
+            menuHelp = menubar->addMenu("Help");
+            QMenu * menu = menuHelp;
             actAbout = menu->addAction("About...");
             connect(actAbout, &QAction::triggered, this, [&]
             {
@@ -724,6 +740,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
         }
 
         setMenuBar(menubar);
+        retranslateUI();
 
         if (localCfg.GetString("Firmware.Username") == "Arisotura")
             actMPNewInstance->setText("Fart");
@@ -1970,8 +1987,107 @@ void MainWindow::onSetLanguage(const QString& lang)
 {
     globalCfg.SetQString("UI.Language", lang);
     Config::Save();
+    MelonTranslator::SetLanguage(lang);
     if (actLangEn) actLangEn->setChecked(lang != "fr");
     if (actLangFr) actLangFr->setChecked(lang == "fr");
+    retranslateUI();
+    if (panel) panel->updateSplashText();
+}
+
+void MainWindow::retranslateUI()
+{
+    QString lang = globalCfg.GetQString("UI.Language");
+    bool fr = (lang == "fr");
+
+    if (menuFile) menuFile->setTitle(fr ? "Fichier" : "File");
+    if (actOpenROM) actOpenROM->setText(fr ? "Ouvrir une ROM..." : "Open ROM...");
+    if (recentMenu) recentMenu->setTitle(fr ? "Fichiers récents" : "Open recent");
+    if (actBootFirmware) actBootFirmware->setText(fr ? "Démarrer le firmware" : "Boot firmware");
+    if (actInsertCart) actInsertCart->setText(fr ? "Insérer une cartouche..." : "Insert cart...");
+    if (actEjectCart) actEjectCart->setText(fr ? "Éjecter la cartouche" : "Eject cart");
+    if (actInsertGBACart) actInsertGBACart->setText(fr ? "Insérer une ROM GBA..." : "Insert ROM cart...");
+    if (menuInsertGBAAddon) menuInsertGBAAddon->setTitle(fr ? "Insérer une extension GBA" : "Insert add-on cart");
+    if (actEjectGBACart) actEjectGBACart->setText(fr ? "Éjecter la cartouche GBA" : "Eject cart");
+    if (actImportSavefile) actImportSavefile->setText(fr ? "Importer une sauvegarde" : "Import savefile");
+    if (menuSaveState) menuSaveState->setTitle(fr ? "Sauvegarder l'état" : "Save state");
+    if (menuLoadState) menuLoadState->setTitle(fr ? "Charger l'état" : "Load state");
+    if (actSaveState[0]) actSaveState[0]->setText(fr ? "Fichier..." : "File...");
+    if (actLoadState[0]) actLoadState[0]->setText(fr ? "Fichier..." : "File...");
+    if (actUndoStateLoad) actUndoStateLoad->setText(fr ? "Annuler le chargement d'état" : "Undo state load");
+    if (actOpenConfig) actOpenConfig->setText(fr ? "Ouvrir le dossier melonDS" : "Open melonDS directory");
+    if (actQuit) actQuit->setText(fr ? "Quitter" : "Quit");
+
+    if (menuSystem) menuSystem->setTitle(fr ? "Système" : "System");
+    if (actPause) actPause->setText(fr ? "Pause" : "Pause");
+    if (actReset) actReset->setText(fr ? "Réinitialiser" : "Reset");
+    if (actStop) actStop->setText(fr ? "Arrêter" : "Stop");
+    if (actFrameStep) actFrameStep->setText(fr ? "Avance d'une image" : "Frame step");
+    if (actPowerManagement) actPowerManagement->setText(fr ? "Gestion de l'alimentation" : "Power management");
+    if (actDateTime) actDateTime->setText(fr ? "Date et heure" : "Date and time");
+    if (actEnableCheats) actEnableCheats->setText(fr ? "Activer les codes de triche" : "Enable cheats");
+    if (actSetupCheats) actSetupCheats->setText(fr ? "Configurer les codes de triche" : "Setup cheat codes");
+    if (actROMInfo) actROMInfo->setText(fr ? "Infos sur la ROM" : "ROM info");
+    if (actRAMInfo) actRAMInfo->setText(fr ? "Recherche dans la RAM" : "RAM search");
+    if (actTitleManager) actTitleManager->setText(fr ? "Gérer les titres DSi" : "Manage DSi titles");
+
+    if (menuMultiplayer) menuMultiplayer->setTitle(fr ? "Multijoueur" : "Multiplayer");
+    if (actMPNewInstance) actMPNewInstance->setText(fr ? "Lancer une nouvelle instance" : "Launch new instance");
+    if (actLANStartHost) actLANStartHost->setText(fr ? "Héberger une partie LAN" : "Host LAN game");
+    if (actLANStartClient) actLANStartClient->setText(fr ? "Rejoindre une partie LAN" : "Join LAN game");
+    if (actDirectP2P) actDirectP2P->setText(fr ? "Direct P2P Soul Link..." : "Direct P2P Soul Link...");
+    if (actOnlineStartHost) actOnlineStartHost->setText(fr ? "Héberger une partie en ligne..." : "Host Online Game...");
+    if (actOnlineStartClient) actOnlineStartClient->setText(fr ? "Rejoindre une partie en ligne..." : "Join Online Game...");
+    if (actOnlineCustomRelay) actOnlineCustomRelay->setText(fr ? "Serveur relais personnalisé" : "Custom Relay Server");
+
+    if (overlaySubmenu) overlaySubmenu->setTitle(fr ? "Overlay Twitch / OBS (Soul Link)" : "Twitch / OBS Overlay (Soul Link)");
+    if (actOverlayEnable) actOverlayEnable->setText(fr ? "Activer l'overlay Twitch / OBS (Port 8080)" : "Enable Twitch / OBS Overlay (Port 8080)");
+    if (actOverlayCopyLinkSoloH) actOverlayCopyLinkSoloH->setText(fr ? "Copier le lien OBS : Équipe Streamer (Horizontal)" : "Copy OBS Link: Streamer Team (Horizontal)");
+    if (actOverlayCopyLinkSoloV) actOverlayCopyLinkSoloV->setText(fr ? "Copier le lien OBS : Équipe Streamer (Vertical)" : "Copy OBS Link: Streamer Team (Vertical)");
+    if (actOverlayCopyLinkAllH) actOverlayCopyLinkAllH->setText(fr ? "Copier le lien OBS : Tous les Joueurs (Horizontal)" : "Copy OBS Link: All Players (Horizontal)");
+    if (actOverlayCopyLinkAllV) actOverlayCopyLinkAllV->setText(fr ? "Copier le lien OBS : Tous les Joueurs (Grille)" : "Copy OBS Link: All Players (Grid)");
+    if (actOverlayOpenBrowser) actOverlayOpenBrowser->setText(fr ? "Ouvrir l'overlay dans le navigateur" : "Open Overlay in Browser");
+
+    if (menuView) menuView->setTitle(fr ? "Affichage" : "View");
+    if (menuScreenSize) menuScreenSize->setTitle(fr ? "Taille de l'écran" : "Screen size");
+    if (menuScreenRotation) menuScreenRotation->setTitle(fr ? "Rotation de l'écran" : "Screen rotation");
+    if (menuScreenGap) menuScreenGap->setTitle(fr ? "Espacement des écrans" : "Screen gap");
+    if (menuScreenLayout) menuScreenLayout->setTitle(fr ? "Disposition des écrans" : "Screen layout");
+    if (actScreenSwap) actScreenSwap->setText(fr ? "Intervertir les écrans" : "Swap screens");
+    if (menuScreenSizing) menuScreenSizing->setTitle(fr ? "Dimensions des écrans" : "Screen sizing");
+    if (actNewWindow) actNewWindow->setText(fr ? "Ouvrir une nouvelle fenêtre" : "Open new window");
+    if (actScreenFiltering) actScreenFiltering->setText(fr ? "Filtrage de l'écran" : "Screen filtering");
+    if (actShowOSD) actShowOSD->setText(fr ? "Afficher l'OSD" : "Show OSD");
+
+    const char* layoutEn[] = {"Natural", "Vertical", "Horizontal", "Hybrid"};
+    const char* layoutFr[] = {"Naturel", "Vertical", "Horizontal", "Hybride"};
+    for (int i = 0; i < screenLayout_MAX; i++)
+    {
+        if (actScreenLayout[i]) actScreenLayout[i]->setText(fr ? layoutFr[i] : layoutEn[i]);
+    }
+
+    const char* sizingEn[] = {"Even", "Emphasize top", "Emphasize bottom", "Auto", "Top only", "Bottom only"};
+    const char* sizingFr[] = {"Égal", "Priorité haut", "Priorité bas", "Automatique", "Écran supérieur seul", "Écran inférieur seul"};
+    for (int i = 0; i < screenSizing_MAX; i++)
+    {
+        if (actScreenSizing[i]) actScreenSizing[i]->setText(fr ? sizingFr[i] : sizingEn[i]);
+    }
+
+    if (menuConfig) menuConfig->setTitle(fr ? "Configuration" : "Config");
+    if (actEmuSettings) actEmuSettings->setText(fr ? "Paramètres d'émulation" : "Emu settings");
+    if (actInputConfig) actInputConfig->setText(fr ? "Touches et raccourcis" : "Input and hotkeys");
+    if (actVideoSettings) actVideoSettings->setText(fr ? "Paramètres vidéo" : "Video settings");
+    if (actCameraSettings) actCameraSettings->setText(fr ? "Paramètres caméra" : "Camera settings");
+    if (actAudioSettings) actAudioSettings->setText(fr ? "Paramètres audio" : "Audio settings");
+    if (actMPSettings) actMPSettings->setText(fr ? "Paramètres multijoueur" : "Multiplayer settings");
+    if (actWifiSettings) actWifiSettings->setText(fr ? "Paramètres Wi-Fi" : "Wifi settings");
+    if (actFirmwareSettings) actFirmwareSettings->setText(fr ? "Paramètres du firmware" : "Firmware settings");
+    if (actInterfaceSettings) actInterfaceSettings->setText(fr ? "Paramètres de l'interface" : "Interface settings");
+    if (actPathSettings) actPathSettings->setText(fr ? "Paramètres des dossiers" : "Path settings");
+    if (actLimitFramerate) actLimitFramerate->setText(fr ? "Limiter la fréquence d'images" : "Limit framerate");
+    if (actAudioSync) actAudioSync->setText(fr ? "Synchronisation audio" : "Audio sync");
+
+    if (menuHelp) menuHelp->setTitle(fr ? "Aide" : "Help");
+    if (actAbout) actAbout->setText(fr ? "À propos..." : "About...");
 }
 
 void MainWindow::onCopyOverlayLinkSoloH()

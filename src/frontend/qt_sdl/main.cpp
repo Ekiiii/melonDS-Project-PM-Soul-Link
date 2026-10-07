@@ -53,6 +53,7 @@
 #include "version.h"
 
 #include "Config.h"
+#include "Translation.h"
 
 #include "EmuInstance.h"
 #include "ArchiveUtil.h"
@@ -384,6 +385,8 @@ int main(int argc, char** argv)
             QApplication::setStyle(uitheme);
         }
     }
+
+    MelonTranslator::Init(&melon);
 
     // fix for Wayland OpenGL glitches
     QGuiApplication::setAttribute(Qt::AA_NativeWindows, false);
