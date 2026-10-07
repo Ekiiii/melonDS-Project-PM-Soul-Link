@@ -17,7 +17,7 @@ DirectP2PDialog::DirectP2PDialog(MainWindow* parent)
     : QDialog(parent), mainWin(parent)
 {
     Config::Table& globalCfg = mainWin->globalCfg;
-    currentLang = globalCfg.GetQString("UI.Language", "en");
+    currentLang = globalCfg.GetQString("UI.Language");
     if (currentLang != "fr" && currentLang != "en") currentLang = "en";
 
     setWindowTitle("Direct P2P Soul Link");

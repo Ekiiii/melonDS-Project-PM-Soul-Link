@@ -706,7 +706,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             actLangFr = menuLanguage->addAction("Français");
             actLangFr->setCheckable(true);
 
-            QString curL = globalCfg.GetQString("UI.Language", "en");
+            QString curL = globalCfg.GetQString("UI.Language");
             actLangEn->setChecked(curL != "fr");
             actLangFr->setChecked(curL == "fr");
 
