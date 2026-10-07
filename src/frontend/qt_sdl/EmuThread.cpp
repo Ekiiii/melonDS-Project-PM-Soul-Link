@@ -1973,112 +1973,11 @@ static std::vector<BoxMonSummary> SoulLink_GetLocalBoxedMons(melonDS::NDS* nds)
     return list;
 }
 
-static std::map<int, std::vector<BoxMonSummary>> sPeerBoxedMons;
-
-static void SoulLink_SyncDeaths(melonDS::NDS* nds)
+static void SoulLink_UpdateOverlayDeaths(melonDS::NDS* nds)
 {
-    if (!nds || !gBr.partyExp || gBr.partySize < 8) return;
+    if (!nds) return;
 
-    int myRole = mpnet::gNet.myRole();
-    if (myRole < 1 || myRole > 8) myRole = 1;
-
-    bool newDeadFound = false;
-
-    // 1. Inspect peers' parties
-    for (int r = 1; r <= 8; r++)
-    {
-        if (r == myRole) continue;
-        const melonDS::u8* peerParty = nullptr;
-        if (gBr.partyN) peerParty = apPtr(nds, gBr.partyN + (r - 1) * gBr.partySize);
-        else if (r == 2 && gBr.partyImp) peerParty = apPtr(nds, gBr.partyImp);
-
-        if (!peerParty) continue;
-        melonDS::u32 pCount = *(const melonDS::u32*)(peerParty + 4);
-        if (pCount == 0 || pCount > 6) continue;
-
-        for (melonDS::u32 i = 0; i < pCount; i++)
-        {
-            SoulLinkMon m = ParsePartyMon(peerParty + 8 + i * 236);
-            if (m.valid && m.metLoc > 0)
-            {
-                if (m.isFainted)
-                {
-                    if (sSessionDeadLocations.insert(m.metLoc).second)
-                    {
-                        newDeadFound = true;
-                        printf("[SOULLINK] Peer %d has fainted mon in zone %d! Marked DEAD.\n", r, m.metLoc);
-                    }
-                }
-            }
-        }
-    }
-
-    // 2. Inspect local party
-    melonDS::u32 localCount = apRd32(nds, gBr.partyExp + 4);
-    if (localCount > 0 && localCount <= 6)
-    {
-        for (melonDS::u32 i = 0; i < localCount; i++)
-        {
-            SoulLinkMon m = ParsePartyMon(apPtr(nds, gBr.partyExp) + 8 + i * 236);
-            if (m.valid && m.metLoc > 0)
-            {
-                if (m.isFainted)
-                {
-                    if (sSessionDeadLocations.insert(m.metLoc).second)
-                    {
-                        newDeadFound = true;
-                        printf("[SOULLINK] Local mon in zone %d fainted! Marked DEAD.\n", m.metLoc);
-                    }
-                }
-            }
-        }
-    }
-
-    // 2b. Scan PC Box 18 (CIMETIERE) periodically (every 60 frames = 1s) to pick up mons moved by ROM
-    melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
-    if (pcStorage && (gBr.frame % 60) == 0)
-    {
-        melonDS::u32 box18Base = pcStorage + 4 + 17 * 4080;
-        for (int slot = 0; slot < 30; slot++)
-        {
-            const melonDS::u8* bMon = apPtr(nds, box18Base + slot * 136);
-            SoulLinkMon bm = ParsePartyMon(bMon, false);
-            if (bm.valid && bm.metLoc > 0)
-            {
-                if (sSessionDeadLocations.insert(bm.metLoc).second)
-                {
-                    newDeadFound = true;
-                    printf("[SOULLINK] Found dead mon in Cemetery Box 18 (species %d, zone %d)! Marked DEAD.\n",
-                           bm.species, bm.metLoc);
-                }
-            }
-        }
-    }
-
-    // 3. Broadcast dead locations to peers (Tag 4) with correct framing
-    if (mpnet::gNet.anyUp() && !sSessionDeadLocations.empty())
-    {
-        if (newDeadFound || ((gBr.frame % 60) == 0))
-        {
-            melonDS::u8 dbuf[1024];
-            dbuf[0] = 4;
-            dbuf[1] = (melonDS::u8)myRole;
-            melonDS::u16 payloadSz = 0;
-            for (int loc : sSessionDeadLocations)
-            {
-                if (4 + payloadSz + 2 > sizeof(dbuf)) break;
-                dbuf[4 + payloadSz]     = (melonDS::u8)(loc & 0xFF);
-                dbuf[4 + payloadSz + 1] = (melonDS::u8)(loc >> 8);
-                payloadSz += 2;
-            }
-            dbuf[2] = (melonDS::u8)(payloadSz & 0xFF);
-            dbuf[3] = (melonDS::u8)(payloadSz >> 8);
-            mpnet::gNet.sendAll(dbuf, 4 + payloadSz);
-        }
-    }
-
-    // 4. Update the ROM's SoulLinkSharedState (0x534C4E4B) with session dead locations
-    // and read back any local dead locations recorded by the ROM engine (failures / faints).
+    // Scan ROM's SoulLinkSharedState (0x534C4E4B) in read-only mode for OBS overlay
     static melonDS::u32 sSharedStateAddr = 0;
     if (!sSharedStateAddr || (gBr.frame % 180) == 0)
     {
@@ -2094,30 +1993,21 @@ static void SoulLink_SyncDeaths(melonDS::NDS* nds)
 
     if (sSharedStateAddr)
     {
-        // a. Read any dead/failed zones reported directly by the ROM engine
-        melonDS::u16 numLocal = apRd16s(nds, sSharedStateAddr + 264);
-        if (numLocal > 0 && numLocal <= 128)
+        // Version 2 has localDeadBits at +8 (18 bytes) and remoteDeadBits at +26 (18 bytes)
+        for (int byteIdx = 0; byteIdx < 18; byteIdx++)
         {
-            for (melonDS::u16 i = 0; i < numLocal; i++)
+            melonDS::u8 b = apRd8(nds, sSharedStateAddr + 8 + byteIdx) | apRd8(nds, sSharedStateAddr + 26 + byteIdx);
+            if (b)
             {
-                melonDS::u16 z = apRd16s(nds, sSharedStateAddr + 266 + i * 2);
-                if (z > 0 && sSessionDeadLocations.insert(z).second)
+                for (int bit = 0; bit < 8; bit++)
                 {
-                    newDeadFound = true;
-                    printf("[SOULLINK] Imported local dead/failed zone %d from ROM!\n", z);
+                    if (b & (1 << bit))
+                    {
+                        sSessionDeadLocations.insert((byteIdx << 3) + bit);
+                    }
                 }
             }
         }
-
-        // b. Write current session dead locations into the ROM's remoteDeadZones buffer
-        melonDS::u16 count = 0;
-        for (int loc : sSessionDeadLocations)
-        {
-            if (count >= 128) break;
-            apWr16(nds, sSharedStateAddr + 8 + count * 2, (melonDS::u16)loc);
-            count++;
-        }
-        apWr16(nds, sSharedStateAddr + 6, count); // numRemoteDead
     }
 }
 
@@ -2244,25 +2134,8 @@ void BridgePump(melonDS::NDS* nds)
             mpnet::gNet.myRole(),
             mpnet::gNet.rname,
             gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
-            localBoxes,
-            sPeerBoxedMons
+            localBoxes
         );
-    }
-
-    // Party sync: continuously sync party across peers on change OR periodically every 60 frames (~1s)
-    if (mpnet::gNet.anyUp() && gBr.partyExp && gBr.partySize >= 8 && gBr.partySize <= 2048)
-    {
-        bool forceSync = ((gBr.frame % 60) == 0);
-        if (forceSync || gBr.lastParty.size() != gBr.partySize
-            || memcmp(gBr.lastParty.data(), apPtr(nds, gBr.partyExp), gBr.partySize) != 0)
-        {
-            gBr.lastParty.assign(apPtr(nds, gBr.partyExp), apPtr(nds, gBr.partyExp) + gBr.partySize);
-            u8 pbuf[2100];
-            pbuf[0] = 2; pbuf[1] = (u8)myRole;
-            pbuf[2] = (u8)(gBr.partySize & 0xFF); pbuf[3] = (u8)(gBr.partySize >> 8);
-            memcpy(pbuf + 4, gBr.lastParty.data(), gBr.partySize);
-            mpnet::gNet.sendAll(pbuf, 4 + gBr.partySize);
-        }
     }
 
     if (inGame && mpnet::gNet.anyUp())
@@ -2276,6 +2149,17 @@ void BridgePump(melonDS::NDS* nds)
         memcpy(buf + 4 + gBr.blkSize, apPtr(nds, gBr.owExp), 48);
         mpnet::gNet.sendAll(buf, 4 + gBr.blkSize + 48); gBr.dbgTx++;
 
+        // party channel: on content change
+        if (gBr.lastParty.size() != gBr.partySize
+            || memcmp(gBr.lastParty.data(), apPtr(nds, gBr.partyExp), gBr.partySize) != 0)
+        {
+            gBr.lastParty.assign(apPtr(nds, gBr.partyExp), apPtr(nds, gBr.partyExp) + gBr.partySize);
+            buf[0] = 2; buf[1] = (u8)myRole;
+            buf[2] = (u8)(gBr.partySize & 0xFF); buf[3] = (u8)(gBr.partySize >> 8);
+            memcpy(buf + 4, gBr.lastParty.data(), gBr.partySize);
+            mpnet::gNet.sendAll(buf, 4 + gBr.partySize);
+        }
+
         // pkt channel: on content change
         if (gBr.lastPkt.size() != gBr.pktSize
             || memcmp(gBr.lastPkt.data(), apPtr(nds, gBr.pktExp), gBr.pktSize) != 0)
@@ -2285,42 +2169,6 @@ void BridgePump(melonDS::NDS* nds)
             buf[2] = (u8)(gBr.pktSize & 0xFF); buf[3] = (u8)(gBr.pktSize >> 8);
             memcpy(buf + 4, gBr.lastPkt.data(), gBr.pktSize);
             mpnet::gNet.sendAll(buf, 4 + gBr.pktSize); gBr.dbgPktTx++;
-        }
-    }
-
-    // Tag 5: Boxed mons sync (every 60 frames)
-    if (mpnet::gNet.anyUp())
-    {
-        melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
-        if (pcStorage)
-        {
-            static size_t sLastBoxedCount = 0;
-            if ((gBr.frame % 60) == 0)
-            {
-                std::vector<BoxMonSummary> currentBoxes = SoulLink_GetLocalBoxedMons(nds);
-                if (currentBoxes.size() != sLastBoxedCount || (gBr.frame % 180) == 0)
-                {
-                    sLastBoxedCount = currentBoxes.size();
-                    melonDS::u8 bbuf[1024];
-                    bbuf[0] = 5;
-                    bbuf[1] = (melonDS::u8)myRole;
-                    melonDS::u16 payloadSz = 0;
-                    for (const auto& item : currentBoxes)
-                    {
-                        if (4 + payloadSz + 6 > sizeof(bbuf)) break;
-                        bbuf[4 + payloadSz]     = (melonDS::u8)(item.species & 0xFF);
-                        bbuf[4 + payloadSz + 1] = (melonDS::u8)(item.species >> 8);
-                        bbuf[4 + payloadSz + 2] = (melonDS::u8)(item.metLoc & 0xFF);
-                        bbuf[4 + payloadSz + 3] = (melonDS::u8)(item.metLoc >> 8);
-                        bbuf[4 + payloadSz + 4] = item.box;
-                        bbuf[4 + payloadSz + 5] = item.slot;
-                        payloadSz += 6;
-                    }
-                    bbuf[2] = (melonDS::u8)(payloadSz & 0xFF);
-                    bbuf[3] = (melonDS::u8)(payloadSz >> 8);
-                    mpnet::gNet.sendAll(bbuf, 4 + payloadSz);
-                }
-            }
         }
     }
 
@@ -2351,7 +2199,7 @@ void BridgePump(melonDS::NDS* nds)
                 for (int pj = 0; pj < 7; pj++)
                     if (pj != pi) mpnet::gNet.enqueue(pj, rx, n);
 
-            if (tag >= 1 && tag <= 5)
+            if (tag >= 1 && tag <= 3)
             {
                 // Peer NEWLY game-active (activated Wireless Play or
                 // reconnected): resend on-change channels — anything sent
@@ -2418,42 +2266,11 @@ void BridgePump(melonDS::NDS* nds)
                 if (gBr.pktImp) memcpy(apPtr(nds, gBr.pktImp + (r-1)*sz), rx + 4, sz);
                 gBr.dbgPktRx++;
             }
-            else if (tag == 4 && sz >= 2)
-            {
-                for (melonDS::u32 k = 0; k + 1 < sz; k += 2)
-                {
-                    melonDS::u16 deadLoc = (melonDS::u16)(rx[4 + k] | (rx[5 + k] << 8));
-                    if (deadLoc > 0)
-                    {
-                        if (sSessionDeadLocations.insert(deadLoc).second)
-                        {
-                            printf("[SOULLINK] Received dead zone %d from peer %d! Marked DEAD.\n", deadLoc, r);
-                        }
-                    }
-                }
-            }
-            else if (tag == 5 && sz >= 6)
-            {
-                std::vector<BoxMonSummary> mons;
-                for (melonDS::u32 k = 0; k + 5 < sz; k += 6)
-                {
-                    BoxMonSummary b;
-                    b.species = (quint16)(rx[4 + k] | (rx[4 + k + 1] << 8));
-                    b.metLoc  = (quint16)(rx[4 + k + 2] | (rx[4 + k + 3] << 8));
-                    b.box     = rx[4 + k + 4];
-                    b.slot    = rx[4 + k + 5];
-                    if (b.species > 0 && b.metLoc > 0)
-                    {
-                        mons.push_back(b);
-                    }
-                }
-                sPeerBoxedMons[r] = mons;
-            }
         }
     }
 
-    // Soul Link: synchronize dead Pokémon across connected players
-    SoulLink_SyncDeaths(nds);
+    // Soul Link: update dead locations for overlay in read-only mode
+    SoulLink_UpdateOverlayDeaths(nds);
 
     // PAIR REBIND / GHOST PURGE (ported from the DeSmuME bridge).  On a
     // pairRole change to a REAL role, replay that role's latest cached
