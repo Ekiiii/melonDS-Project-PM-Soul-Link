@@ -17,9 +17,9 @@
 DS emulator, sorta
 
 The goal is to do things right and fast, akin to blargSNES (but hopefully better). But also to, you know, have a fun challenge :)
-## Soul Link Edition ([melonDS-Project-PM-Soul-Link](https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link))
+## SoulLocke Edition ([melonDS-Project-PM-Soul-Link](https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link))
 
-This fork by **Ekiiii** extends melonDS and Project PM specifically for **Soul Link / Nuzlocke** co-op adventures, bringing direct P2P connections, one-click hosting with UPnP, and a live broadcast-ready streaming overlay.
+This fork by **Ekiiii** extends melonDS and Project PM specifically for **SoulLocke** co-op adventures, bringing direct P2P connections, one-click hosting with UPnP, and a live broadcast-ready streaming overlay.
 
 ### Key Additions & Features
 
@@ -34,16 +34,16 @@ This fork by **Ekiiii** extends melonDS and Project PM specifically for **Soul L
    - Also accepts raw IPv4 addresses or virtual LAN IPs (Radmin VPN, Tailscale, ZeroTier) seamlessly.
 
 3. **Dedicated Direct P2P Window**:
-   - Custom graphical interface (`System -> Multiplayer -> Direct P2P Soul Link...`) featuring:
+   - Custom graphical interface (`System -> Multiplayer -> Direct P2P SoulLocke...`) featuring:
      - **Host Tab**: One-click session creation, large room code display, copy button, UPnP diagnostic indicator, live roster with latency/ping times, and session controls.
      - **Join Tab**: Room code / IP input, instant decoding, connection status, and connected roster.
 
 4. **Multi-Player Live OBS / Twitch HTML Overlay (1 to 8 Players)**:
    - Built-in lightweight HTTP server running on `http://localhost:8080/overlay`.
    - **Real-Time Memory & Encryption Decoding**: Automatically decrypts Gen 4 BoxMon structures directly from Nintendo DS RAM to read active party HP, levels, types, and fainted states with sub-frame latency.
-   - **Automatic Soul Link Cluster Detection**: Automatically identifies linked Pokémon across all connected players by matching catch locations (`met_location`).
+   - **Automatic SoulLocke Cluster Detection**: Automatically identifies linked Pokémon across all connected players by matching catch locations (`met_location`).
    - **Soul Status Badges**:
-     - `🔗 LIÉ [Zone X]` (Active Soul Link)
+     - `🔗 LIÉ [Zone X]` (Active SoulLocke link)
      - `🔗 ÂME BRISÉE` (Broken Soul / Death alert)
    - **Streamer Solo Mode**: `http://localhost:8080/overlay?player=me` displays an ultra-compact 1:1 retro pixel-art square slots layout tailored for OBS streamers with zero wasted space.
    - **Cluster View**: `http://localhost:8080/overlay?player=all` renders all connected party cards (up to 8 players) with customizable layouts (`?layout=horizontal` or `?layout=vertical`).

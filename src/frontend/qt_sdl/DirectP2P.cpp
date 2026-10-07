@@ -461,7 +461,7 @@ static bool DirectSSDPUPnPOpen(uint16_t port, const std::string& localIp, std::s
         "  <NewInternalPort>%u</NewInternalPort>\r\n"
         "  <NewInternalClient>%s</NewInternalClient>\r\n"
         "  <NewEnabled>1</NewEnabled>\r\n"
-        "  <NewPortMappingDescription>melonDS Soul Link Direct P2P</NewPortMappingDescription>\r\n"
+        "  <NewPortMappingDescription>melonDS SoulLocke Direct P2P</NewPortMappingDescription>\r\n"
         "  <NewLeaseDuration>0</NewLeaseDuration>\r\n"
         "</u:AddPortMapping>\r\n"
         "</s:Body>\r\n"
@@ -510,7 +510,7 @@ bool UPnPOpenPort(uint16_t port, const std::string& localIp, std::string& outMsg
     BSTR bstrProto = SysAllocString(L"TCP");
     std::wstring wLocal(localIp.begin(), localIp.end());
     BSTR bstrClient = SysAllocString(wLocal.c_str());
-    BSTR bstrDesc = SysAllocString(L"melonDS Soul Link Direct P2P");
+    BSTR bstrDesc = SysAllocString(L"melonDS SoulLocke Direct P2P");
     IStaticPortMapping* map = nullptr;
 
     hr = col->Add(port, bstrProto, port, bstrClient, VARIANT_TRUE, bstrDesc, &map);

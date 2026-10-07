@@ -20,7 +20,7 @@ DirectP2PDialog::DirectP2PDialog(MainWindow* parent)
     currentLang = globalCfg.GetQString("UI.Language");
     if (currentLang != "fr" && currentLang != "en") currentLang = "en";
 
-    setWindowTitle("Direct P2P Soul Link");
+    setWindowTitle("Direct P2P SoulLocke");
     resize(500, 420);
     setWindowFlags(Qt::Window
         | Qt::CustomizeWindowHint | Qt::WindowTitleHint
@@ -57,7 +57,7 @@ void DirectP2PDialog::setupUI()
     QVBoxLayout* titleLay = new QVBoxLayout();
     titleLay->setSpacing(2);
 
-    QLabel* titleLbl = new QLabel("<h2 style='margin:0; padding:0; color:#1e293b;'>Direct P2P — Soul Link</h2>", this);
+    QLabel* titleLbl = new QLabel("<h2 style='margin:0; padding:0; color:#1e293b;'>Direct P2P — SoulLocke</h2>", this);
     descLbl = new QLabel(this);
     descLbl->setStyleSheet("color: #64748b; font-size: 12px; margin-bottom: 4px;");
     titleLay->addWidget(titleLbl);
@@ -290,8 +290,8 @@ void DirectP2PDialog::retranslateUI()
 {
     bool isFr = (currentLang == "fr");
 
-    descLbl->setText(isFr ? "Connexion directe joueur à joueur pour le mode Soul Link."
-                          : "Direct peer-to-peer connection for Soul Link co-op.");
+    descLbl->setText(isFr ? "Connexion directe joueur à joueur pour le mode SoulLocke."
+                          : "Direct peer-to-peer connection for SoulLocke co-op.");
 
     tabWidget->setTabText(0, isFr ? "Héberger" : "Host");
     tabWidget->setTabText(1, isFr ? "Rejoindre" : "Join");
