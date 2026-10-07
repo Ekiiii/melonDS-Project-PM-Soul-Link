@@ -1951,7 +1951,7 @@ static std::vector<BoxMonSummary> SoulLink_GetLocalBoxedMons(melonDS::NDS* nds)
     melonDS::u32 pcStorage = SoulLink_GetPCStorageAddress(nds);
     if (!pcStorage) return list;
 
-    for (int b = 0; b < 17; b++)
+    for (int b = 0; b < 18; b++)
     {
         melonDS::u32 boxBase = pcStorage + 4 + b * 4080;
         for (int s = 0; s < 30; s++)
