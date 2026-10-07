@@ -1,4 +1,5 @@
 #include "OverlayServer.h"
+#include "Config.h"
 #include <QDebug>
 #include <QUrlQuery>
 #include <QUrl>
@@ -107,7 +108,23 @@ void OverlayServer::onReadyRead()
     QUrl url(urlStr);
     QString path = url.path();
 
-    if (path == "/api/teams" || path == "/api/data") {
+    if (path == "/api/set_lang") {
+        QUrlQuery query(url);
+        QString lang = query.queryItemValue("lang");
+        if (lang == "fr" || lang == "en") {
+            Config::GetGlobalTable().SetQString("UI.Language", lang);
+        }
+        QByteArray respBody = "{\"status\":\"ok\",\"lang\":\"" + lang.toUtf8() + "\"}";
+        QByteArray response = "HTTP/1.1 200 OK\r\n"
+                              "Content-Type: application/json; charset=utf-8\r\n"
+                              "Access-Control-Allow-Origin: *\r\n"
+                              "Content-Length: " + QByteArray::number(respBody.size()) + "\r\n"
+                              "Connection: close\r\n\r\n" + respBody;
+        socket->write(response);
+        socket->flush();
+        socket->disconnectFromHost();
+    }
+    else if (path == "/api/teams" || path == "/api/data") {
         QByteArray body;
         {
             std::lock_guard<std::mutex> lock(dataMutex);
@@ -449,6 +466,10 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     }
     root["dead_locations"] = deadLocsArray;
 
+    QString emuLang = Config::GetGlobalTable().GetQString("UI.Language");
+    if (emuLang.isEmpty()) emuLang = "fr";
+    root["lang"] = emuLang;
+
     QByteArray jsonBytes = QJsonDocument(root).toJson(QJsonDocument::Compact);
     {
         std::lock_guard<std::mutex> lock(dataMutex);
@@ -463,15 +484,23 @@ void OverlayServer::buildHtml()
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Overlay Twitch SoulLocke - Project PM</title>
+    <title>Overlay SoulLocke - Project PM</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            --c-accent: #38bdf8;
+            --c-accent-glow: rgba(56, 189, 248, 0.45);
+            --c-bg-box: rgba(9, 13, 22, 0.94);
+            --c-bg-card: rgba(15, 23, 42, 0.92);
+            --c-border: #1e293b;
+            --c-text-main: #f8fafc;
+            --c-text-muted: #94a3b8;
             --slot-w: 172px;
             --slot-h: 184px;
             --scale: 1;
+            --sprite-scale: 1.35;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -479,12 +508,20 @@ void OverlayServer::buildHtml()
         body {
             background: transparent;
             font-family: 'Press Start 2P', monospace, sans-serif;
-            color: #ffffff;
+            color: var(--c-text-main);
             overflow: hidden;
             user-select: none;
             image-rendering: pixelated;
         }
 
+        /* Clean Flat SVG Icons */
+        .flat-icon {
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+
+        /* Overlay Wrapper & Zoom */
         .overlay-wrapper {
             padding: 12px;
             display: inline-block;
@@ -498,7 +535,7 @@ void OverlayServer::buildHtml()
             width: fit-content;
         }
 
-        /* 1. Layout: Vertical (Teams stacked, 2 cols of 3 slots each) */
+        /* 1. Layout: Vertical (2 cols x 3 rows stacked) */
         .layout-vertical {
             flex-direction: column;
             width: fit-content;
@@ -508,7 +545,7 @@ void OverlayServer::buildHtml()
             gap: 8px;
         }
 
-        /* 2. Layout: Horizontal (Teams side-by-side, 3 cols of 2 slots each) */
+        /* 2. Layout: Horizontal (3 cols x 2 rows side-by-side) */
         .layout-horizontal {
             flex-direction: row;
             flex-wrap: wrap;
@@ -519,7 +556,7 @@ void OverlayServer::buildHtml()
             gap: 8px;
         }
 
-        /* 3. Layout: Grid (2x2 Co-op players side-by-side, 3 cols x 2 rows each) */
+        /* 3. Layout: Grid (2x2 Co-op) */
         .layout-grid {
             display: grid;
             grid-template-columns: repeat(2, fit-content(100%));
@@ -531,7 +568,7 @@ void OverlayServer::buildHtml()
             gap: 8px;
         }
 
-        /* 4. Layout: Bar (OBS Bottom Banner: 1 horizontal row of 6 slots) */
+        /* 4. Layout: Bar (OBS Bottom Banner: 1x6) */
         .layout-bar {
             flex-direction: column;
             width: fit-content;
@@ -541,51 +578,51 @@ void OverlayServer::buildHtml()
             gap: 8px;
         }
 
-        /* 5. Layout: Sidebar (OBS Column: 1 vertical column of 6 slots) */
+        /* 5. Layout: Sidebar (OBS Vertical Column: 6x1) */
         .layout-sidebar {
             flex-direction: row;
             width: fit-content;
         }
         .layout-sidebar .slots-grid {
-            grid-template-columns: repeat(1, var(--slot-w));
+            grid-template-columns: var(--slot-w);
             gap: 8px;
         }
 
-        /* Pixel Art Team Box Frame */
+        /* Team Box Container */
         .team-box {
-            background: rgba(14, 18, 30, 0.95);
-            border: 3px solid #2e3856;
-            box-shadow: inset 0 0 0 2px #3e4b73, 0 0 0 2px #090c14, 0 8px 24px rgba(0,0,0,0.7);
-            border-radius: 6px;
+            background: var(--c-bg-box);
+            border: 3px solid var(--c-border);
+            border-radius: 12px;
             padding: 10px 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), inset 0 0 16px rgba(0, 0, 0, 0.5);
             width: fit-content;
-            box-sizing: border-box;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .team-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #4ade80;
-            text-shadow: 2px 2px 0 #000;
-            margin-bottom: 9px;
+        .team-box.active-player {
+            border-color: var(--c-accent);
+            box-shadow: 0 0 20px var(--c-accent-glow), inset 0 0 14px rgba(0,0,0,0.6);
+        }
+
+        .team-header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            border-bottom: 2px solid #242c44;
+            align-items: center;
+            margin-bottom: 8px;
             padding-bottom: 6px;
+            border-bottom: 2px solid var(--c-border);
         }
-        .team-title.p2 { color: #38bdf8; }
 
-        .alive-badge {
-            font-size: 8px;
-            background: #1e293b;
-            border: 1px solid #475569;
-            padding: 2px 6px;
-            border-radius: 2px;
-            color: #cbd5e1;
-            text-shadow: 1px 1px 0 #000;
+        .player-name {
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .team-status {
+            font-size: 9px;
+            color: var(--c-text-muted);
+            letter-spacing: 0.5px;
         }
 
         .slots-grid {
@@ -593,479 +630,983 @@ void OverlayServer::buildHtml()
             width: fit-content;
         }
 
-        /* Mon Card - Full-bleed container with superimposed HUD */
+        /* Pokémon Slot Card */
         .mon-card {
             width: var(--slot-w);
             height: var(--slot-h);
-            background: radial-gradient(circle at 50% 45%, #1e263d 0%, #111625 70%, #0a0d16 100%);
-            border: 2px solid #3b4566;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 0 1px #090c14, 0 4px 10px rgba(0,0,0,0.5);
-            border-radius: 5px;
-            position: relative;
-            overflow: hidden;
-            user-select: none;
-            box-sizing: border-box;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .mon-card.dead {
-            filter: grayscale(1);
-            opacity: 0.6;
-            border-color: #ef4444 !important;
-            background: radial-gradient(circle at 50% 45%, #2d1010 0%, #170707 70%, #0d0404 100%) !important;
-        }
-
-        /* SVG Pokéball background watermark */
-        .pokeball-bg {
-            position: absolute;
-            width: 126px;
-            height: 126px;
-            top: 48%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0.16;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-        }
-        .empty-slot .pokeball-bg {
-            opacity: 0.06;
-        }
-        .mon-card.dead .pokeball-bg {
-            filter: grayscale(1);
-            opacity: 0.09;
-        }
-
-        /* Pokémon Sprite centered and filling the card */
-        .sprite-container {
-            position: absolute;
-            inset: 0;
+            background: var(--c-bg-card);
+            border: 2px solid var(--c-border);
+            border-radius: 8px;
+            padding: 6px 8px;
             display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+            transition: all 0.25s ease;
+        }
+
+        .mon-card:hover {
+            border-color: var(--c-accent);
+        }
+
+        .mon-card.empty {
+            background: rgba(15, 23, 42, 0.4);
+            border: 2px dashed rgba(51, 65, 85, 0.7);
             align-items: center;
             justify-content: center;
+        }
+
+        .empty-slot-text {
+            font-size: 8px;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             z-index: 2;
-            pointer-events: none;
-            padding-top: 10px;
-            padding-bottom: 24px;
         }
 
-        .sprite {
-            max-width: 114px;
-            max-height: 114px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            image-rendering: pixelated;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.7));
+        .mon-card.fainted {
+            filter: grayscale(90%) brightness(0.65);
+            border-color: #ef4444;
         }
 
-        /* Top superimposed overlay: Name & Level */
         .card-top {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 3;
-            padding: 6px 8px 4px;
-            background: linear-gradient(180deg, rgba(8, 11, 20, 0.94) 0%, rgba(8, 11, 20, 0.70) 75%, transparent 100%);
-        }
-
-        .name-row {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            width: 100%;
+            align-items: center;
+            font-size: 9px;
+            z-index: 3;
         }
 
         .mon-name {
-            font-size: 9.5px;
-            font-weight: bold;
-            color: #ffffff;
-            text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 110px;
+            max-width: 104px;
             letter-spacing: 0.5px;
         }
 
-        .mon-level {
-            font-size: 8.5px;
-            color: #facc15;
-            text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
-            flex-shrink: 0;
+        .mon-lvl {
+            color: #e2e8f0;
+            font-size: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
         }
 
-        /* Bottom superimposed overlay: HP bar & Numbers & Link */
-        .card-bottom {
+        /* Enlarged Sprite Area */
+        .sprite-container {
+            position: relative;
+            height: 122px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+            margin: 2px 0 4px 0;
+        }
+
+        .pkball-bg {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 3;
-            padding: 5px 7px 6px;
-            background: linear-gradient(0deg, rgba(8, 11, 20, 0.96) 0%, rgba(8, 11, 20, 0.85) 75%, transparent 100%);
+            width: 130px;
+            height: 130px;
+            opacity: 0.16;
+            pointer-events: none;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .pkmn-sprite {
+            position: relative;
+            z-index: 2;
+            max-height: 110px;
+            max-width: 110px;
+            transform: scale(var(--sprite-scale, 1.35));
+            transform-origin: center center;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7));
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .card-bottom {
             display: flex;
             flex-direction: column;
-            gap: 3.5px;
-        }
-
-        .hp-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
             gap: 4px;
+            z-index: 3;
         }
 
-        .hp-container {
-            display: flex;
-            align-items: center;
-            gap: 3.5px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .hp-badge {
-            background: #eab308;
-            color: #000;
-            font-size: 6px;
-            font-weight: bold;
-            padding: 1px 2.5px;
-            border-radius: 1px;
-            box-shadow: 1px 1px 0 #000;
-            line-height: 1;
-            flex-shrink: 0;
-        }
-
-        .hp-bar-track {
+        .hp-bar-wrap {
+            width: 100%;
+            height: 7px;
             background: #090d16;
-            border: 1px solid #1e2538;
-            box-shadow: inset 0 1px 0 rgba(0,0,0,0.9);
-            border-radius: 2px;
-            height: 7.5px;
-            flex: 1;
-            position: relative;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             overflow: hidden;
+            position: relative;
         }
 
         .hp-bar-fill {
             height: 100%;
             width: 100%;
-            background: #22c55e;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
-            transition: width 0.3s steps(20);
-        }
-        .hp-bar-fill.warn { background: #eab308; }
-        .hp-bar-fill.crit { background: #ef4444; }
-
-        .hp-numbers {
-            font-size: 7.5px;
-            color: #cbd5e1;
-            text-shadow: 1px 1px 0 #000;
-            white-space: nowrap;
-            flex-shrink: 0;
+            border-radius: 3px;
+            transition: width 0.4s ease, background 0.4s ease;
         }
 
-        /* Dead badge */
-        .dead-badge {
-            position: absolute;
-            top: 24px;
-            right: 6px;
-            background: rgba(220, 38, 38, 0.95);
-            color: #ffffff;
-            font-size: 7.5px;
-            font-weight: bold;
-            padding: 2px 5px;
-            border: 1px solid #000;
-            box-shadow: 1px 1px 0 #000;
-            z-index: 5;
-            text-shadow: 1px 1px 0 #000;
-            border-radius: 2px;
+        .hp-text {
+            font-size: 8px;
+            text-align: right;
+            color: var(--c-text-muted);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            line-height: 1;
         }
 
-        /* SoulLocke Link Badges */
-        .link-badge {
-            font-size: 7.5px;
-            background: #581c87;
-            border: 1px solid #c084fc;
-            box-shadow: 1px 1px 0 #000;
-            color: #f5d0fe;
-            text-shadow: 1px 1px 0 #000;
-            padding: 3px 5px;
-            border-radius: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            display: block;
-            text-align: center;
-            letter-spacing: 0.2px;
-            line-height: 1.2;
-        }
-        .link-badge.pending {
-            background: #78350f;
-            border-color: #f59e0b;
-            color: #fef3c7;
-        }
-        .link-badge.dead {
-            background: #450a0a;
-            border-color: #ef4444;
-            color: #fca5a5;
-        }
-
-        /* Empty Slot */
-        .empty-slot {
-            width: var(--slot-w);
-            height: var(--slot-h);
-            border: 2px dashed #2e3856;
-            box-shadow: inset 0 0 0 1px #090c14;
-            background: rgba(14, 18, 30, 0.45);
-            border-radius: 5px;
+        /* Flat Badges (Zero 3D Emojis) */
+        .badge-slot {
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            color: #475569;
-            font-size: 8px;
-            text-shadow: 1px 1px 0 #000;
-            position: relative;
-            overflow: hidden;
-            box-sizing: border-box;
+            gap: 4px;
+            font-size: 7.5px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            width: fit-content;
+            margin: 0 auto;
+            border: 1px solid transparent;
         }
 
-        .container.solo {
-            width: fit-content !important;
-            max-width: 100vw;
-            margin: 0;
-            padding: 8px;
+        .badge-linked {
+            background: rgba(88, 28, 135, 0.85);
+            color: #e9d5ff;
+            border-color: #a855f7;
         }
 
-        /* Floating Retro Toolbar */
-        .retro-toolbar {
+        .badge-pending {
+            background: rgba(120, 53, 15, 0.85);
+            color: #fde68a;
+            border-color: #f59e0b;
+        }
+
+        .badge-broken {
+            background: rgba(69, 10, 10, 0.85);
+            color: #fecaca;
+            border-color: #ef4444;
+        }
+
+        .badge-fainted {
+            background: rgba(30, 41, 59, 0.9);
+            color: #94a3b8;
+            border-color: #64748b;
+        }
+
+        /* ========================================================
+           SPACIOUS & ELEGANT RETRO CONFIGURATOR PANEL
+           ======================================================== */
+        .cfg-toggle-btn {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(14, 18, 30, 0.96);
-            border: 2px solid #3b4566;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.85);
-            border-radius: 6px;
-            padding: 7px 11px;
+            top: 14px;
+            right: 14px;
+            z-index: 9999;
+            background: #090d16;
+            color: var(--c-accent);
+            border: 2px solid var(--c-accent);
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 12px var(--c-accent-glow);
+            transition: all 0.2s ease;
+        }
+
+        .cfg-toggle-btn:hover {
+            background: var(--c-accent);
+            color: #090d16;
+            transform: scale(1.04);
+            box-shadow: 0 6px 20px var(--c-accent-glow);
+        }
+
+        .cfg-panel {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            z-index: 10000;
+            width: 580px;
+            max-width: calc(100vw - 28px);
+            max-height: calc(100vh - 28px);
+            background: rgba(9, 13, 22, 0.97);
+            border: 2px solid var(--c-accent);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 24px var(--c-accent-glow);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            backdrop-filter: blur(14px);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .cfg-panel.hidden {
+            display: none !important;
+        }
+
+        .cfg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding-bottom: 10px;
+        }
+
+        .cfg-title-wrap {
             display: flex;
             align-items: center;
             gap: 10px;
-            z-index: 1000;
-            font-size: 7px;
-            backdrop-filter: blur(8px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        .retro-toolbar.hidden {
-            display: none !important;
-        }
-        .toolbar-title {
-            color: #4ade80;
-            font-size: 7.5px;
+
+        .cfg-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            color: var(--c-accent);
             letter-spacing: 0.5px;
-            border-right: 1px solid #334155;
-            padding-right: 8px;
-            white-space: nowrap;
         }
-        .toolbar-group {
+
+        .cfg-sub {
+            font-size: 13px;
+            color: var(--c-text-muted);
+            margin-top: 2px;
+        }
+
+        .cfg-close-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            padding: 6px 10px;
             display: flex;
             align-items: center;
-            gap: 3px;
+            justify-content: center;
+            transition: all 0.2s;
         }
-        .toolbar-label {
-            color: #94a3b8;
-            font-size: 6.5px;
-            margin-right: 2px;
+
+        .cfg-close-btn:hover {
+            background: #ef4444;
+            border-color: #ef4444;
         }
-        .tb-btn {
-            background: #1e293b;
-            color: #cbd5e1;
-            border: 1px solid #475569;
-            border-radius: 3px;
-            padding: 4px 6px;
-            font-family: inherit;
-            font-size: 6.5px;
+
+        .cfg-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .cfg-section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--c-text-muted);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+        }
+
+        .cfg-row-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .cfg-btn-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .cfg-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: #e2e8f0;
+            padding: 7px 11px;
+            font-size: 13px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
             cursor: pointer;
-            text-shadow: 1px 1px 0 #000;
             transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .tb-btn:hover {
-            background: #334155;
-            color: #ffffff;
-            border-color: #64748b;
-        }
-        .tb-btn.active {
-            background: #2563eb;
-            color: #ffffff;
-            border-color: #60a5fa;
-        }
-        .tb-btn.primary {
-            background: #059669;
-            border-color: #34d399;
+
+        .cfg-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: var(--c-accent);
             color: #ffffff;
         }
-        .tb-btn.primary:hover {
-            background: #10b981;
+
+        .cfg-btn.active {
+            background: var(--c-accent);
+            color: #090d16;
+            border-color: var(--c-accent);
+            font-weight: 800;
+            box-shadow: 0 0 10px var(--c-accent-glow);
         }
-        .tb-btn.close {
-            background: transparent;
-            border-color: transparent;
-            color: #94a3b8;
-            font-size: 8px;
-            padding: 2px 4px;
+
+        /* Themes */
+        .cfg-themes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
         }
-        .tb-min-btn {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(14, 18, 30, 0.85);
-            border: 1px solid #3b4566;
-            color: #cbd5e1;
-            padding: 6px 9px;
-            border-radius: 4px;
+
+        .cfg-theme-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
-            z-index: 999;
-            font-size: 11px;
+            transition: all 0.2s;
         }
+
+        .cfg-theme-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .cfg-theme-btn.active {
+            border-color: var(--c-accent);
+            background: rgba(255, 255, 255, 0.14);
+            box-shadow: inset 0 0 8px var(--c-accent-glow);
+        }
+
+        .theme-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Custom Pickers */
+        .cfg-custom-colors {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 4px;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .color-item input[type="color"] {
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .color-item input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 3px;
+        }
+
+        /* OBS Export Box */
+        .cfg-obs-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .cfg-obs-btn {
+            background: var(--c-accent);
+            color: #090d16;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 0 14px var(--c-accent-glow);
+            transition: all 0.2s;
+        }
+
+        .cfg-obs-btn:hover {
+            transform: scale(1.02);
+            filter: brightness(1.15);
+        }
+
+        .cfg-obs-hint {
+            font-size: 12px;
+            color: var(--c-text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cfg-obs-res {
+            color: var(--c-accent);
+            font-weight: 700;
+        }
+
+        /* Toast notification */
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #059669;
-            border: 2px solid #34d399;
-            color: #ffffff;
-            padding: 8px 14px;
-            border-radius: 4px;
-            font-size: 8px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.6);
-            z-index: 2000;
-            animation: fadeToast 2.5s ease forwards;
+            bottom: 24px;
+            right: 24px;
+            background: #10b981;
+            color: #090d16;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeIn 0.2s ease;
         }
-        @keyframes fadeToast {
-            0% { opacity: 0; transform: translateY(10px); }
-            15% { opacity: 1; transform: translateY(0); }
-            80% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-10px); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <!-- Retro Toolbar (Interactive Layout & Size Switcher) -->
-    <div id="retro-toolbar" class="retro-toolbar">
-        <div class="toolbar-title">🎮 SOULLOCKE</div>
-        <div class="toolbar-group">
-            <span class="toolbar-label">Layout:</span>
-            <button class="tb-btn" data-layout="vertical" title="Équipes empilées (2x3)">Vertical</button>
-            <button class="tb-btn" data-layout="horizontal" title="Équipes côte à côte (3x2)">Horizontal</button>
-            <button class="tb-btn" data-layout="grid" title="Grille co-op (2x2)">Grille</button>
-            <button class="tb-btn" data-layout="bar" title="Bandeau inférieur OBS (1x6)">Bandeau (1x6)</button>
-            <button class="tb-btn" data-layout="sidebar" title="Colonne latérale OBS (6x1)">Colonne (6x1)</button>
-        </div>
-        <div class="toolbar-group">
-            <span class="toolbar-label">Taille:</span>
-            <button class="tb-btn" data-scale="1">100%</button>
-            <button class="tb-btn" data-scale="1.25">125%</button>
-            <button class="tb-btn" data-scale="1.5">150%</button>
-            <button class="tb-btn" data-scale="1.75">175%</button>
-        </div>
-        <div class="toolbar-group">
-            <span class="toolbar-label">Afficher:</span>
-            <button class="tb-btn" data-player="all">Tous</button>
-            <button class="tb-btn" data-player="me">Moi seul</button>
-        </div>
-        <button id="btn-copy-url" class="tb-btn primary" title="Copier le lien OBS configuré">📋 Copier URL OBS</button>
-        <button id="btn-toggle-tb" class="tb-btn close" title="Masquer la barre (cliquez sur ⚙️ pour réafficher)">✕</button>
-    </div>
-    <div id="tb-min-btn" class="tb-min-btn" title="Ouvrir les réglages d'overlay" style="display:none;">⚙️</div>
+    <!-- Floating Configurator Button (hidden in OBS) -->
+    <button id="cfg-toggle-btn" class="cfg-toggle-btn" title="Ouvrir le configurateur d'overlay">
+        <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span id="txt-open-cfg">CONFIGURER L'OVERLAY</span>
+    </button>
 
+    <!-- Comprehensive Configurator Panel -->
+    <div id="cfg-panel" class="cfg-panel hidden">
+        <div class="cfg-header">
+            <div class="cfg-title-wrap">
+                <svg class="flat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <div>
+                    <div id="txt-cfg-title" class="cfg-title">CONFIGURATEUR D'OVERLAY</div>
+                    <div id="txt-cfg-sub" class="cfg-sub">Personnalisation en direct pour Stream & OBS</div>
+                </div>
+            </div>
+            <button id="cfg-close-btn" class="cfg-close-btn" title="Fermer">
+                <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <!-- Section: Layout -->
+        <div class="cfg-section">
+            <div id="lbl-layout" class="cfg-section-title">Disposition (Layout)</div>
+            <div class="cfg-btn-grid">
+                <button class="cfg-btn" data-layout="vertical">Vertical (2x3)</button>
+                <button class="cfg-btn" data-layout="horizontal">Horizontal (3x2)</button>
+                <button class="cfg-btn" data-layout="grid">Grille Co-op</button>
+                <button class="cfg-btn" data-layout="bar">Bandeau Bas (1x6)</button>
+                <button class="cfg-btn" data-layout="sidebar">Colonne (6x1)</button>
+            </div>
+        </div>
+
+        <!-- Section: Scale & Sprites -->
+        <div class="cfg-row-2col">
+            <div class="cfg-section">
+                <div id="lbl-scale" class="cfg-section-title">Échelle Globale</div>
+                <div class="cfg-btn-grid">
+                    <button class="cfg-btn" data-scale="1">100%</button>
+                    <button class="cfg-btn" data-scale="1.25">125%</button>
+                    <button class="cfg-btn" data-scale="1.5">150%</button>
+                    <button class="cfg-btn" data-scale="1.75">175%</button>
+                    <button class="cfg-btn" data-scale="2">200%</button>
+                </div>
+            </div>
+
+            <div class="cfg-section">
+                <div id="lbl-sprite-size" class="cfg-section-title">Taille Pokémon</div>
+                <div class="cfg-btn-grid">
+                    <button class="cfg-btn" data-sprite-scale="1">Normal</button>
+                    <button class="cfg-btn" data-sprite-scale="1.35">Grand</button>
+                    <button class="cfg-btn" data-sprite-scale="1.65">Maxi</button>
+                    <button class="cfg-btn" data-sprite-scale="2">Ultra</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Themes & Couleurs -->
+        <div class="cfg-section">
+            <div id="lbl-themes" class="cfg-section-title">Thèmes & Couleurs</div>
+            <div class="cfg-themes-grid">
+                <button class="cfg-theme-btn" data-theme="cyan">
+                    <span class="theme-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span>
+                    <span>Cyan Néon</span>
+                </button>
+                <button class="cfg-theme-btn" data-theme="red">
+                    <span class="theme-dot" style="background:#f43f5e;box-shadow:0 0 8px #f43f5e;"></span>
+                    <span>Rouge Platine</span>
+                </button>
+                <button class="cfg-theme-btn" data-theme="emerald">
+                    <span class="theme-dot" style="background:#10b981;box-shadow:0 0 8px #10b981;"></span>
+                    <span>Émeraude</span>
+                </button>
+                <button class="cfg-theme-btn" data-theme="purple">
+                    <span class="theme-dot" style="background:#c084fc;box-shadow:0 0 8px #c084fc;"></span>
+                    <span>Améthyste</span>
+                </button>
+                <button class="cfg-theme-btn" data-theme="amber">
+                    <span class="theme-dot" style="background:#fbbf24;box-shadow:0 0 8px #fbbf24;"></span>
+                    <span>Or Rétro</span>
+                </button>
+                <button class="cfg-theme-btn" data-theme="slate">
+                    <span class="theme-dot" style="background:#94a3b8;box-shadow:0 0 8px #94a3b8;"></span>
+                    <span>Minimaliste</span>
+                </button>
+            </div>
+
+            <div class="cfg-custom-colors">
+                <div class="color-item">
+                    <span id="lbl-accent">Accent :</span>
+                    <input type="color" id="picker-accent" value="#38bdf8">
+                </div>
+                <div class="color-item">
+                    <span id="lbl-bg">Fond :</span>
+                    <input type="color" id="picker-bg" value="#090d16">
+                </div>
+                <div class="color-item">
+                    <span id="lbl-opacity">Opacité :</span>
+                    <div class="cfg-btn-grid">
+                        <button class="cfg-btn" data-opacity="0.94">95%</button>
+                        <button class="cfg-btn" data-opacity="0.75">75%</button>
+                        <button class="cfg-btn" data-opacity="0">0%</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Joueurs & Langue -->
+        <div class="cfg-row-2col">
+            <div class="cfg-section">
+                <div id="lbl-players" class="cfg-section-title">Joueurs affichés</div>
+                <div class="cfg-btn-grid">
+                    <button class="cfg-btn" data-player="all">Tous</button>
+                    <button class="cfg-btn" data-player="1">Joueur 1</button>
+                    <button class="cfg-btn" data-player="2">Joueur 2</button>
+                </div>
+            </div>
+
+            <div class="cfg-section">
+                <div id="lbl-lang" class="cfg-section-title">Langue (Language)</div>
+                <div class="cfg-btn-grid">
+                    <button class="cfg-btn" data-lang-choice="auto">Auto</button>
+                    <button class="cfg-btn" data-lang-choice="fr">Français</button>
+                    <button class="cfg-btn" data-lang-choice="en">English</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: OBS Export -->
+        <div class="cfg-obs-box">
+            <button id="btn-copy-obs" class="cfg-obs-btn">
+                <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span id="txt-copy-obs">COPIER LE LIEN OBS STUDIO</span>
+            </button>
+            <div class="cfg-obs-hint">
+                <span id="txt-obs-hint">Résolution conseillée dans OBS :</span>
+                <span id="obs-res-hint" class="cfg-obs-res">380 × 660 px</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Overlay Container -->
     <div class="overlay-wrapper">
         <div id="container" class="container layout-vertical"></div>
     </div>
 
     <script>
         const PKMN_NAMES_FR = {"1": "Bulbizarre", "2": "Herbizarre", "3": "Florizarre", "4": "Salamèche", "5": "Reptincel", "6": "Dracaufeu", "7": "Carapuce", "8": "Carabaffe", "9": "Tortank", "10": "Chenipan", "11": "Chrysacier", "12": "Papilusion", "13": "Aspicot", "14": "Coconfort", "15": "Dardargnan", "16": "Roucool", "17": "Roucoups", "18": "Roucarnage", "19": "Rattata", "20": "Rattatac", "21": "Piafabec", "22": "Rapasdepic", "23": "Abo", "24": "Arbok", "25": "Pikachu", "26": "Raichu", "27": "Sabelette", "28": "Sablaireau", "29": "Nidoran♀", "30": "Nidorina", "31": "Nidoqueen", "32": "Nidoran♂", "33": "Nidorino", "34": "Nidoking", "35": "Mélofée", "36": "Mélodelfe", "37": "Goupix", "38": "Feunard", "39": "Rondoudou", "40": "Grodoudou", "41": "Nosferapti", "42": "Nosferalto", "43": "Mystherbe", "44": "Ortide", "45": "Rafflesia", "46": "Paras", "47": "Parasect", "48": "Mimitoss", "49": "Aéromite", "50": "Taupiqueur", "51": "Triopikeur", "52": "Miaouss", "53": "Persian", "54": "Psykokwak", "55": "Akwakwak", "56": "Férosinge", "57": "Colossinge", "58": "Caninos", "59": "Arcanin", "60": "Ptitard", "61": "Têtarte", "62": "Tartard", "63": "Abra", "64": "Kadabra", "65": "Alakazam", "66": "Machoc", "67": "Machopeur", "68": "Mackogneur", "69": "Chétiflor", "70": "Boustiflor", "71": "Empiflor", "72": "Tentacool", "73": "Tentacruel", "74": "Racaillou", "75": "Gravalanch", "76": "Grolem", "77": "Ponyta", "78": "Galopa", "79": "Ramoloss", "80": "Flagadoss", "81": "Magnéti", "82": "Magnéton", "83": "Canarticho", "84": "Doduo", "85": "Dodrio", "86": "Otaria", "87": "Lamantine", "88": "Tadmorv", "89": "Grotadmorv", "90": "Kokiyas", "91": "Crustabri", "92": "Fantominus", "93": "Spectrum", "94": "Ectoplasma", "95": "Onix", "96": "Soporifik", "97": "Hypnomade", "98": "Krabby", "99": "Krabboss", "100": "Voltorbe", "101": "Électrode", "102": "Noeunoeuf", "103": "Noadkoko", "104": "Osselait", "105": "Ossatueur", "106": "Kicklee", "107": "Tygnon", "108": "Excelangue", "109": "Smogo", "110": "Smogogo", "111": "Rhinocorne", "112": "Rhinoféros", "113": "Leveinard", "114": "Saquedeneu", "115": "Kangourex", "116": "Hypotrempe", "117": "Hypocéan", "118": "Poissirène", "119": "Poissoroy", "120": "Stari", "121": "Staross", "122": "M. Mime", "123": "Insécateur", "124": "Lippoutou", "125": "Élektek", "126": "Magmar", "127": "Scarabrute", "128": "Tauros", "129": "Magicarpe", "130": "Léviator", "131": "Lokhlass", "132": "Métamorph", "133": "Évoli", "134": "Aquali", "135": "Voltali", "136": "Pyroli", "137": "Porygon", "138": "Amonita", "139": "Amonistar", "140": "Kabuto", "141": "Kabutops", "142": "Ptéra", "143": "Ronflex", "144": "Artikodin", "145": "Électhor", "146": "Sulfura", "147": "Minidraco", "148": "Draco", "149": "Dracolosse", "150": "Mewtwo", "151": "Mew", "152": "Germignon", "153": "Macronium", "154": "Méganium", "155": "Héricendre", "156": "Feurisson", "157": "Typhlosion", "158": "Kaiminus", "159": "Crocrodil", "160": "Aligatueur", "161": "Fouinette", "162": "Fouinar", "163": "Hoothoot", "164": "Noarfang", "165": "Coxy", "166": "Coxyclaque", "167": "Mimigal", "168": "Migalos", "169": "Nostenfer", "170": "Loupio", "171": "Lanturn", "172": "Pichu", "173": "Mélo", "174": "Toudoudou", "175": "Togepi", "176": "Togetic", "177": "Natu", "178": "Xatu", "179": "Wattouat", "180": "Lainergie", "181": "Pharamp", "182": "Joliflor", "183": "Marill", "184": "Azumarill", "185": "Simularbre", "186": "Tarpaud", "187": "Granivol", "188": "Floravol", "189": "Cotovol", "190": "Capumain", "191": "Tournegrin", "192": "Héliatronc", "193": "Yanma", "194": "Axoloto", "195": "Maraiste", "196": "Mentali", "197": "Noctali", "198": "Cornèbre", "199": "Roigada", "200": "Feuforêve", "201": "Zarbi", "202": "Qulbutoké", "203": "Girafarig", "204": "Pomdepik", "205": "Foretress", "206": "Insolourdo", "207": "Scorplane", "208": "Steelix", "209": "Snubbull", "210": "Granbull", "211": "Qwilfish", "212": "Cizayox", "213": "Caratroc", "214": "Scarhino", "215": "Farfuret", "216": "Teddiursa", "217": "Ursaring", "218": "Limagma", "219": "Volcaropod", "220": "Marcacrin", "221": "Cochignon", "222": "Corayon", "223": "Rémoraid", "224": "Octillery", "225": "Cadoizo", "226": "Démanta", "227": "Airmure", "228": "Malosse", "229": "Démolosse", "230": "Hyporoi", "231": "Phanpy", "232": "Donphan", "233": "Porygon2", "234": "Cerfrousse", "235": "Queulorior", "236": "Debugant", "237": "Kapoera", "238": "Lippouti", "239": "Élekid", "240": "Magby", "241": "Écrémeuh", "242": "Leuphorie", "243": "Raikou", "244": "Entei", "245": "Suicune", "246": "Embrylex", "247": "Ymphect", "248": "Tyranocif", "249": "Lugia", "250": "Ho-Oh", "251": "Celebi", "252": "Arcko", "253": "Massko", "254": "Jungko", "255": "Poussifeu", "256": "Galifeu", "257": "Braségali", "258": "Gobou", "259": "Flobio", "260": "Laggron", "261": "Medhyèna", "262": "Grahyèna", "263": "Zigzaton", "264": "Linéon", "265": "Chenipotte", "266": "Armulys", "267": "Charmillon", "268": "Blindalys", "269": "Papinox", "270": "Nénupiot", "271": "Lombre", "272": "Ludicolo", "273": "Grainipiot", "274": "Pifeuil", "275": "Tengalice", "276": "Nirondelle", "277": "Hélédelle", "278": "Goélise", "279": "Bekipan", "280": "Tarsal", "281": "Kirlia", "282": "Gardevoir", "283": "Arakdo", "284": "Maskadra", "285": "Balignon", "286": "Chapignon", "287": "Parecool", "288": "Vigoroth", "289": "Monaflèmit", "290": "Ningale", "291": "Ninjask", "292": "Munja", "293": "Chuchmur", "294": "Ramboum", "295": "Brouhabam", "296": "Makuhita", "297": "Hariyama", "298": "Azurill", "299": "Tarinor", "300": "Skitty", "301": "Delcatty", "302": "Ténéfix", "303": "Mysdibule", "304": "Galekid", "305": "Galegon", "306": "Galeking", "307": "Méditikka", "308": "Charmina", "309": "Dynavolt", "310": "Élecsprint", "311": "Posipi", "312": "Négapi", "313": "Muciole", "314": "Lumivole", "315": "Rosélia", "316": "Gloupti", "317": "Avaltout", "318": "Carvanha", "319": "Sharpedo", "320": "Wailmer", "321": "Wailord", "322": "Chamallot", "323": "Camérupt", "324": "Chartor", "325": "Spoink", "326": "Groret", "327": "Spinda", "328": "Kraknoix", "329": "Vibraninf", "330": "Libégon", "331": "Cacnea", "332": "Cacturne", "333": "Tylton", "334": "Altaria", "335": "Mangriff", "336": "Séviper", "337": "Séléroc", "338": "Solaroc", "339": "Barloche", "340": "Barbicha", "341": "Écrapince", "342": "Colhomard", "343": "Balbuto", "344": "Kaorine", "345": "Lilia", "346": "Vacilys", "347": "Anorith", "348": "Armaldo", "349": "Barpau", "350": "Milobellus", "351": "Morphéo", "352": "Kecleon", "353": "Polichombr", "354": "Branette", "355": "Skelénox", "356": "Téraclope", "357": "Tropius", "358": "Éoko", "359": "Absol", "360": "Okéoké", "361": "Stalgamin", "362": "Oniglali", "363": "Obalie", "364": "Phogleur", "365": "Kaimorse", "366": "Coquiperl", "367": "Serpang", "368": "Rosabyss", "369": "Relicanth", "370": "Lovdisc", "371": "Draby", "372": "Drackhaus", "373": "Drattak", "374": "Terhal", "375": "Métang", "376": "Métalosse", "377": "Regirock", "378": "Regice", "379": "Registeel", "380": "Latias", "381": "Latios", "382": "Kyogre", "383": "Groudon", "384": "Rayquaza", "385": "Jirachi", "386": "Deoxys", "387": "Tortipouss", "388": "Boskara", "389": "Torterra", "390": "Ouisticram", "391": "Chimpenfeu", "392": "Simiabraz", "393": "Tiplouf", "394": "Prinplouf", "395": "Pingoléon", "396": "Étourmi", "397": "Étourvol", "398": "Étouraptor", "399": "Keunotor", "400": "Castorno", "401": "Crikzik", "402": "Mélokrik", "403": "Lixy", "404": "Luxio", "405": "Luxray", "406": "Rozbouton", "407": "Roserade", "408": "Kranidos", "409": "Charkos", "410": "Dinoclier", "411": "Bastiodon", "412": "Cheniti", "413": "Cheniselle", "414": "Papilord", "415": "Apitrini", "416": "Apireine", "417": "Pachirisu", "418": "Mustébouée", "419": "Mustéflott", "420": "Ceribou", "421": "Ceriflor", "422": "Sancoki", "423": "Tritosor", "424": "Capidextre", "425": "Baudrive", "426": "Grodrive", "427": "Laporeille", "428": "Lockpin", "429": "Magirêve", "430": "Corboss", "431": "Chaglam", "432": "Chaffreux", "433": "Korillon", "434": "Moufouette", "435": "Moufflair", "436": "Archéomire", "437": "Archéodong", "438": "Manzaï", "439": "Mime Jr", "440": "Ptiravi", "441": "Pijako", "442": "Spiritomb", "443": "Griknot", "444": "Carmache", "445": "Carchacrok", "446": "Goinfrex", "447": "Riolu", "448": "Lucario", "449": "Hippopotas", "450": "Hippodocus", "451": "Rapion", "452": "Drascore", "453": "Cradopaud", "454": "Coatox", "455": "Vortente", "456": "Écayon", "457": "Luminéon", "458": "Babimanta", "459": "Blizzi", "460": "Blizzaroi", "461": "Dimoret", "462": "Magnézone", "463": "Coudlangue", "464": "Rhinastoc", "465": "Bouldeneu", "466": "Élekable", "467": "Maganon", "468": "Togekiss", "469": "Yanmega", "470": "Phyllali", "471": "Givrali", "472": "Scorvol", "473": "Mammochon", "474": "Porygon-Z", "475": "Gallame", "476": "Tarinorme", "477": "Noctunoir", "478": "Momartik", "479": "Motisma", "480": "Créhelf", "481": "Créfollet", "482": "Créfadet", "483": "Dialga", "484": "Palkia", "485": "Heatran", "486": "Regigigas", "487": "Giratina", "488": "Cresselia", "489": "Phione", "490": "Manaphy", "491": "Darkrai", "492": "Shaymin", "493": "Arceus"};
+        const PKMN_NAMES_EN = {"1": "Bulbasaur", "2": "Ivysaur", "3": "Venusaur", "4": "Charmander", "5": "Charmeleon", "6": "Charizard", "7": "Squirtle", "8": "Wartortle", "9": "Blastoise", "10": "Caterpie", "11": "Metapod", "12": "Butterfree", "13": "Weedle", "14": "Kakuna", "15": "Beedrill", "16": "Pidgey", "17": "Pidgeotto", "18": "Pidgeot", "19": "Rattata", "20": "Raticate", "21": "Spearow", "22": "Fearow", "23": "Ekans", "24": "Arbok", "25": "Pikachu", "26": "Raichu", "27": "Sandshrew", "28": "Sandslash", "29": "Nidoran♀", "30": "Nidorina", "31": "Nidoqueen", "32": "Nidoran♂", "33": "Nidorino", "34": "Nidoking", "35": "Clefairy", "36": "Clefable", "37": "Vulpix", "38": "Ninetales", "39": "Jigglypuff", "40": "Wigglytuff", "41": "Zubat", "42": "Golbat", "43": "Oddish", "44": "Gloom", "45": "Vileplume", "46": "Paras", "47": "Parasect", "48": "Venonat", "49": "Venomoth", "50": "Diglett", "51": "Dugtrio", "52": "Meowth", "53": "Persian", "54": "Psyduck", "55": "Golduck", "56": "Mankey", "57": "Primeape", "58": "Growlithe", "59": "Arcanine", "60": "Poliwag", "61": "Poliwhirl", "62": "Poliwrath", "63": "Abra", "64": "Kadabra", "65": "Alakazam", "66": "Machop", "67": "Machoke", "68": "Machamp", "69": "Bellsprout", "70": "Weepinbell", "71": "Victreebel", "72": "Tentacool", "73": "Tentacruel", "74": "Geodude", "75": "Graveler", "76": "Golem", "77": "Ponyta", "78": "Rapidash", "79": "Slowpoke", "80": "Slowbro", "81": "Magnemite", "82": "Magneton", "83": "Farfetch’d", "84": "Doduo", "85": "Dodrio", "86": "Seel", "87": "Dewgong", "88": "Grimer", "89": "Muk", "90": "Shellder", "91": "Cloyster", "92": "Gastly", "93": "Haunter", "94": "Gengar", "95": "Onix", "96": "Drowzee", "97": "Hypno", "98": "Krabby", "99": "Kingler", "100": "Voltorb", "101": "Electrode", "102": "Exeggcute", "103": "Exeggutor", "104": "Cubone", "105": "Marowak", "106": "Hitmonlee", "107": "Hitmonchan", "108": "Lickitung", "109": "Koffing", "110": "Weezing", "111": "Rhyhorn", "112": "Rhydon", "113": "Chansey", "114": "Tangela", "115": "Kangaskhan", "116": "Horsea", "117": "Seadra", "118": "Goldeen", "119": "Seaking", "120": "Staryu", "121": "Starmie", "122": "Mr. Mime", "123": "Scyther", "124": "Jynx", "125": "Electabuzz", "126": "Magmar", "127": "Pinsir", "128": "Tauros", "129": "Magikarp", "130": "Gyarados", "131": "Lapras", "132": "Ditto", "133": "Eevee", "134": "Vaporeon", "135": "Jolteon", "136": "Flareon", "137": "Porygon", "138": "Omanyte", "139": "Omastar", "140": "Kabuto", "141": "Kabutops", "142": "Aerodactyl", "143": "Snorlax", "144": "Articuno", "145": "Zapdos", "146": "Moltres", "147": "Dratini", "148": "Dragonair", "149": "Dragonite", "150": "Mewtwo", "151": "Mew", "152": "Chikorita", "153": "Bayleef", "154": "Meganium", "155": "Cyndaquil", "156": "Quilava", "157": "Typhlosion", "158": "Totodile", "159": "Croconaw", "160": "Feraligatr", "161": "Sentret", "162": "Furret", "163": "Hoothoot", "164": "Noctowl", "165": "Ledyba", "166": "Ledian", "167": "Spinarak", "168": "Ariados", "169": "Crobat", "170": "Chinchou", "171": "Lanturn", "172": "Pichu", "173": "Cleffa", "174": "Igglybuff", "175": "Togepi", "176": "Togetic", "177": "Natu", "178": "Xatu", "179": "Mareep", "180": "Flaaffy", "181": "Ampharos", "182": "Bellossom", "183": "Marill", "184": "Azumarill", "185": "Sudowoodo", "186": "Politoed", "187": "Hoppip", "188": "Skiploom", "189": "Jumpluff", "190": "Aipom", "191": "Sunkern", "192": "Sunflora", "193": "Yanma", "194": "Wooper", "195": "Quagsire", "196": "Espeon", "197": "Umbreon", "198": "Murkrow", "199": "Slowking", "200": "Misdreavus", "201": "Unown", "202": "Wobbuffet", "203": "Girafarig", "204": "Pineco", "205": "Forretress", "206": "Dunsparce", "207": "Gligar", "208": "Steelix", "209": "Snubbull", "210": "Granbull", "211": "Qwilfish", "212": "Scizor", "213": "Shuckle", "214": "Heracross", "215": "Sneasel", "216": "Teddiursa", "217": "Ursaring", "218": "Slugma", "219": "Magcargo", "220": "Swinub", "221": "Piloswine", "222": "Corsola", "223": "Remoraid", "224": "Octillery", "225": "Delibird", "226": "Mantine", "227": "Skarmory", "228": "Houndour", "229": "Houndoom", "230": "Kingdra", "231": "Phanpy", "232": "Donphan", "233": "Porygon2", "234": "Stantler", "235": "Smeargle", "236": "Tyrogue", "237": "Hitmontop", "238": "Smoochum", "239": "Elekid", "240": "Magby", "241": "Miltank", "242": "Blissey", "243": "Raikou", "244": "Entei", "245": "Suicune", "246": "Larvitar", "247": "Pupitar", "248": "Tyranitar", "249": "Lugia", "250": "Ho-Oh", "251": "Celebi", "252": "Treecko", "253": "Grovyle", "254": "Sceptile", "255": "Torchic", "256": "Combusken", "257": "Blaziken", "258": "Mudkip", "259": "Marshtomp", "260": "Swampert", "261": "Poochyena", "262": "Mightyena", "263": "Zigzagoon", "264": "Linoone", "265": "Wurmple", "266": "Silcoon", "267": "Beautifly", "268": "Cascoon", "269": "Dustox", "270": "Lotad", "271": "Lombre", "272": "Ludicolo", "273": "Seedot", "274": "Nuzleaf", "275": "Shiftry", "276": "Taillow", "277": "Swellow", "278": "Wingull", "279": "Pelipper", "280": "Ralts", "281": "Kirlia", "282": "Gardevoir", "283": "Surskit", "284": "Masquerain", "285": "Shroomish", "286": "Breloom", "287": "Slakoth", "288": "Vigoroth", "289": "Slaking", "290": "Nincada", "291": "Ninjask", "292": "Shedinja", "293": "Whismur", "294": "Loudred", "295": "Exploud", "296": "Makuhita", "297": "Hariyama", "298": "Azurill", "299": "Nosepass", "300": "Skitty", "301": "Delcatty", "302": "Sableye", "303": "Mawile", "304": "Aron", "305": "Lairon", "306": "Aggron", "307": "Meditite", "308": "Medicham", "309": "Electrike", "310": "Manectric", "311": "Plusle", "312": "Minun", "313": "Volbeat", "314": "Illumise", "315": "Roselia", "316": "Gulpin", "317": "Swalot", "318": "Carvanha", "319": "Sharpedo", "320": "Wailmer", "321": "Wailord", "322": "Numel", "323": "Camerupt", "324": "Torkoal", "325": "Spoink", "326": "Grumpig", "327": "Spinda", "328": "Trapinch", "329": "Vibrava", "330": "Flygon", "331": "Cacnea", "332": "Cacturne", "333": "Swablu", "334": "Altaria", "335": "Zangoose", "336": "Seviper", "337": "Lunatone", "338": "Solrock", "339": "Barboach", "340": "Whiscash", "341": "Corphish", "342": "Crawdaunt", "343": "Baltoy", "344": "Claydol", "345": "Lileep", "346": "Cradily", "347": "Anorith", "348": "Armaldo", "349": "Feebas", "350": "Milotic", "351": "Castform", "352": "Kecleon", "353": "Shuppet", "354": "Banette", "355": "Duskull", "356": "Dusclops", "357": "Tropius", "358": "Chimecho", "359": "Absol", "360": "Wynaut", "361": "Snorunt", "362": "Glalie", "363": "Spheal", "364": "Sealeo", "365": "Walrein", "366": "Clamperl", "367": "Huntail", "368": "Gorebyss", "369": "Relicanth", "370": "Luvdisc", "371": "Bagon", "372": "Shelgon", "373": "Salamence", "374": "Beldum", "375": "Metang", "376": "Metagross", "377": "Regirock", "378": "Regice", "379": "Registeel", "380": "Latias", "381": "Latios", "382": "Kyogre", "383": "Groudon", "384": "Rayquaza", "385": "Jirachi", "386": "Deoxys", "387": "Turtwig", "388": "Grotle", "389": "Torterra", "390": "Chimchar", "391": "Monferno", "392": "Infernape", "393": "Piplup", "394": "Prinplup", "395": "Empoleon", "396": "Starly", "397": "Staravia", "398": "Staraptor", "399": "Bidoof", "400": "Bibarel", "401": "Kricketot", "402": "Kricketune", "403": "Shinx", "404": "Luxio", "405": "Luxray", "406": "Budew", "407": "Roserade", "408": "Cranidos", "409": "Rampardos", "410": "Shieldon", "411": "Bastiodon", "412": "Burmy", "413": "Wormadam", "414": "Mothim", "415": "Combee", "416": "Vespiquen", "417": "Pachirisu", "418": "Buizel", "419": "Floatzel", "420": "Cherubi", "421": "Cherrim", "422": "Shellos", "423": "Gastrodon", "424": "Ambipom", "425": "Drifloon", "426": "Drifblim", "427": "Buneary", "428": "Lopunny", "429": "Mismagius", "430": "Honchkrow", "431": "Glameow", "432": "Purugly", "433": "Chingling", "434": "Stunky", "435": "Skuntank", "436": "Bronzor", "437": "Bronzong", "438": "Bonsly", "439": "Mime Jr.", "440": "Happiny", "441": "Chatot", "442": "Spiritomb", "443": "Gible", "444": "Gabite", "445": "Garchomp", "446": "Munchlax", "447": "Riolu", "448": "Lucario", "449": "Hippopotas", "450": "Hippowdon", "451": "Skorupi", "452": "Drapion", "453": "Croagunk", "454": "Toxicroak", "455": "Carnivine", "456": "Finneon", "457": "Lumineon", "458": "Mantyke", "459": "Snover", "460": "Abomasnow", "461": "Weavile", "462": "Magnezone", "463": "Lickilicky", "464": "Rhyperior", "465": "Tangrowth", "466": "Electivire", "467": "Magmortar", "468": "Togekiss", "469": "Yanmega", "470": "Leafeon", "471": "Glaceon", "472": "Gliscor", "473": "Mamoswine", "474": "Porygon-Z", "475": "Gallade", "476": "Probopass", "477": "Dusknoir", "478": "Froslass", "479": "Rotom", "480": "Uxie", "481": "Mesprit", "482": "Azelf", "483": "Dialga", "484": "Palkia", "485": "Heatran", "486": "Regigigas", "487": "Giratina", "488": "Cresselia", "489": "Phione", "490": "Manaphy", "491": "Darkrai", "492": "Shaymin", "493": "Arceus"};
 
+        const I18N = {
+            fr: {
+                openCfg: "CONFIGURER L'OVERLAY",
+                cfgTitle: "CONFIGURATEUR D'OVERLAY",
+                cfgSub: "Personnalisation en direct pour Stream & OBS",
+                layout: "Disposition (Layout)",
+                scale: "Échelle Globale",
+                spriteSize: "Taille Pokémon",
+                themes: "Thèmes & Couleurs",
+                accent: "Accent :",
+                bg: "Fond :",
+                opacity: "Opacité :",
+                players: "Joueurs affichés",
+                allPlayers: "Tous",
+                p1Only: "Joueur 1",
+                p2Only: "Joueur 2",
+                language: "Langue (Language)",
+                copyObs: "COPIER LE LIEN OBS STUDIO",
+                obsHint: "Résolution conseillée dans OBS :",
+                copiedToast: "URL OBS copiée dans le presse-papiers !",
+                alive: "EN VIE",
+                linked: "LIÉ",
+                linkedPc: "LIÉ (PC)",
+                pending: "EN ATTENTE",
+                broken: "ÂME BRISÉE",
+                fainted: "K.O.",
+                level: "Niv.",
+                slot: "Emplacement",
+                unknown: "Inconnu"
+            },
+            en: {
+                openCfg: "CONFIGURE OVERLAY",
+                cfgTitle: "OVERLAY CONFIGURATOR",
+                cfgSub: "Live customization for Stream & OBS",
+                layout: "Layout",
+                scale: "Global Scale",
+                spriteSize: "Pokemon Size",
+                themes: "Themes & Colors",
+                accent: "Accent:",
+                bg: "Background:",
+                opacity: "Opacity:",
+                players: "Visible Players",
+                allPlayers: "All",
+                p1Only: "Player 1",
+                p2Only: "Player 2",
+                language: "Language",
+                copyObs: "COPY OBS STUDIO URL",
+                obsHint: "Recommended size in OBS:",
+                copiedToast: "OBS URL copied to clipboard!",
+                alive: "ALIVE",
+                linked: "LINKED",
+                linkedPc: "LINKED (PC)",
+                pending: "PENDING",
+                broken: "SOUL BROKEN",
+                fainted: "FAINTED",
+                level: "Lv.",
+                slot: "Slot",
+                unknown: "Unknown"
+            }
+        };
+
+        const THEMES = {
+            cyan: { accent: '#38bdf8', glow: 'rgba(56, 189, 248, 0.45)', bgBox: '#090d16', bgCard: '#0f172a' },
+            red: { accent: '#f43f5e', glow: 'rgba(244, 63, 94, 0.45)', bgBox: '#18080c', bgCard: '#260c12' },
+            emerald: { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.45)', bgBox: '#06150e', bgCard: '#0a1f16' },
+            purple: { accent: '#c084fc', glow: 'rgba(192, 132, 252, 0.45)', bgBox: '#14091f', bgCard: '#200e32' },
+            amber: { accent: '#fbbf24', glow: 'rgba(251, 191, 36, 0.45)', bgBox: '#181205', bgCard: '#281e08' },
+            slate: { accent: '#94a3b8', glow: 'rgba(148, 163, 184, 0.3)', bgBox: '#0f172a', bgCard: '#1e293b' }
+        };
+
+        const RESOLUTION_HINTS = {
+            vertical: '380 × 660 px',
+            horizontal: '660 × 430 px',
+            grid: '660 × 430 px',
+            bar: '1120 × 230 px',
+            sidebar: '230 × 1180 px'
+        };
+
+        // State initialization
         const urlParams = new URLSearchParams(window.location.search);
-        let currentLayout = urlParams.get('layout') || 'vertical';
-        let currentScale = parseFloat(urlParams.get('scale') || '1');
-        let targetPlayer = urlParams.get('player') || 'all';
+        let currentLayout = urlParams.get('layout') || localStorage.getItem('ov_layout') || 'vertical';
+        let currentScale = parseFloat(urlParams.get('scale') || localStorage.getItem('ov_scale') || '1');
+        let currentSpriteScale = parseFloat(urlParams.get('spriteScale') || localStorage.getItem('ov_sprite_scale') || '1.35');
+        let targetPlayer = urlParams.get('player') || localStorage.getItem('ov_player') || 'all';
+        let currentTheme = urlParams.get('theme') || localStorage.getItem('ov_theme') || 'cyan';
+        let customAccent = urlParams.get('accent') || localStorage.getItem('ov_accent') || null;
+        let customBg = urlParams.get('bg') || localStorage.getItem('ov_bg') || null;
+        let currentOpacity = parseFloat(urlParams.get('opacity') || localStorage.getItem('ov_opacity') || '0.94');
+        let langChoice = urlParams.get('langChoice') || localStorage.getItem('ov_lang_choice') || 'auto';
+        let activeLang = 'fr';
         const isObs = urlParams.get('obs') === '1' || urlParams.get('hide_ui') === '1';
 
-        const container = document.getElementById('container');
-        const tb = document.getElementById('retro-toolbar');
-        const minBtn = document.getElementById('tb-min-btn');
+        // Flat SVG Pokeball Watermark
+        const POKEBALL_SVG = `<svg class="pkball-bg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#ffffff" stroke-width="6"/>
+            <line x1="4" y1="50" x2="96" y2="50" stroke="#ffffff" stroke-width="6"/>
+            <circle cx="50" cy="50" r="14" fill="#090d16" stroke="#ffffff" stroke-width="6"/>
+            <circle cx="50" cy="50" r="6" fill="#ffffff"/>
+        </svg>`;
+
+        // Flat Badge SVGs
+        const SVG_CHAIN = `<svg class="flat-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+        const SVG_CLOCK = `<svg class="flat-icon" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+        const SVG_BROKEN = `<svg class="flat-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+        function getMonName(species) {
+            if (!species || species <= 0) return I18N[activeLang].unknown;
+            if (activeLang === 'en') {
+                return PKMN_NAMES_EN[species] || ('#' + species);
+            }
+            return PKMN_NAMES_FR[species] || ('#' + species);
+        }
+
+        function getSpriteUrl(species) {
+            if (!species || species <= 0) return '';
+            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${species}.gif`;
+        }
+
+        function getFallbackSpriteUrl(species) {
+            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/${species}.png`;
+        }
+
+        // Color Hex to RGBA Helper
+        function hexToRgba(hex, alpha) {
+            let c = hex.replace('#', '');
+            if (c.length === 3) c = c.split('').map(x => x + x).join('');
+            const num = parseInt(c, 16);
+            return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+        }
+
+        function applyTheme() {
+            const t = THEMES[currentTheme] || THEMES.cyan;
+            const accent = customAccent || t.accent;
+            const bgBase = customBg || t.bgBox;
+            const bgCardBase = customBg ? customBg : t.bgCard;
+
+            document.documentElement.style.setProperty('--c-accent', accent);
+            document.documentElement.style.setProperty('--c-accent-glow', hexToRgba(accent, 0.45));
+            document.documentElement.style.setProperty('--c-bg-box', hexToRgba(bgBase, currentOpacity));
+            document.documentElement.style.setProperty('--c-bg-card', hexToRgba(bgCardBase, Math.min(1, currentOpacity + 0.05)));
+
+            document.getElementById('picker-accent').value = accent;
+            document.getElementById('picker-bg').value = bgBase;
+
+            document.querySelectorAll('.cfg-theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === currentTheme && !customAccent);
+            });
+
+            document.querySelectorAll('[data-opacity]').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.dataset.opacity) === currentOpacity);
+            });
+        }
+
+        function updateTexts() {
+            const t = I18N[activeLang];
+            document.getElementById('txt-open-cfg').textContent = t.openCfg;
+            document.getElementById('txt-cfg-title').textContent = t.cfgTitle;
+            document.getElementById('txt-cfg-sub').textContent = t.cfgSub;
+            document.getElementById('lbl-layout').textContent = t.layout;
+            document.getElementById('lbl-scale').textContent = t.scale;
+            document.getElementById('lbl-sprite-size').textContent = t.spriteSize;
+            document.getElementById('lbl-themes').textContent = t.themes;
+            document.getElementById('lbl-accent').textContent = t.accent;
+            document.getElementById('lbl-bg').textContent = t.bg;
+            document.getElementById('lbl-opacity').textContent = t.opacity;
+            document.getElementById('lbl-players').textContent = t.players;
+            document.getElementById('lbl-lang').textContent = t.language;
+            document.getElementById('txt-copy-obs').textContent = t.copyObs;
+            document.getElementById('txt-obs-hint').textContent = t.obsHint;
+
+            document.querySelectorAll('[data-player]').forEach(btn => {
+                if (btn.dataset.player === 'all') btn.textContent = t.allPlayers;
+                if (btn.dataset.player === '1') btn.textContent = t.p1Only;
+                if (btn.dataset.player === '2') btn.textContent = t.p2Only;
+            });
+
+            // Force refresh of Pokémon cards texts on language change
+            lastJsonData = null;
+        }
 
         function applySettings() {
             document.documentElement.style.setProperty('--scale', currentScale);
-            container.className = 'container layout-' + currentLayout;
-            if (targetPlayer === 'me' || targetPlayer === '1') {
-                container.classList.add('solo');
-            }
+            document.documentElement.style.setProperty('--sprite-scale', currentSpriteScale);
 
-            document.querySelectorAll('[data-layout]').forEach(b => {
-                b.classList.toggle('active', b.dataset.layout === currentLayout);
-            });
-            document.querySelectorAll('[data-scale]').forEach(b => {
-                b.classList.toggle('active', parseFloat(b.dataset.scale) === currentScale);
-            });
-            document.querySelectorAll('[data-player]').forEach(b => {
-                b.classList.toggle('active', b.dataset.player === targetPlayer);
-            });
+            const container = document.getElementById('container');
+            container.className = `container layout-${currentLayout}`;
 
-            const p = new URLSearchParams();
-            p.set('layout', currentLayout);
-            if (currentScale !== 1) p.set('scale', currentScale);
-            if (targetPlayer !== 'all') p.set('player', targetPlayer);
-            if (isObs) p.set('obs', '1');
-            window.history.replaceState({}, '', '?' + p.toString());
+            document.getElementById('obs-res-hint').textContent = RESOLUTION_HINTS[currentLayout] || '600 × 400 px';
+
+            document.querySelectorAll('[data-layout]').forEach(b => b.classList.toggle('active', b.dataset.layout === currentLayout));
+            document.querySelectorAll('[data-scale]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.scale) === currentScale));
+            document.querySelectorAll('[data-sprite-scale]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.sprite-scale) === currentSpriteScale));
+            document.querySelectorAll('[data-player]').forEach(b => b.classList.toggle('active', b.dataset.player === targetPlayer));
+            document.querySelectorAll('[data-lang-choice]').forEach(b => b.classList.toggle('active', b.dataset.langChoice === langChoice));
+
+            applyTheme();
+            updateTexts();
+
+            localStorage.setItem('ov_layout', currentLayout);
+            localStorage.setItem('ov_scale', currentScale);
+            localStorage.setItem('ov_sprite_scale', currentSpriteScale);
+            localStorage.setItem('ov_player', targetPlayer);
+            localStorage.setItem('ov_theme', currentTheme);
+            localStorage.setItem('ov_opacity', currentOpacity);
+            localStorage.setItem('ov_lang_choice', langChoice);
+            if (customAccent) localStorage.setItem('ov_accent', customAccent);
+            if (customBg) localStorage.setItem('ov_bg', customBg);
         }
 
-        // Toolbar bindings
-        document.querySelectorAll('[data-layout]').forEach(b => {
-            b.addEventListener('click', () => { currentLayout = b.dataset.layout; applySettings(); });
-        });
-        document.querySelectorAll('[data-scale]').forEach(b => {
-            b.addEventListener('click', () => { currentScale = parseFloat(b.dataset.scale); applySettings(); });
-        });
-        document.querySelectorAll('[data-player]').forEach(b => {
-            b.addEventListener('click', () => {
-                targetPlayer = b.dataset.player;
-                applySettings();
-                lastResponseText = '';
-                pollTeams();
-            });
+        // Config Panel UI Events
+        const cfgToggleBtn = document.getElementById('cfg-toggle-btn');
+        const cfgPanel = document.getElementById('cfg-panel');
+        const cfgCloseBtn = document.getElementById('cfg-close-btn');
+
+        cfgToggleBtn.addEventListener('click', () => {
+            cfgPanel.classList.toggle('hidden');
         });
 
-        document.getElementById('btn-copy-url').addEventListener('click', () => {
-            const obsUrl = `${window.location.origin}/overlay?player=${targetPlayer}&layout=${currentLayout}&scale=${currentScale}&obs=1`;
-            navigator.clipboard.writeText(obsUrl);
-            showToast('✓ URL OBS copiée dans le presse-papier !');
+        cfgCloseBtn.addEventListener('click', () => {
+            cfgPanel.classList.add('hidden');
         });
 
-        document.getElementById('btn-toggle-tb').addEventListener('click', () => {
-            tb.classList.add('hidden');
-            minBtn.style.display = 'block';
-        });
-        minBtn.addEventListener('click', () => {
-            tb.classList.remove('hidden');
-            minBtn.style.display = 'none';
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
+                cfgPanel.classList.add('hidden');
+            }
         });
 
         if (isObs) {
-            tb.classList.add('hidden');
-            minBtn.style.display = 'none';
+            cfgToggleBtn.style.display = 'none';
+            cfgPanel.style.display = 'none';
         }
+
+        // Button clicks in panel
+        document.querySelectorAll('[data-layout]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentLayout = btn.dataset.layout;
+                applySettings();
+            });
+        });
+
+        document.querySelectorAll('[data-scale]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentScale = parseFloat(btn.dataset.scale);
+                applySettings();
+            });
+        });
+
+        document.querySelectorAll('[data-sprite-scale]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentSpriteScale = parseFloat(btn.dataset.spriteScale);
+                applySettings();
+            });
+        });
+
+        document.querySelectorAll('[data-player]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                targetPlayer = btn.dataset.player;
+                applySettings();
+            });
+        });
+
+        document.querySelectorAll('.cfg-theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentTheme = btn.dataset.theme;
+                customAccent = null;
+                customBg = null;
+                localStorage.removeItem('ov_accent');
+                localStorage.removeItem('ov_bg');
+                applySettings();
+            });
+        });
+
+        document.getElementById('picker-accent').addEventListener('input', (e) => {
+            customAccent = e.target.value;
+            applyTheme();
+        });
+
+        document.getElementById('picker-bg').addEventListener('input', (e) => {
+            customBg = e.target.value;
+            applyTheme();
+        });
+
+        document.querySelectorAll('[data-opacity]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentOpacity = parseFloat(btn.dataset.opacity);
+                applySettings();
+            });
+        });
+
+        document.querySelectorAll('[data-lang-choice]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                langChoice = btn.dataset.langChoice;
+                if (langChoice !== 'auto') {
+                    activeLang = langChoice;
+                    // Also notify emulator server
+                    fetch(`/api/set_lang?lang=${activeLang}`).catch(() => {});
+                }
+                applySettings();
+            });
+        });
+
+        document.getElementById('btn-copy-obs').addEventListener('click', () => {
+            let obsUrl = `${window.location.origin}/overlay?obs=1&layout=${currentLayout}&scale=${currentScale}&spriteScale=${currentSpriteScale}&player=${targetPlayer}&theme=${currentTheme}&opacity=${currentOpacity}`;
+            if (customAccent) obsUrl += `&accent=${encodeURIComponent(customAccent)}`;
+            if (customBg) obsUrl += `&bg=${encodeURIComponent(customBg)}`;
+            if (langChoice !== 'auto') obsUrl += `&langChoice=${langChoice}`;
+
+            navigator.clipboard.writeText(obsUrl);
+            showToast(I18N[activeLang].copiedToast);
+        });
 
         function showToast(msg) {
             const t = document.createElement('div');
             t.className = 'toast';
-            t.textContent = msg;
+            t.innerHTML = `<svg class="flat-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>${msg}</span>`;
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 2500);
         }
 
+        // Setup initial display
         applySettings();
+
+        // Dynamic State Polling
+        let lastJsonData = null;
+
+        async function fetchTeams() {
+            try {
+                const res = await fetch('/api/teams');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Check emulator language
+                if (data.lang) {
+                    const emuLang = data.lang.toLowerCase() === 'en' ? 'en' : 'fr';
+                    if (langChoice === 'auto' && activeLang !== emuLang) {
+                        activeLang = emuLang;
+                        updateTexts();
+                    }
+                }
+
+                render(data);
+            } catch (err) {
+                // Emulator not ready yet
+            }
+        }
 
         const ROLE_COLORS = [
             '#4ade80', '#38bdf8', '#c084fc', '#f59e0b',
@@ -1075,269 +1616,154 @@ void OverlayServer::buildHtml()
             return ROLE_COLORS[Math.max(0, (role - 1) % ROLE_COLORS.length)];
         }
 
-        function getMonName(species) {
-            if (!species || species <= 0) return 'Inconnu';
-            return PKMN_NAMES_FR[species] || ('#' + species);
-        }
+        function render(data) {
+            const container = document.getElementById('container');
+            const myRole = data.my_role || 1;
+            const pairs = data.pairs || [];
+            const deadLocs = data.dead_locations || [];
 
-        function getSpriteUrl(species) {
-            if (!species || species <= 0) return '';
-            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${species}.gif`;
-        }
-        function getFallbackSpriteUrl(species) {
-            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/${species}.png`;
-        }
+            let playersToRender = [];
+            if (data.players && data.players.length > 0) {
+                playersToRender = data.players;
+            } else {
+                if (data.player1) playersToRender.push({ role: 1, name: "Joueur 1", party: data.player1 });
+                if (data.player2) playersToRender.push({ role: 2, name: "Joueur 2", party: data.player2 });
+            }
 
-        let lastResponseText = '';
+            if (targetPlayer === '1') {
+                playersToRender = playersToRender.filter(p => p.role === 1 || p.role === myRole);
+            } else if (targetPlayer === '2') {
+                playersToRender = playersToRender.filter(p => p.role !== myRole);
+            }
 
-        function updatePlayersDOM(players, pairs, deadLocs) {
-            const currentRoles = new Set(players.map(p => p.role || 1));
-            const existingBoxes = container.querySelectorAll('.team-box');
-            existingBoxes.forEach(box => {
-                const r = parseInt(box.dataset.role);
-                if (!currentRoles.has(r)) box.remove();
+            const currentBoxIds = new Set(playersToRender.map(p => `player-box-${p.role}`));
+            Array.from(container.children).forEach(child => {
+                if (!currentBoxIds.has(child.id)) child.remove();
             });
 
-            for (const player of players) {
-                const role = player.role || 1;
-                let box = container.querySelector(`.team-box[data-role="${role}"]`);
+            const t = I18N[activeLang];
+
+            playersToRender.forEach(p => {
+                const boxId = `player-box-${p.role}`;
+                let box = document.getElementById(boxId);
+                const isMe = (p.role === myRole);
+
                 if (!box) {
                     box = document.createElement('div');
-                    box.className = 'team-box';
-                    box.dataset.role = role;
+                    box.id = boxId;
+                    box.className = `team-box ${isMe ? 'active-player' : ''}`;
                     box.innerHTML = `
-                        <div class="team-title">
-                            <span class="p-name"></span>
-                            <span class="alive-badge"></span>
+                        <div class="team-header">
+                            <div class="player-name" style="color: ${getRoleColor(p.role)}">${p.name || 'J' + p.role}</div>
+                            <div class="team-status" id="status-${p.role}">0/6 ${t.alive}</div>
                         </div>
-                        <div class="slots-grid"></div>
+                        <div class="slots-grid" id="grid-${p.role}"></div>
                     `;
                     container.appendChild(box);
                 }
 
-                const color = getRoleColor(role);
-                box.style.borderColor = color + 'aa';
-                const titleEl = box.querySelector('.team-title');
-                titleEl.style.color = color;
-                box.querySelector('.p-name').textContent = player.name;
-                box.querySelector('.alive-badge').textContent = `${player.alive_count || 0}/6 EN VIE`;
+                const grid = document.getElementById(`grid-${p.role}`);
+                const party = p.party || [];
+                const aliveCount = party.filter(m => m && !m.is_fainted && m.species > 0).length;
+                document.getElementById(`status-${p.role}`).textContent = `${aliveCount}/6 ${t.alive}`;
 
-                const grid = box.querySelector('.slots-grid');
                 for (let i = 0; i < 6; i++) {
-                    const mon = player.team && player.team[i] ? player.team[i] : null;
-                    let slotEl = grid.children[i];
+                    const slotId = `slot-${p.role}-${i}`;
+                    let slotEl = document.getElementById(slotId);
+                    const mon = party[i];
 
                     if (!mon || !mon.species) {
-                        if (!slotEl || !slotEl.classList.contains('empty-slot') || slotEl.dataset.slotIdx != i) {
-                            const newEmpty = document.createElement('div');
-                            newEmpty.className = 'empty-slot';
-                            newEmpty.dataset.slotIdx = i;
-                            newEmpty.innerHTML = `
-                                <svg class="pokeball-bg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="50" cy="50" r="44" fill="none" stroke="#ffffff" stroke-width="6" />
-                                    <line x1="6" y1="50" x2="94" y2="50" stroke="#ffffff" stroke-width="6" />
-                                    <circle cx="50" cy="50" r="14" fill="none" stroke="#ffffff" stroke-width="6" />
-                                </svg>
-                                <span style="z-index:2;">◓ Slot ${i+1}</span>
-                                <span style="opacity:0.4; z-index:2;">Vide</span>
-                            `;
-                            if (slotEl) grid.replaceChild(newEmpty, slotEl);
-                            else grid.appendChild(newEmpty);
+                        if (!slotEl || !slotEl.classList.contains('empty')) {
+                            if (slotEl) slotEl.remove();
+                            slotEl = document.createElement('div');
+                            slotEl.id = slotId;
+                            slotEl.className = 'mon-card empty';
+                            slotEl.innerHTML = `${POKEBALL_SVG}<div class="empty-slot-text">- ${t.slot} ${i + 1} -</div>`;
+                            grid.appendChild(slotEl);
                         }
                         continue;
                     }
 
                     const species = mon.species;
-                    const hpPct = mon.max_hp > 0 ? Math.max(0, Math.min(100, (mon.hp / mon.max_hp) * 100)) : 0;
-                    let hpClass = '';
-                    if (hpPct <= 20) hpClass = 'crit';
-                    else if (hpPct <= 50) hpClass = 'warn';
+                    const hpPercent = mon.max_hp > 0 ? Math.min(100, Math.max(0, (mon.hp / mon.max_hp) * 100)) : 0;
+                    let hpColor = '#22c55e';
+                    if (hpPercent <= 20) hpColor = '#ef4444';
+                    else if (hpPercent <= 50) hpColor = '#eab308';
 
-                    // Link Badge Logic (No Zone Numbers!)
-                    let linkText = '';
-                    let linkClass = '';
-                    const loc = mon.met_location || 0;
-                    const isFainted = mon.is_fainted;
-                    const isDeadZone = (loc > 0) && (deadLocs && deadLocs.includes(loc));
-                    const isDead = isFainted || isDeadZone;
+                    const isFainted = mon.is_fainted || mon.hp === 0;
 
-                    if (isDead) {
-                        linkText = '🔗 ÂME BRISÉE';
-                        linkClass = 'dead';
-                    } else if (loc > 0) {
-                        let foundPair = null;
-                        if (pairs && pairs.length > 0) {
-                            foundPair = pairs.find(p => p.location_id === loc);
-                        }
+                    // Soul Link pair detection
+                    let badgeHtml = '';
+                    const loc = mon.met_location;
+                    const pair = pairs.find(pr => pr.location_id === loc);
+                    const isDeadPair = deadLocs.includes(loc) || (pair && pair.status === 'DEAD');
 
-                        if (foundPair) {
-                            if (foundPair.status === 'DEAD') {
-                                linkText = '🔗 ÂME BRISÉE';
-                                linkClass = 'dead';
-                            } else {
-                                const partner = foundPair.members ? foundPair.members.find(m => m.role !== role) : null;
-                                if (partner && partner.in_box) {
-                                    linkText = '🔗 LIÉ (PC)';
-                                } else {
-                                    linkText = '🔗 LIÉ';
-                                }
-                                linkClass = '';
-                            }
+                    if (isDeadPair || isFainted) {
+                        badgeHtml = `<div class="badge-slot badge-broken">${SVG_BROKEN} <span>${t.broken}</span></div>`;
+                    } else if (pair) {
+                        const partner = pair.members && pair.members.find(m => m.role !== p.role);
+                        if (partner) {
+                            badgeHtml = partner.in_box 
+                                ? `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linkedPc}</span></div>`
+                                : `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linked}</span></div>`;
                         } else {
-                            // Captured, but waiting for partner in this zone!
-                            linkText = '⏳ EN ATTENTE';
-                            linkClass = 'pending';
+                            badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
                         }
+                    } else if (loc > 0) {
+                        badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
                     }
 
                     const name = getMonName(species);
 
-                    // Create card element if missing or previously empty slot
-                    if (!slotEl || !slotEl.classList.contains('mon-card')) {
-                        const newCard = document.createElement('div');
-                        newCard.className = 'mon-card';
-                        newCard.dataset.slotIdx = i;
-                        newCard.dataset.species = species;
-                        newCard.innerHTML = `
-                            <svg class="pokeball-bg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M 6 50 A 44 44 0 0 1 94 50 Z" fill="#ef4444" />
-                                <path d="M 6 50 A 44 44 0 0 0 94 50 Z" fill="#ffffff" />
-                                <circle cx="50" cy="50" r="44" fill="none" stroke="#111827" stroke-width="7" />
-                                <line x1="6" y1="50" x2="94" y2="50" stroke="#111827" stroke-width="7" />
-                                <circle cx="50" cy="50" r="16" fill="#111827" />
-                                <circle cx="50" cy="50" r="10" fill="#ffffff" />
-                                <circle cx="50" cy="50" r="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
-                            </svg>
-                            <div class="dead-badge" style="display:none;">💀 K.O.</div>
+                    if (!slotEl || slotEl.classList.contains('empty')) {
+                        if (slotEl) slotEl.remove();
+                        slotEl = document.createElement('div');
+                        slotEl.id = slotId;
+                        slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
+                        slotEl.dataset.species = species;
+                        slotEl.innerHTML = `
                             <div class="card-top">
-                                <div class="name-row">
-                                    <span class="mon-name" title="${name}">${name}</span>
-                                    <span class="mon-level">Lv.${mon.level}</span>
-                                </div>
+                                <span class="mon-name">${name}</span>
+                                <span class="mon-lvl">${t.level}${mon.level || '?'}</span>
                             </div>
                             <div class="sprite-container">
-                                <img class="sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
+                                ${POKEBALL_SVG}
+                                <img class="pkmn-sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
                             </div>
                             <div class="card-bottom">
-                                <div class="hp-row">
-                                    <div class="hp-container">
-                                        <div class="hp-badge">HP</div>
-                                        <div class="hp-bar-track">
-                                            <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
-                                        </div>
-                                    </div>
-                                    <div class="hp-numbers">${mon.hp}/${mon.max_hp}</div>
+                                <div class="hp-bar-wrap">
+                                    <div class="hp-bar-fill" style="width: ${hpPercent}%; background: ${hpColor};"></div>
                                 </div>
-                                <div class="link-badge-container"></div>
+                                <div class="hp-text">${mon.hp}/${mon.max_hp}</div>
+                                <div class="badge-wrap">${badgeHtml}</div>
                             </div>
                         `;
-                        if (slotEl) grid.replaceChild(newCard, slotEl);
-                        else grid.appendChild(newCard);
-                        slotEl = newCard;
-                    }
-
-                    // Card already exists: ONLY update img.src if species changed to prevent resetting GIF
-                    if (slotEl.dataset.species !== String(species)) {
-                        slotEl.dataset.species = species;
-                        const img = slotEl.querySelector('.sprite');
-                        img.src = getSpriteUrl(species);
-                        img.alt = name;
-                        const nameEl = slotEl.querySelector('.mon-name');
-                        nameEl.textContent = name;
-                        nameEl.title = name;
-                    }
-
-                    // Update live mutable stats
-                    if (isDead) {
-                        slotEl.classList.add('dead');
-                        slotEl.querySelector('.dead-badge').style.display = 'block';
+                        grid.appendChild(slotEl);
                     } else {
-                        slotEl.classList.remove('dead');
-                        slotEl.querySelector('.dead-badge').style.display = 'none';
-                    }
+                        // Incremental update
+                        slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
+                        slotEl.querySelector('.mon-name').textContent = name;
+                        slotEl.querySelector('.mon-lvl').textContent = `${t.level}${mon.level || '?'}`;
 
-                    slotEl.querySelector('.mon-level').textContent = `Lv.${mon.level}`;
-                    const barFill = slotEl.querySelector('.hp-bar-fill');
-                    barFill.className = `hp-bar-fill ${hpClass}`;
-                    barFill.style.width = `${hpPct}%`;
-                    slotEl.querySelector('.hp-numbers').textContent = `${mon.hp}/${mon.max_hp}`;
+                        const img = slotEl.querySelector('.pkmn-sprite');
+                        if (slotEl.dataset.species !== String(species)) {
+                            slotEl.dataset.species = species;
+                            img.src = getSpriteUrl(species);
+                            img.alt = name;
+                        }
 
-                    const linkContainer = slotEl.querySelector('.link-badge-container');
-                    if (linkText) {
-                        linkContainer.innerHTML = `<span class="link-badge ${linkClass}" title="${linkText}">${linkText}</span>`;
-                    } else {
-                        linkContainer.innerHTML = '';
+                        const fill = slotEl.querySelector('.hp-bar-fill');
+                        fill.style.width = `${hpPercent}%`;
+                        fill.style.background = hpColor;
+                        slotEl.querySelector('.hp-text').textContent = `${mon.hp}/${mon.max_hp}`;
+                        slotEl.querySelector('.badge-wrap').innerHTML = badgeHtml;
                     }
                 }
-            }
+            });
         }
 
-        async function pollTeams() {
-            try {
-                const res = await fetch('/api/teams');
-                if (!res.ok) return;
-                const text = await res.text();
-                if (text === lastResponseText) return;
-                lastResponseText = text;
-                const data = JSON.parse(text);
-
-                if (!data.active) {
-                    if (!document.getElementById('standby-card')) {
-                        container.innerHTML = `
-                            <div id="standby-card" class="team-box" style="text-align:center; padding: 35px 25px; max-width: 560px; margin: 40px auto;">
-                                <div class="team-title" style="justify-content: center; font-size: 11px; border-bottom: none; margin-bottom: 0; color: #4ade80;">
-                                    ⏳ En attente de synchronisation du jeu...
-                                </div>
-                                <div style="font-size: 8px; color: #94a3b8; margin-top: 14px; line-height: 1.8;">
-                                    Lancez votre jeu Pokémon Platine Multijoueur pour afficher les équipes sur l'overlay.
-                                </div>
-                            </div>`;
-                    }
-                    return;
-                }
-
-                if (document.getElementById('standby-card')) {
-                    container.innerHTML = '';
-                }
-
-                let playersToRender = [];
-                if (data.players && data.players.length > 0) {
-                    if (targetPlayer === 'me' || targetPlayer === '1') {
-                        const me = data.players.find(p => p.is_me) || data.players[0];
-                        if (me) playersToRender.push(me);
-                    } else if (targetPlayer === 'all') {
-                        playersToRender = data.players;
-                    } else {
-                        const r = parseInt(targetPlayer);
-                        const p = data.players.find(x => x.role === r);
-                        if (p) playersToRender.push(p);
-                        else playersToRender = data.players;
-                    }
-                } else if (data.player1) {
-                    playersToRender.push({
-                        role: 1,
-                        name: 'Player 1 (Me)',
-                        is_me: true,
-                        alive_count: data.player1.filter(m => !m.is_fainted).length,
-                        team: data.player1
-                    });
-                    if (targetPlayer === 'all' && data.player2 && data.player2.length > 0) {
-                        playersToRender.push({
-                            role: 2,
-                            name: 'Player 2 (Partner)',
-                            is_me: false,
-                            alive_count: data.player2.filter(m => !m.is_fainted).length,
-                            team: data.player2
-                        });
-                    }
-                }
-
-                updatePlayersDOM(playersToRender, data.pairs, data.dead_locations);
-            } catch (err) {}
-        }
-
-        setInterval(pollTeams, 300);
-        pollTeams();
+        setInterval(fetchTeams, 1000);
+        fetchTeams();
     </script>
 </body>
 </html>)RAWHTML";
