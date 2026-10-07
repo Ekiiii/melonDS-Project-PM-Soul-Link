@@ -357,23 +357,14 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     root["player2"] = p2Array;
 
     // Detect Soul Link pairs / clusters
-    static std::set<int> sSessionKnownPairs;
-    for (auto it = locClusters.begin(); it != locClusters.end(); ++it)
-    {
-        if (it.value().size() >= 2) {
-            sSessionKnownPairs.insert(it.key());
-        }
-    }
-
     QJsonArray pairsArray;
     for (auto it = locClusters.begin(); it != locClusters.end(); ++it)
     {
         int loc = it.key();
         const QVector<MonLocInfo>& list = it.value();
-        bool isKnownPair = (sSessionKnownPairs.count(loc) > 0);
         bool isDeadZone = SoulLink_IsLocationDead(loc);
 
-        if (list.size() >= 2 || isKnownPair || isDeadZone)
+        if (list.size() >= 2 || isDeadZone)
         {
             QJsonObject pair;
             pair["location_id"] = loc;
