@@ -150,6 +150,7 @@ private slots:
     void onCopyOverlayLinkAllH();
     void onCopyOverlayLinkAllV();
     void onOpenOverlayBrowser();
+    void onSetLanguage(const QString& lang);
     void onNPStartHost();
     void onNPStartClient();
     void onNPTest();
@@ -288,6 +289,9 @@ public:
     QAction* actOnlineStartClient;
     QAction* actOnlineCustomRelay;
     QAction* actDirectP2P;
+    QMenu* menuLanguage;
+    QAction* actLangEn;
+    QAction* actLangFr;
     QAction* actOverlayEnable;
     QAction* actOverlayCopyLink;
     QAction* actOverlayCopyLinkVertical;

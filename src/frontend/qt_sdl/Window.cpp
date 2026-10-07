@@ -698,6 +698,20 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             actAudioSync = menu->addAction("Audio sync");
             actAudioSync->setCheckable(true);
             connect(actAudioSync, &QAction::triggered, this, &MainWindow::onChangeAudioSync);
+
+            menu->addSeparator();
+            menuLanguage = menu->addMenu("Language / Langue");
+            actLangEn = menuLanguage->addAction("English");
+            actLangEn->setCheckable(true);
+            actLangFr = menuLanguage->addAction("Français");
+            actLangFr->setCheckable(true);
+
+            QString curL = globalCfg.GetQString("UI.Language", "en");
+            actLangEn->setChecked(curL != "fr");
+            actLangFr->setChecked(curL == "fr");
+
+            connect(actLangEn, &QAction::triggered, this, [this]() { onSetLanguage("en"); });
+            connect(actLangFr, &QAction::triggered, this, [this]() { onSetLanguage("fr"); });
         }
         {
             QMenu * menu = menubar->addMenu("Help");
@@ -1950,6 +1964,14 @@ void MainWindow::onOpenOverlayBrowser()
 void MainWindow::onOpenDirectP2P()
 {
     DirectP2PDialog::openDlg(this);
+}
+
+void MainWindow::onSetLanguage(const QString& lang)
+{
+    globalCfg.SetQString("UI.Language", lang);
+    Config::Save();
+    if (actLangEn) actLangEn->setChecked(lang != "fr");
+    if (actLangFr) actLangFr->setChecked(lang == "fr");
 }
 
 void MainWindow::onCopyOverlayLinkSoloH()
