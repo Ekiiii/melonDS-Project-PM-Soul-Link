@@ -1973,12 +1973,15 @@ static std::vector<BoxMonSummary> SoulLink_GetLocalBoxedMons(melonDS::NDS* nds)
     return list;
 }
 
+static melonDS::u32 sSharedStateAddr = 0;
+static melonDS::u8  sLastLocalDead[18] = {0};
+static melonDS::u8  sLastLocalUsed[18] = {0};
+
 static void SoulLink_UpdateOverlayDeaths(melonDS::NDS* nds)
 {
     if (!nds) return;
 
-    // Scan ROM's SoulLinkSharedState (0x534C4E4B) in read-only mode for OBS overlay
-    static melonDS::u32 sSharedStateAddr = 0;
+    // Scan ROM's SoulLinkSharedState (0x534C4E4B)
     if (!sSharedStateAddr || (gBr.frame % 180) == 0)
     {
         for (melonDS::u32 off = 0x3DF000; off < 0x3E0000; off += 4)
@@ -1991,7 +1994,6 @@ static void SoulLink_UpdateOverlayDeaths(melonDS::NDS* nds)
         }
     }
 
-    sSessionDeadLocations.clear();
     if (sSharedStateAddr)
     {
         // Version 2 has localDeadBits at +8 (18 bytes) and remoteDeadBits at +26 (18 bytes)
@@ -2059,6 +2061,8 @@ void NetTick()
         mpnet::gNet.freshPeer = false;
         gBr.lastParty.clear();
         gBr.lastPkt.clear();
+        memset(sLastLocalDead, 0xFF, sizeof(sLastLocalDead));
+        memset(sLastLocalUsed, 0xFF, sizeof(sLastLocalUsed));
     }
 }
 
@@ -2105,6 +2109,11 @@ void BridgePump(melonDS::NDS* nds)
     apWr8(nds, gBr.ctl + 6, ++gBr.beat);   // fork heartbeat
 
     u8 wanted = apRd8(nds, gBr.ctl + 4);
+    if (!wanted && sSharedStateAddr && mpnet::gNet.anyUp())
+    {
+        wanted = 1;
+        apWr8(nds, gBr.ctl + 4, 1);
+    }
     bool inGame = (wanted && gBr.blkSize != 0 && gBr.blkSize <= 512
         && gBr.partySize != 0 && gBr.partySize <= 2048
         && gBr.pktSize != 0 && gBr.pktSize <= 2048);
@@ -2174,6 +2183,32 @@ void BridgePump(melonDS::NDS* nds)
         }
     }
 
+    // Soul Link dedicated state sync (Tag 4: 18B dead bits + 18B used bits)
+    if (sSharedStateAddr && mpnet::gNet.anyUp())
+    {
+        melonDS::u8 curLocalDead[18];
+        melonDS::u8 curLocalUsed[18];
+        for (int i = 0; i < 18; i++) {
+            curLocalDead[i] = apRd8(nds, sSharedStateAddr + 8 + i);
+            curLocalUsed[i] = apRd8(nds, sSharedStateAddr + 44 + i);
+        }
+        bool deadChanged = memcmp(sLastLocalDead, curLocalDead, 18) != 0;
+        bool usedChanged = memcmp(sLastLocalUsed, curLocalUsed, 18) != 0;
+        if (deadChanged || usedChanged || (gBr.frame % 30) == 0)
+        {
+            memcpy(sLastLocalDead, curLocalDead, 18);
+            memcpy(sLastLocalUsed, curLocalUsed, 18);
+            melonDS::u8 slBuf[44];
+            slBuf[0] = 4; // Tag 4: Soul Link State
+            slBuf[1] = (melonDS::u8)myRole;
+            slBuf[2] = 36; // size low
+            slBuf[3] = 0;  // size high
+            memcpy(slBuf + 4, curLocalDead, 18);
+            memcpy(slBuf + 22, curLocalUsed, 18);
+            mpnet::gNet.sendAll(slBuf, 40);
+        }
+    }
+
     // receive: apply peers' mailboxes (per peer link; host relays)
     {
         u8 rx[2100];
@@ -2201,7 +2236,7 @@ void BridgePump(melonDS::NDS* nds)
                 for (int pj = 0; pj < 7; pj++)
                     if (pj != pi) mpnet::gNet.enqueue(pj, rx, n);
 
-            if (tag >= 1 && tag <= 3)
+            if (tag >= 1 && tag <= 4)
             {
                 // Peer NEWLY game-active (activated Wireless Play or
                 // reconnected): resend on-change channels — anything sent
@@ -2267,6 +2302,41 @@ void BridgePump(melonDS::NDS* nds)
             {
                 if (gBr.pktImp) memcpy(apPtr(nds, gBr.pktImp + (r-1)*sz), rx + 4, sz);
                 gBr.dbgPktRx++;
+            }
+            else if (tag == 4 && sz == 36 && n >= 4 + 36)
+            {
+                if (sSharedStateAddr)
+                {
+                    for (int i = 0; i < 18; i++)
+                    {
+                        melonDS::u8 b = rx[4 + i];
+                        if (b)
+                        {
+                            melonDS::u8 cur = apRd8(nds, sSharedStateAddr + 26 + i);
+                            if ((cur | b) != cur)
+                            {
+                                apWr8(nds, sSharedStateAddr + 26 + i, cur | b);
+                            }
+                            for (int bit = 0; bit < 8; bit++)
+                            {
+                                if (b & (1 << bit))
+                                    sSessionDeadLocations.insert((i << 3) + bit);
+                            }
+                        }
+                    }
+                    for (int i = 0; i < 18; i++)
+                    {
+                        melonDS::u8 b = rx[22 + i];
+                        if (b)
+                        {
+                            melonDS::u8 cur = apRd8(nds, sSharedStateAddr + 62 + i);
+                            if ((cur | b) != cur)
+                            {
+                                apWr8(nds, sSharedStateAddr + 62 + i, cur | b);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
