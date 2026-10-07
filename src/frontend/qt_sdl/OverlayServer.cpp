@@ -522,145 +522,145 @@ void OverlayServer::buildHtml()
         /* Slots Grid - Enlarged Slots for bigger Pokemons! */
         .slots-grid {
             display: grid;
-            gap: 8px;
+            gap: 6px;
         }
         .layout-horizontal .slots-grid {
-            grid-template-columns: repeat(6, 126px);
+            grid-template-columns: repeat(6, 148px);
             justify-content: space-between;
         }
         .layout-vertical .slots-grid {
-            grid-template-columns: repeat(2, 140px);
+            grid-template-columns: repeat(2, 148px);
             justify-content: center;
         }
 
-        /* Mon Card */
+        /* Mon Card - Full-bleed container with superimposed HUD */
         .mon-card {
-            background: rgba(20, 26, 44, 0.92);
-            border: 2px solid #334155;
-            outline: 1px solid #0f172a;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0,0,0,0.4);
-            border-radius: 6px;
-            padding: 6px 5px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
+            width: 148px;
+            height: 154px;
+            background: radial-gradient(circle at 50% 45%, #1e263d 0%, #111625 70%, #0a0d16 100%);
+            border: 2px solid #3b4566;
+            outline: 2px solid #090c14;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 10px rgba(0,0,0,0.5);
+            border-radius: 5px;
             position: relative;
             overflow: hidden;
+            user-select: none;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .layout-horizontal .mon-card {
-            width: 126px;
-            height: 134px;
-        }
-        .layout-vertical .mon-card {
-            width: 140px;
-            height: 142px;
         }
 
         .mon-card.dead {
             filter: grayscale(1);
-            opacity: 0.55;
+            opacity: 0.6;
             border-color: #ef4444 !important;
-            box-shadow: inset 0 0 0 1px #7f1d1d !important;
-            background: rgba(45, 12, 12, 0.85) !important;
+            outline-color: #7f1d1d !important;
+            background: radial-gradient(circle at 50% 45%, #2d1010 0%, #170707 70%, #0d0404 100%) !important;
         }
 
-        .dead-badge {
+        /* SVG Pokéball background watermark */
+        .pokeball-bg {
             position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(220, 38, 38, 0.95);
-            color: #ffffff;
-            font-size: 7px;
-            font-weight: bold;
-            padding: 2px 3px;
-            border: 1px solid #000;
-            box-shadow: 1px 1px 0 #000;
-            z-index: 5;
-            text-shadow: 1px 1px 0 #000;
+            width: 110px;
+            height: 110px;
+            top: 48%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.16;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+        }
+        .mon-card.dead .pokeball-bg {
+            filter: grayscale(1);
+            opacity: 0.09;
         }
 
-        /* Sprite Frame - Much larger for clear Pokemon visibility! */
-        .sprite-frame {
-            width: 70px;
-            height: 70px;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 80%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6);
-            border-radius: 4px;
+        /* Pokémon Sprite centered and filling the card */
+        .sprite-container {
+            position: absolute;
+            inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-            margin: 2px 0;
-        }
-        .layout-vertical .sprite-frame {
-            width: 76px;
-            height: 76px;
+            z-index: 2;
+            pointer-events: none;
+            padding-top: 10px;
+            padding-bottom: 22px;
         }
 
         .sprite {
-            max-width: 66px;
-            max-height: 66px;
+            max-width: 98px;
+            max-height: 98px;
             width: auto;
             height: auto;
             object-fit: contain;
             image-rendering: pixelated;
-        }
-        .layout-vertical .sprite {
-            max-width: 72px;
-            max-height: 72px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.7));
         }
 
-        /* Mon Info Area */
-        .mon-info {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
+        /* Top superimposed overlay: Name & Level */
+        .card-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 3;
+            padding: 5px 6px 3px;
+            background: linear-gradient(180deg, rgba(8, 11, 20, 0.92) 0%, rgba(8, 11, 20, 0.65) 75%, transparent 100%);
         }
 
         .name-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: baseline;
             width: 100%;
         }
 
         .mon-name {
-            font-size: 7.5px;
+            font-size: 8px;
             font-weight: bold;
             color: #ffffff;
-            text-shadow: 1px 1px 0 #000;
+            text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 78px;
-        }
-        .layout-vertical .mon-name {
-            font-size: 8px;
             max-width: 90px;
+            letter-spacing: 0.5px;
         }
 
         .mon-level {
             font-size: 7.5px;
             color: #facc15;
-            text-shadow: 1px 1px 0 #78350f;
-            white-space: nowrap;
+            text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
             flex-shrink: 0;
         }
 
-        /* Authentic Pokemon HP Container */
+        /* Bottom superimposed overlay: HP bar & Numbers & Link */
+        .card-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 3;
+            padding: 4px 6px 5px;
+            background: linear-gradient(0deg, rgba(8, 11, 20, 0.95) 0%, rgba(8, 11, 20, 0.82) 75%, transparent 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .hp-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+        }
+
         .hp-container {
             display: flex;
             align-items: center;
-            gap: 2px;
-            width: 100%;
-            margin-top: 1px;
+            gap: 3px;
+            flex: 1;
+            min-width: 0;
         }
 
         .hp-badge {
@@ -670,15 +670,15 @@ void OverlayServer::buildHtml()
             font-weight: bold;
             padding: 1px 2px;
             border-radius: 1px;
-            line-height: 1;
             box-shadow: 1px 1px 0 #000;
+            line-height: 1;
             flex-shrink: 0;
         }
 
         .hp-bar-track {
-            background: #0f172a;
-            border: 1px solid #000;
-            box-shadow: inset 0 1px 0 rgba(0,0,0,0.8);
+            background: #090d16;
+            border: 1px solid #1e2538;
+            box-shadow: inset 0 1px 0 rgba(0,0,0,0.9);
             border-radius: 2px;
             height: 6px;
             flex: 1;
@@ -697,16 +697,33 @@ void OverlayServer::buildHtml()
         .hp-bar-fill.crit { background: #ef4444; }
 
         .hp-numbers {
-            font-size: 7px;
-            color: #94a3b8;
+            font-size: 6.5px;
+            color: #cbd5e1;
             text-shadow: 1px 1px 0 #000;
-            text-align: right;
-            line-height: 1;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Dead badge */
+        .dead-badge {
+            position: absolute;
+            top: 22px;
+            right: 5px;
+            background: rgba(220, 38, 38, 0.95);
+            color: #ffffff;
+            font-size: 6.5px;
+            font-weight: bold;
+            padding: 2px 4px;
+            border: 1px solid #000;
+            box-shadow: 1px 1px 0 #000;
+            z-index: 5;
+            text-shadow: 1px 1px 0 #000;
+            border-radius: 2px;
         }
 
         /* Soul Link Badge */
         .link-badge {
-            font-size: 6.5px;
+            font-size: 6px;
             background: #581c87;
             border: 1px solid #c084fc;
             box-shadow: 1px 1px 0 #000;
@@ -735,25 +752,25 @@ void OverlayServer::buildHtml()
 
         /* Empty Slot */
         .empty-slot {
-            border: 2px dashed #334155;
-            background: rgba(15, 23, 42, 0.35);
-            border-radius: 6px;
+            width: 148px;
+            height: 154px;
+            border: 2px dashed #2e3856;
+            outline: 1px solid #090c14;
+            background: rgba(14, 18, 30, 0.45);
+            border-radius: 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
             color: #475569;
             font-size: 7.5px;
             text-shadow: 1px 1px 0 #000;
+            position: relative;
+            overflow: hidden;
         }
-        .layout-horizontal .empty-slot {
-            width: 126px;
-            height: 134px;
-        }
-        .layout-vertical .empty-slot {
-            width: 140px;
-            height: 142px;
+        .empty-slot .pokeball-bg {
+            opacity: 0.06;
         }
     </style>
 </head>
@@ -842,7 +859,15 @@ void OverlayServer::buildHtml()
                             const newEmpty = document.createElement('div');
                             newEmpty.className = 'empty-slot';
                             newEmpty.dataset.slotIdx = i;
-                            newEmpty.innerHTML = `<span>◓ Slot ${i+1}</span><span style="opacity:0.4;">Empty</span>`;
+                            newEmpty.innerHTML = `
+                                <svg class="pokeball-bg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="50" cy="50" r="44" fill="none" stroke="#ffffff" stroke-width="6" />
+                                    <line x1="6" y1="50" x2="94" y2="50" stroke="#ffffff" stroke-width="6" />
+                                    <circle cx="50" cy="50" r="14" fill="none" stroke="#ffffff" stroke-width="6" />
+                                </svg>
+                                <span style="z-index:2;">◓ Slot ${i+1}</span>
+                                <span style="opacity:0.4; z-index:2;">Vide</span>
+                            `;
                             if (slotEl) grid.replaceChild(newEmpty, slotEl);
                             else grid.appendChild(newEmpty);
                         }
@@ -893,22 +918,35 @@ void OverlayServer::buildHtml()
                         newCard.dataset.slotIdx = i;
                         newCard.dataset.species = species;
                         newCard.innerHTML = `
+                            <svg class="pokeball-bg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M 6 50 A 44 44 0 0 1 94 50 Z" fill="#ef4444" />
+                                <path d="M 6 50 A 44 44 0 0 0 94 50 Z" fill="#ffffff" />
+                                <circle cx="50" cy="50" r="44" fill="none" stroke="#111827" stroke-width="7" />
+                                <line x1="6" y1="50" x2="94" y2="50" stroke="#111827" stroke-width="7" />
+                                <circle cx="50" cy="50" r="16" fill="#111827" />
+                                <circle cx="50" cy="50" r="10" fill="#ffffff" />
+                                <circle cx="50" cy="50" r="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                            </svg>
                             <div class="dead-badge" style="display:none;">💀 FAINTED</div>
-                            <div class="name-row">
-                                <span class="mon-name" title="${name}">${name}</span>
-                                <span class="mon-level">Lv.${mon.level}</span>
+                            <div class="card-top">
+                                <div class="name-row">
+                                    <span class="mon-name" title="${name}">${name}</span>
+                                    <span class="mon-level">Lv.${mon.level}</span>
+                                </div>
                             </div>
-                            <div class="sprite-frame">
+                            <div class="sprite-container">
                                 <img class="sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
                             </div>
-                            <div class="mon-info">
-                                <div class="hp-container">
-                                    <div class="hp-badge">HP</div>
-                                    <div class="hp-bar-track">
-                                        <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
+                            <div class="card-bottom">
+                                <div class="hp-row">
+                                    <div class="hp-container">
+                                        <div class="hp-badge">HP</div>
+                                        <div class="hp-bar-track">
+                                            <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
+                                        </div>
                                     </div>
+                                    <div class="hp-numbers">${mon.hp}/${mon.max_hp}</div>
                                 </div>
-                                <div class="hp-numbers">${mon.hp}/${mon.max_hp}</div>
                                 <div class="link-badge-container"></div>
                             </div>
                         `;
