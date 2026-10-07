@@ -64,23 +64,6 @@ void DirectP2PDialog::setupUI()
     titleLay->addWidget(descLbl);
     headerLay->addLayout(titleLay);
     headerLay->addStretch();
-
-    QHBoxLayout* langLay = new QHBoxLayout();
-    langLay->setSpacing(5);
-    lblLang = new QLabel("Language:", this);
-    lblLang->setStyleSheet("font-size: 11px; color: #64748b; font-weight: 600;");
-
-    cmbLanguage = new QComboBox(this);
-    cmbLanguage->addItem("English", "en");
-    cmbLanguage->addItem("Français", "fr");
-    cmbLanguage->setStyleSheet("padding: 3px 8px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; font-weight: 500;");
-    if (currentLang == "fr") cmbLanguage->setCurrentIndex(1);
-    else cmbLanguage->setCurrentIndex(0);
-    connect(cmbLanguage, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &DirectP2PDialog::onLanguageIndexChanged);
-
-    langLay->addWidget(lblLang);
-    langLay->addWidget(cmbLanguage);
-    headerLay->addLayout(langLay);
     mainLay->addLayout(headerLay);
 
     tabWidget = new QTabWidget(this);
@@ -309,7 +292,6 @@ void DirectP2PDialog::retranslateUI()
 
     descLbl->setText(isFr ? "Connexion directe joueur à joueur pour le mode Soul Link."
                           : "Direct peer-to-peer connection for Soul Link co-op.");
-    lblLang->setText(isFr ? "Langue :" : "Language:");
 
     tabWidget->setTabText(0, isFr ? "Héberger" : "Host");
     tabWidget->setTabText(1, isFr ? "Rejoindre" : "Join");
@@ -346,25 +328,10 @@ void DirectP2PDialog::retranslateUI()
     updateStatus();
 }
 
-void DirectP2PDialog::onLanguageIndexChanged(int index)
-{
-    QString lang = (index == 1) ? "fr" : "en";
-    if (currentLang == lang) return;
-    currentLang = lang;
-
-    Config::Table& globalCfg = mainWin->globalCfg;
-    globalCfg.SetQString("UI.Language", lang);
-    Config::Save();
-
-    retranslateUI();
-    mainWin->onSetLanguage(lang);
-}
-
 void DirectP2PDialog::setLanguage(const QString& lang)
 {
-    if (cmbLanguage) {
-        cmbLanguage->setCurrentIndex(lang == "fr" ? 1 : 0);
-    }
+    currentLang = (lang == "fr") ? "fr" : "en";
+    retranslateUI();
 }
 
 void DirectP2PDialog::onStartHostClicked()

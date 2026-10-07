@@ -36,7 +36,6 @@ private slots:
     void onCopyHostLanCodeClicked();
     void onOpenOverlayClicked();
     void onUpdateTimer();
-    void onLanguageIndexChanged(int index);
 
 private:
     MainWindow* mainWin;
@@ -46,8 +45,6 @@ private:
 
     // Header Widgets
     QLabel* descLbl;
-    QLabel* lblLang;
-    QComboBox* cmbLanguage;
 
     QTabWidget* tabWidget;
 
