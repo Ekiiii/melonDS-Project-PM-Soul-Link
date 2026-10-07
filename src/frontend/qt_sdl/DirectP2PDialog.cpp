@@ -526,7 +526,7 @@ void DirectP2PDialog::updateStatus()
         for (int r = 1; r <= 8; r++) {
             if (!st.roster[r][0]) continue;
             QString roleTag = (r == 1) ? (isFr ? " [Hôte]" : " [Host]") : "";
-            QString pingTag = (st.rosterPing[r] > 0) ? QString(" [%1 ms]").arg(st.rosterPing[r]) : "";
+            QString pingTag = (r > 1) ? (st.rosterPing[r] > 0 ? QString(" [%1 ms]").arg(st.rosterPing[r]) : " [< 1 ms]") : "";
             rosterText += QString("  • %1%2%3<br>").arg(st.roster[r]).arg(roleTag).arg(pingTag);
         }
         lblHostRoster->setText(rosterText);
@@ -546,7 +546,7 @@ void DirectP2PDialog::updateStatus()
         for (int r = 1; r <= 8; r++) {
             if (!st.roster[r][0]) continue;
             QString roleTag = (r == 1) ? (isFr ? " [Hôte]" : " [Host]") : (r == st.myRole ? (isFr ? " [Moi]" : " [Me]") : "");
-            QString pingTag = (st.rosterPing[r] > 0) ? QString(" [%1 ms]").arg(st.rosterPing[r]) : "";
+            QString pingTag = (r > 1) ? (st.rosterPing[r] > 0 ? QString(" [%1 ms]").arg(st.rosterPing[r]) : " [< 1 ms]") : "";
             rosterText += QString("  • %1%2%3<br>").arg(st.roster[r]).arg(roleTag).arg(pingTag);
         }
         lblJoinRoster->setText(rosterText);

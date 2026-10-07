@@ -1044,10 +1044,16 @@ struct Net
         }
     }
 
+    static melonDS::u32 getNowMs()
+    {
+        using namespace std::chrono;
+        return (melonDS::u32)duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+    }
+
     void sendPing(int role)     // clients measure their ping to the host
     {
         if (mode != 2 || !peers[0].up) return;
-        pingSentAt = GetTickCount();
+        pingSentAt = getNowMs();
         melonDS::u8 buf[6] = { 0xFD, (melonDS::u8)role,
             (melonDS::u8)(pingSentAt & 0xFF), (melonDS::u8)((pingSentAt >> 8) & 0xFF),
             (melonDS::u8)((pingSentAt >> 16) & 0xFF), (melonDS::u8)((pingSentAt >> 24) & 0xFF) };
@@ -1080,8 +1086,10 @@ struct Net
         if (n == 6 && rx[0] == 0xFC)                    // pong: round trip is our ping
         {
             melonDS::u32 tick = rx[2] | (rx[3] << 8) | (rx[4] << 16) | ((melonDS::u32)rx[5] << 24);
-            melonDS::u32 rtt = GetTickCount() - tick;
+            melonDS::u32 rtt = getNowMs() - tick;
             myPingMs = (rtt > 9999) ? 9999 : (melonDS::u16)rtt;
+            int mr = myRole();
+            if (mr >= 1 && mr <= 8) rping[mr] = myPingMs;
             pongRx++;
             return true;
         }
@@ -1169,6 +1177,8 @@ struct Net
         ensureName();
         WSADATA w; WSAStartup(MAKEWORD(2,2), &w);
         mode = 1; started = true; online = 0;
+        myPingMs = 0;
+        rping[1] = 0;
         directPort = (port > 0 && port < 65536) ? port : PORT;
         if (code && code[0]) setStr(roomCode, code);
         listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -1811,6 +1821,10 @@ struct Net
         for (int i=0;i<7;i++) { acc[i].l.close(); acc[i].slot = -1; acc[i].ticket = 0; }
         roomCode[0] = 0; onlineFatal = false; onlineRetryMs = 0; codeWait = false;
         assignedRole = 0;
+        myPingMs = 0;
+        memset(rping, 0, sizeof(rping));
+        memset(rname, 0, sizeof(rname));
+        memset(lobbySeen, 0, sizeof(lobbySeen));
         mode = 0;
     }
 };
