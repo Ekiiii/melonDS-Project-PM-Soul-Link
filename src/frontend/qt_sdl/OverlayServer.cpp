@@ -1113,7 +1113,7 @@ void OverlayServer::buildHtml()
 <body>
     <!-- Floating Configurator Button (hidden in OBS) -->
     <button id="cfg-toggle-btn" class="cfg-toggle-btn" title="Ouvrir le configurateur d'overlay">
-        <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         <span id="txt-open-cfg">CONFIGURER L'OVERLAY</span>
     </button>
 
@@ -1121,7 +1121,7 @@ void OverlayServer::buildHtml()
     <div id="cfg-panel" class="cfg-panel hidden">
         <div class="cfg-header">
             <div class="cfg-title-wrap">
-                <svg class="flat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg class="flat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 <div>
                     <div id="txt-cfg-title" class="cfg-title">CONFIGURATEUR D'OVERLAY</div>
                     <div id="txt-cfg-sub" class="cfg-sub">Personnalisation en direct pour Stream & OBS</div>
@@ -1339,18 +1339,20 @@ void OverlayServer::buildHtml()
             sidebar: '230 × 1180 px'
         };
 
-        // State initialization
+        // State initialization (declared BEFORE applySettings to avoid TDZ errors!)
         const urlParams = new URLSearchParams(window.location.search);
         let currentLayout = urlParams.get('layout') || localStorage.getItem('ov_layout') || 'vertical';
         let currentScale = parseFloat(urlParams.get('scale') || localStorage.getItem('ov_scale') || '1');
         let currentSpriteScale = parseFloat(urlParams.get('spriteScale') || localStorage.getItem('ov_sprite_scale') || '1.35');
         let targetPlayer = urlParams.get('player') || localStorage.getItem('ov_player') || 'all';
+        if (targetPlayer === 'me') targetPlayer = '1';
         let currentTheme = urlParams.get('theme') || localStorage.getItem('ov_theme') || 'cyan';
         let customAccent = urlParams.get('accent') || localStorage.getItem('ov_accent') || null;
         let customBg = urlParams.get('bg') || localStorage.getItem('ov_bg') || null;
         let currentOpacity = parseFloat(urlParams.get('opacity') || localStorage.getItem('ov_opacity') || '0.94');
         let langChoice = urlParams.get('langChoice') || localStorage.getItem('ov_lang_choice') || 'auto';
         let activeLang = 'fr';
+        let lastJsonData = null;
         const isObs = urlParams.get('obs') === '1' || urlParams.get('hide_ui') === '1';
 
         // Flat SVG Pokeball Watermark
@@ -1402,8 +1404,10 @@ void OverlayServer::buildHtml()
             document.documentElement.style.setProperty('--c-bg-box', hexToRgba(bgBase, currentOpacity));
             document.documentElement.style.setProperty('--c-bg-card', hexToRgba(bgCardBase, Math.min(1, currentOpacity + 0.05)));
 
-            document.getElementById('picker-accent').value = accent;
-            document.getElementById('picker-bg').value = bgBase;
+            const pAcc = document.getElementById('picker-accent');
+            const pBg = document.getElementById('picker-bg');
+            if (pAcc) pAcc.value = accent;
+            if (pBg) pBg.value = bgBase;
 
             document.querySelectorAll('.cfg-theme-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.theme === currentTheme && !customAccent);
@@ -1416,20 +1420,21 @@ void OverlayServer::buildHtml()
 
         function updateTexts() {
             const t = I18N[activeLang];
-            document.getElementById('txt-open-cfg').textContent = t.openCfg;
-            document.getElementById('txt-cfg-title').textContent = t.cfgTitle;
-            document.getElementById('txt-cfg-sub').textContent = t.cfgSub;
-            document.getElementById('lbl-layout').textContent = t.layout;
-            document.getElementById('lbl-scale').textContent = t.scale;
-            document.getElementById('lbl-sprite-size').textContent = t.spriteSize;
-            document.getElementById('lbl-themes').textContent = t.themes;
-            document.getElementById('lbl-accent').textContent = t.accent;
-            document.getElementById('lbl-bg').textContent = t.bg;
-            document.getElementById('lbl-opacity').textContent = t.opacity;
-            document.getElementById('lbl-players').textContent = t.players;
-            document.getElementById('lbl-lang').textContent = t.language;
-            document.getElementById('txt-copy-obs').textContent = t.copyObs;
-            document.getElementById('txt-obs-hint').textContent = t.obsHint;
+            const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+            setTxt('txt-open-cfg', t.openCfg);
+            setTxt('txt-cfg-title', t.cfgTitle);
+            setTxt('txt-cfg-sub', t.cfgSub);
+            setTxt('lbl-layout', t.layout);
+            setTxt('lbl-scale', t.scale);
+            setTxt('lbl-sprite-size', t.spriteSize);
+            setTxt('lbl-themes', t.themes);
+            setTxt('lbl-accent', t.accent);
+            setTxt('lbl-bg', t.bg);
+            setTxt('lbl-opacity', t.opacity);
+            setTxt('lbl-players', t.players);
+            setTxt('lbl-lang', t.language);
+            setTxt('txt-copy-obs', t.copyObs);
+            setTxt('txt-obs-hint', t.obsHint);
 
             document.querySelectorAll('[data-player]').forEach(btn => {
                 if (btn.dataset.player === 'all') btn.textContent = t.allPlayers;
@@ -1438,7 +1443,7 @@ void OverlayServer::buildHtml()
             });
 
             // Force refresh of Pokémon cards texts on language change
-            lastJsonData = null;
+            if (lastJsonData) render(lastJsonData);
         }
 
         function applySettings() {
@@ -1446,13 +1451,18 @@ void OverlayServer::buildHtml()
             document.documentElement.style.setProperty('--sprite-scale', currentSpriteScale);
 
             const container = document.getElementById('container');
-            container.className = `container layout-${currentLayout}`;
+            if (container) {
+                container.className = `container layout-${currentLayout}`;
+            }
 
-            document.getElementById('obs-res-hint').textContent = RESOLUTION_HINTS[currentLayout] || '600 × 400 px';
+            const resHint = document.getElementById('obs-res-hint');
+            if (resHint) {
+                resHint.textContent = RESOLUTION_HINTS[currentLayout] || '600 × 400 px';
+            }
 
             document.querySelectorAll('[data-layout]').forEach(b => b.classList.toggle('active', b.dataset.layout === currentLayout));
             document.querySelectorAll('[data-scale]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.scale) === currentScale));
-            document.querySelectorAll('[data-sprite-scale]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.sprite-scale) === currentSpriteScale));
+            document.querySelectorAll('[data-sprite-scale]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.spriteScale) === currentSpriteScale));
             document.querySelectorAll('[data-player]').forEach(b => b.classList.toggle('active', b.dataset.player === targetPlayer));
             document.querySelectorAll('[data-lang-choice]').forEach(b => b.classList.toggle('active', b.dataset.langChoice === langChoice));
 
@@ -1475,23 +1485,27 @@ void OverlayServer::buildHtml()
         const cfgPanel = document.getElementById('cfg-panel');
         const cfgCloseBtn = document.getElementById('cfg-close-btn');
 
-        cfgToggleBtn.addEventListener('click', () => {
-            cfgPanel.classList.toggle('hidden');
-        });
+        if (cfgToggleBtn && cfgPanel) {
+            cfgToggleBtn.addEventListener('click', () => {
+                cfgPanel.classList.toggle('hidden');
+            });
+        }
 
-        cfgCloseBtn.addEventListener('click', () => {
-            cfgPanel.classList.add('hidden');
-        });
+        if (cfgCloseBtn && cfgPanel) {
+            cfgCloseBtn.addEventListener('click', () => {
+                cfgPanel.classList.add('hidden');
+            });
+        }
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
-                cfgPanel.classList.add('hidden');
+                if (cfgPanel) cfgPanel.classList.add('hidden');
             }
         });
 
         if (isObs) {
-            cfgToggleBtn.style.display = 'none';
-            cfgPanel.style.display = 'none';
+            if (cfgToggleBtn) cfgToggleBtn.style.display = 'none';
+            if (cfgPanel) cfgPanel.style.display = 'none';
         }
 
         // Button clicks in panel
@@ -1520,6 +1534,7 @@ void OverlayServer::buildHtml()
             btn.addEventListener('click', () => {
                 targetPlayer = btn.dataset.player;
                 applySettings();
+                if (lastJsonData) render(lastJsonData);
             });
         });
 
@@ -1534,15 +1549,21 @@ void OverlayServer::buildHtml()
             });
         });
 
-        document.getElementById('picker-accent').addEventListener('input', (e) => {
-            customAccent = e.target.value;
-            applyTheme();
-        });
+        const pickerAcc = document.getElementById('picker-accent');
+        if (pickerAcc) {
+            pickerAcc.addEventListener('input', (e) => {
+                customAccent = e.target.value;
+                applyTheme();
+            });
+        }
 
-        document.getElementById('picker-bg').addEventListener('input', (e) => {
-            customBg = e.target.value;
-            applyTheme();
-        });
+        const pickerBg = document.getElementById('picker-bg');
+        if (pickerBg) {
+            pickerBg.addEventListener('input', (e) => {
+                customBg = e.target.value;
+                applyTheme();
+            });
+        }
 
         document.querySelectorAll('[data-opacity]').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1556,22 +1577,24 @@ void OverlayServer::buildHtml()
                 langChoice = btn.dataset.langChoice;
                 if (langChoice !== 'auto') {
                     activeLang = langChoice;
-                    // Also notify emulator server
                     fetch(`/api/set_lang?lang=${activeLang}`).catch(() => {});
                 }
                 applySettings();
             });
         });
 
-        document.getElementById('btn-copy-obs').addEventListener('click', () => {
-            let obsUrl = `${window.location.origin}/overlay?obs=1&layout=${currentLayout}&scale=${currentScale}&spriteScale=${currentSpriteScale}&player=${targetPlayer}&theme=${currentTheme}&opacity=${currentOpacity}`;
-            if (customAccent) obsUrl += `&accent=${encodeURIComponent(customAccent)}`;
-            if (customBg) obsUrl += `&bg=${encodeURIComponent(customBg)}`;
-            if (langChoice !== 'auto') obsUrl += `&langChoice=${langChoice}`;
+        const btnCopyObs = document.getElementById('btn-copy-obs');
+        if (btnCopyObs) {
+            btnCopyObs.addEventListener('click', () => {
+                let obsUrl = `${window.location.origin}/overlay?obs=1&layout=${currentLayout}&scale=${currentScale}&spriteScale=${currentSpriteScale}&player=${targetPlayer}&theme=${currentTheme}&opacity=${currentOpacity}`;
+                if (customAccent) obsUrl += `&accent=${encodeURIComponent(customAccent)}`;
+                if (customBg) obsUrl += `&bg=${encodeURIComponent(customBg)}`;
+                if (langChoice !== 'auto') obsUrl += `&langChoice=${langChoice}`;
 
-            navigator.clipboard.writeText(obsUrl);
-            showToast(I18N[activeLang].copiedToast);
-        });
+                navigator.clipboard.writeText(obsUrl);
+                showToast(I18N[activeLang].copiedToast);
+            });
+        }
 
         function showToast(msg) {
             const t = document.createElement('div');
@@ -1584,16 +1607,17 @@ void OverlayServer::buildHtml()
         // Setup initial display
         applySettings();
 
-        // Dynamic State Polling
-        let lastJsonData = null;
+        // Render initial empty slots so the overlay is NEVER blank before polling completes!
+        render({ my_role: 1, players: [{ role: 1, name: "Joueur 1", is_me: true, team: [] }] });
 
         async function fetchTeams() {
             try {
                 const res = await fetch('/api/teams');
                 if (!res.ok) return;
                 const data = await res.json();
+                lastJsonData = data;
 
-                // Check emulator language
+                // Sync emulator language if auto mode
                 if (data.lang) {
                     const emuLang = data.lang.toLowerCase() === 'en' ? 'en' : 'fr';
                     if (langChoice === 'auto' && activeLang !== emuLang) {
@@ -1604,7 +1628,7 @@ void OverlayServer::buildHtml()
 
                 render(data);
             } catch (err) {
-                // Emulator not ready yet
+                // Ignore fetch errors during emulator boot
             }
         }
 
@@ -1618,22 +1642,29 @@ void OverlayServer::buildHtml()
 
         function render(data) {
             const container = document.getElementById('container');
+            if (!container) return;
+
             const myRole = data.my_role || 1;
             const pairs = data.pairs || [];
             const deadLocs = data.dead_locations || [];
 
             let playersToRender = [];
             if (data.players && data.players.length > 0) {
-                playersToRender = data.players;
+                playersToRender = data.players.slice();
             } else {
-                if (data.player1) playersToRender.push({ role: 1, name: "Joueur 1", party: data.player1 });
-                if (data.player2) playersToRender.push({ role: 2, name: "Joueur 2", party: data.player2 });
+                if (data.player1 && data.player1.length > 0) playersToRender.push({ role: 1, name: "Joueur 1", team: data.player1 });
+                if (data.player2 && data.player2.length > 0) playersToRender.push({ role: 2, name: "Joueur 2", team: data.player2 });
+            }
+
+            // Fallback: if no players yet, show at least local player box
+            if (playersToRender.length === 0) {
+                playersToRender.push({ role: myRole, name: myRole === 1 ? "Joueur 1 (Moi)" : "Joueur " + myRole, is_me: true, team: [] });
             }
 
             if (targetPlayer === '1') {
                 playersToRender = playersToRender.filter(p => p.role === 1 || p.role === myRole);
             } else if (targetPlayer === '2') {
-                playersToRender = playersToRender.filter(p => p.role !== myRole);
+                playersToRender = playersToRender.filter(p => p.role !== myRole && p.role !== 1);
             }
 
             const currentBoxIds = new Set(playersToRender.map(p => `player-box-${p.role}`));
@@ -1655,17 +1686,22 @@ void OverlayServer::buildHtml()
                     box.innerHTML = `
                         <div class="team-header">
                             <div class="player-name" style="color: ${getRoleColor(p.role)}">${p.name || 'J' + p.role}</div>
-                            <div class="team-status" id="status-${p.role}">0/6 ${t.alive}</div>
+                            <div class="team-status">0/6 ${t.alive}</div>
                         </div>
-                        <div class="slots-grid" id="grid-${p.role}"></div>
+                        <div class="slots-grid"></div>
                     `;
                     container.appendChild(box);
                 }
 
-                const grid = document.getElementById(`grid-${p.role}`);
-                const party = p.party || [];
+                const grid = box.querySelector('.slots-grid');
+                if (!grid) return;
+
+                const party = p.team || p.party || [];
                 const aliveCount = party.filter(m => m && !m.is_fainted && m.species > 0).length;
-                document.getElementById(`status-${p.role}`).textContent = `${aliveCount}/6 ${t.alive}`;
+                const statusEl = box.querySelector('.team-status');
+                if (statusEl) {
+                    statusEl.textContent = `${aliveCount}/6 ${t.alive}`;
+                }
 
                 for (let i = 0; i < 6; i++) {
                     const slotId = `slot-${p.role}-${i}`;
@@ -1742,21 +1778,27 @@ void OverlayServer::buildHtml()
                     } else {
                         // Incremental update
                         slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
-                        slotEl.querySelector('.mon-name').textContent = name;
-                        slotEl.querySelector('.mon-lvl').textContent = `${t.level}${mon.level || '?'}`;
+                        const nameEl = slotEl.querySelector('.mon-name');
+                        if (nameEl) nameEl.textContent = name;
+                        const lvlEl = slotEl.querySelector('.mon-lvl');
+                        if (lvlEl) lvlEl.textContent = `${t.level}${mon.level || '?'}`;
 
                         const img = slotEl.querySelector('.pkmn-sprite');
-                        if (slotEl.dataset.species !== String(species)) {
+                        if (img && slotEl.dataset.species !== String(species)) {
                             slotEl.dataset.species = species;
                             img.src = getSpriteUrl(species);
                             img.alt = name;
                         }
 
                         const fill = slotEl.querySelector('.hp-bar-fill');
-                        fill.style.width = `${hpPercent}%`;
-                        fill.style.background = hpColor;
-                        slotEl.querySelector('.hp-text').textContent = `${mon.hp}/${mon.max_hp}`;
-                        slotEl.querySelector('.badge-wrap').innerHTML = badgeHtml;
+                        if (fill) {
+                            fill.style.width = `${hpPercent}%`;
+                            fill.style.background = hpColor;
+                        }
+                        const hpTxt = slotEl.querySelector('.hp-text');
+                        if (hpTxt) hpTxt.textContent = `${mon.hp}/${mon.max_hp}`;
+                        const bWrap = slotEl.querySelector('.badge-wrap');
+                        if (bWrap) bWrap.innerHTML = badgeHtml;
                     }
                 }
             });

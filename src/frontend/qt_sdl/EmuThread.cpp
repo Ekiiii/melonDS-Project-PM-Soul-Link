@@ -2120,11 +2120,6 @@ void BridgePump(melonDS::NDS* nds)
     apWr8(nds, gBr.ctl + 6, ++gBr.beat);   // fork heartbeat
 
     u8 wanted = apRd8(nds, gBr.ctl + 4);
-    if (!wanted && sSharedStateAddr && mpnet::gNet.anyUp())
-    {
-        wanted = 1;
-        apWr8(nds, gBr.ctl + 4, 1);
-    }
     bool inGame = (wanted && gBr.blkSize != 0 && gBr.blkSize <= 512
         && gBr.partySize != 0 && gBr.partySize <= 2048
         && gBr.pktSize != 0 && gBr.pktSize <= 2048);
