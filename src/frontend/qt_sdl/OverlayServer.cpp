@@ -290,15 +290,18 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
             const melonDS::u8* monPtr = pBuf + 8 + s * 236;
             QJsonObject mon = parsePartyPokemon(monPtr, s);
             if (!mon.isEmpty()) {
-                teamArray.append(mon);
-                if (!mon["is_fainted"].toBool()) aliveCount++;
                 int loc = mon["met_location"].toInt();
+                bool dead = (loc > 0) && SoulLink_IsLocationDead(loc);
+                bool fainted = mon["is_fainted"].toBool() || dead;
+                mon["is_fainted"] = fainted;
+                teamArray.append(mon);
+                if (!fainted) aliveCount++;
                 if (loc > 0) {
                     MonLocInfo info;
                     info.role = r;
                     info.slot = mon["slot"].toInt();
                     info.species = mon["species"].toInt();
-                    info.is_fainted = mon["is_fainted"].toBool() || SoulLink_IsLocationDead(loc);
+                    info.is_fainted = fainted;
                     info.in_box = false;
                     info.box_num = 0;
                     locClusters[loc].append(info);
@@ -354,16 +357,27 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     root["player2"] = p2Array;
 
     // Detect Soul Link pairs / clusters
+    static std::set<int> sSessionKnownPairs;
+    for (auto it = locClusters.begin(); it != locClusters.end(); ++it)
+    {
+        if (it.value().size() >= 2) {
+            sSessionKnownPairs.insert(it.key());
+        }
+    }
+
     QJsonArray pairsArray;
     for (auto it = locClusters.begin(); it != locClusters.end(); ++it)
     {
         int loc = it.key();
         const QVector<MonLocInfo>& list = it.value();
-        if (list.size() >= 2)
+        bool isKnownPair = (sSessionKnownPairs.count(loc) > 0);
+        bool isDeadZone = SoulLink_IsLocationDead(loc);
+
+        if (list.size() >= 2 || isKnownPair || isDeadZone)
         {
             QJsonObject pair;
             pair["location_id"] = loc;
-            bool anyDead = false;
+            bool anyDead = isDeadZone;
             QJsonArray members;
             int p1Slot = 0;
             int p2Slot = 0;
@@ -392,6 +406,31 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
                     p2Slot = m.slot;
                     p2InBox = m.in_box;
                     p2Box = m.box_num;
+                }
+            }
+
+            // If partner is not in the active list (e.g. peer's mon died or boxed):
+            if (list.size() == 1)
+            {
+                int presentRole = list[0].role;
+                int absentRole = (presentRole == myRole) ? (myRole == 1 ? 2 : 1) : myRole;
+                QJsonObject ghostMem;
+                ghostMem["role"] = absentRole;
+                ghostMem["slot"] = 0;
+                ghostMem["species"] = 0;
+                ghostMem["is_fainted"] = isDeadZone;
+                ghostMem["in_box"] = true;
+                ghostMem["box_num"] = isDeadZone ? 18 : 0;
+                members.append(ghostMem);
+
+                if (absentRole == myRole) {
+                    p1Slot = 0;
+                    p1InBox = true;
+                    p1Box = isDeadZone ? 18 : 0;
+                } else {
+                    p2Slot = 0;
+                    p2InBox = true;
+                    p2Box = isDeadZone ? 18 : 0;
                 }
             }
 
@@ -831,7 +870,8 @@ void OverlayServer::buildHtml()
                         for (const p of pairs) {
                             const isMember = (p.members && p.members.some(m => m.role === role && !m.in_box && m.slot === (i + 1)))
                                           || (player.is_me && !p.p1_in_box && p.p1_slot === (i + 1))
-                                          || (!player.is_me && !p.p2_in_box && p.p2_slot === (i + 1));
+                                          || (!player.is_me && !p.p2_in_box && p.p2_slot === (i + 1))
+                                          || (p.location_id === mon.met_location);
                             if (isMember) {
                                 if (p.status === 'DEAD') {
                                     linkText = '🔗 BROKEN SOUL';
@@ -839,7 +879,11 @@ void OverlayServer::buildHtml()
                                 } else {
                                     const partner = p.members ? p.members.find(m => m.role !== role) : null;
                                     if (partner && partner.in_box) {
-                                        linkText = `🔗 LINKED [Z.${p.location_id}] (PC B${partner.box_num})`;
+                                        if (partner.box_num > 0) {
+                                            linkText = `🔗 LINKED [Z.${p.location_id}] (PC B${partner.box_num})`;
+                                        } else {
+                                            linkText = `🔗 LINKED [Zone ${p.location_id}] (PC)`;
+                                        }
                                     } else {
                                         linkText = `🔗 LINKED [Zone ${p.location_id}]`;
                                     }

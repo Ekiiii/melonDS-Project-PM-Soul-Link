@@ -2127,6 +2127,7 @@ void BridgePump(melonDS::NDS* nds)
     // Overlay server update: independent of wireless activation so stream overlay always works!
     if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0 && gBr.partyExp)
     {
+        SoulLink_UpdateOverlayDeaths(nds);
         std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
         OverlayServer::Instance().UpdateTeamsMulti(
             apPtr(nds, gBr.partyExp),
