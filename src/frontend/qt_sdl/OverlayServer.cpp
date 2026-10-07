@@ -800,7 +800,7 @@ void OverlayServer::buildHtml()
                 const titleEl = box.querySelector('.team-title');
                 titleEl.style.color = color;
                 box.querySelector('.p-name').textContent = player.name;
-                box.querySelector('.alive-badge').textContent = `${player.alive_count || 0}/6 Vivants`;
+                box.querySelector('.alive-badge').textContent = `${player.alive_count || 0}/6 Alive`;
 
                 const grid = box.querySelector('.slots-grid');
                 for (let i = 0; i < 6; i++) {
@@ -812,7 +812,7 @@ void OverlayServer::buildHtml()
                             const newEmpty = document.createElement('div');
                             newEmpty.className = 'empty-slot';
                             newEmpty.dataset.slotIdx = i;
-                            newEmpty.innerHTML = `<span>◓ Slot ${i+1}</span><span style="opacity:0.4;">Vide</span>`;
+                            newEmpty.innerHTML = `<span>◓ Slot ${i+1}</span><span style="opacity:0.4;">Empty</span>`;
                             if (slotEl) grid.replaceChild(newEmpty, slotEl);
                             else grid.appendChild(newEmpty);
                         }
@@ -834,14 +834,14 @@ void OverlayServer::buildHtml()
                                           || (!player.is_me && !p.p2_in_box && p.p2_slot === (i + 1));
                             if (isMember) {
                                 if (p.status === 'DEAD') {
-                                    linkText = '🔗 ÂME BRISÉE';
+                                    linkText = '🔗 BROKEN SOUL';
                                     linkDead = true;
                                 } else {
                                     const partner = p.members ? p.members.find(m => m.role !== role) : null;
                                     if (partner && partner.in_box) {
-                                        linkText = `🔗 LIÉ [Z.${p.location_id}] (PC B${partner.box_num})`;
+                                        linkText = `🔗 LINKED [Z.${p.location_id}] (PC B${partner.box_num})`;
                                     } else {
-                                        linkText = `🔗 LIÉ [Zone ${p.location_id}]`;
+                                        linkText = `🔗 LINKED [Zone ${p.location_id}]`;
                                     }
                                 }
                                 break;
@@ -858,17 +858,17 @@ void OverlayServer::buildHtml()
                         newCard.dataset.slotIdx = i;
                         newCard.dataset.species = species;
                         newCard.innerHTML = `
-                            <div class="dead-badge" style="display:none;">💀 K.O.</div>
+                            <div class="dead-badge" style="display:none;">💀 FAINTED</div>
                             <div class="name-row">
                                 <span class="mon-name" title="${name}">${name}</span>
-                                <span class="mon-level">Nv.${mon.level}</span>
+                                <span class="mon-level">Lv.${mon.level}</span>
                             </div>
                             <div class="sprite-frame">
                                 <img class="sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
                             </div>
                             <div class="mon-info">
                                 <div class="hp-container">
-                                    <div class="hp-badge">PV</div>
+                                    <div class="hp-badge">HP</div>
                                     <div class="hp-bar-track">
                                         <div class="hp-bar-fill ${hpClass}" style="width: ${hpPct}%;"></div>
                                     </div>
@@ -904,7 +904,7 @@ void OverlayServer::buildHtml()
                         slotEl.querySelector('.dead-badge').style.display = 'none';
                     }
 
-                    slotEl.querySelector('.mon-level').textContent = `Nv.${mon.level}`;
+                    slotEl.querySelector('.mon-level').textContent = `Lv.${mon.level}`;
                     const barFill = slotEl.querySelector('.hp-bar-fill');
                     barFill.className = `hp-bar-fill ${hpClass}`;
                     barFill.style.width = `${hpPct}%`;
@@ -934,10 +934,10 @@ void OverlayServer::buildHtml()
                         container.innerHTML = `
                             <div id="standby-card" class="team-box" style="text-align:center; padding: 25px 20px; max-width: 480px; margin: auto;">
                                 <div class="team-title" style="justify-content: center; font-size: 10px; border-bottom: none; margin-bottom: 0;">
-                                    ⏳ En attente de synchronisation...
+                                    ⏳ Waiting for game sync...
                                 </div>
                                 <div style="font-size: 7.5px; color: #94a3b8; margin-top: 10px; line-height: 1.6;">
-                                    Lancez votre partie de Pokémon Platine pour afficher l'équipe sur l'overlay.
+                                    Launch your Pokémon Platinum game to display teams on the overlay.
                                 </div>
                             </div>`;
                     }
@@ -964,7 +964,7 @@ void OverlayServer::buildHtml()
                 } else if (data.player1) {
                     playersToRender.push({
                         role: 1,
-                        name: 'Joueur 1 (Moi)',
+                        name: 'Player 1 (Me)',
                         is_me: true,
                         alive_count: data.player1.filter(m => !m.is_fainted).length,
                         team: data.player1
@@ -972,7 +972,7 @@ void OverlayServer::buildHtml()
                     if (targetPlayer === 'all' && data.player2 && data.player2.length > 0) {
                         playersToRender.push({
                             role: 2,
-                            name: 'Joueur 2 (Partenaire)',
+                            name: 'Player 2 (Partner)',
                             is_me: false,
                             alive_count: data.player2.filter(m => !m.is_fainted).length,
                             team: data.player2

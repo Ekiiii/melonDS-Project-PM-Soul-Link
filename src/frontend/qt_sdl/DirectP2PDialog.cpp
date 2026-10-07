@@ -16,8 +16,8 @@
 DirectP2PDialog::DirectP2PDialog(MainWindow* parent)
     : QDialog(parent), mainWin(parent)
 {
-    setWindowTitle("Direct P2P Soul Link - Connexion Directe");
-    resize(520, 480);
+    setWindowTitle("Direct P2P Soul Link");
+    resize(500, 420);
     setWindowFlags(Qt::Window
         | Qt::CustomizeWindowHint | Qt::WindowTitleHint
         | Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
@@ -49,9 +49,7 @@ void DirectP2PDialog::setupUI()
 
     // Header banner
     QLabel* titleLbl = new QLabel("<h2 style='margin:0; padding:0; color:#1e293b;'>Direct P2P — Soul Link</h2>", this);
-    QLabel* descLbl = new QLabel("Connexion directe joueur à joueur sans serveur externe.<br>"
-                                 "Ouverture automatique du port (UPnP) et code de salon rapide.", this);
-    descLbl->setWordWrap(true);
+    QLabel* descLbl = new QLabel("Direct peer-to-peer connection for Soul Link co-op.", this);
     descLbl->setStyleSheet("color: #64748b; font-size: 12px; margin-bottom: 4px;");
     mainLay->addWidget(titleLbl);
     mainLay->addWidget(descLbl);
@@ -77,14 +75,14 @@ void DirectP2PDialog::setupUI()
     edHostName->setText(mainWin->onlineDefaultName());
     edHostName->setStyleSheet("padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;");
 
-    chkUPnP = new QCheckBox("Activer l'UPnP automatique (ouverture automatique du port sur la box)", hostConfigWidget);
+    chkUPnP = new QCheckBox("Enable UPnP", hostConfigWidget);
     chkUPnP->setChecked(true);
 
-    formHost->addRow("Votre pseudo :", edHostName);
+    formHost->addRow("Player Name:", edHostName);
     formHost->addRow("", chkUPnP);
     layHostCfg->addLayout(formHost);
 
-    btnStartHost = new QPushButton("Créer le salon", hostConfigWidget);
+    btnStartHost = new QPushButton("Host Room", hostConfigWidget);
     btnStartHost->setStyleSheet(
         "QPushButton { font-weight: 600; font-size: 13px; padding: 10px; background-color: #2563eb; color: white; border: none; border-radius: 6px; }"
         "QPushButton:hover { background-color: #1d4ed8; }"
@@ -101,11 +99,11 @@ void DirectP2PDialog::setupUI()
     layHostAct->setContentsMargins(0, 0, 0, 0);
     layHostAct->setSpacing(8);
 
-    QGroupBox* codeBox = new QGroupBox("Codes de salon pour vos amis", hostActiveWidget);
+    QGroupBox* codeBox = new QGroupBox("Room Codes", hostActiveWidget);
     QVBoxLayout* layCodeBox = new QVBoxLayout(codeBox);
     layCodeBox->setSpacing(6);
 
-    QLabel* lblDescCode = new QLabel("<b>Code Internet</b> (à distance avec un ami) :", codeBox);
+    QLabel* lblDescCode = new QLabel("<b>Internet Code:</b>", codeBox);
     lblHostRoomCode = new QLabel("SL-XXXXX-XXXXX", codeBox);
     QFont fCode = lblHostRoomCode->font();
     fCode.setFamily("Consolas");
@@ -116,21 +114,21 @@ void DirectP2PDialog::setupUI()
     lblHostRoomCode->setTextInteractionFlags(Qt::TextSelectableByMouse);
     lblHostRoomCode->setStyleSheet("background: #0f172a; color: #38bdf8; padding: 8px; border: 1px solid #334155; border-radius: 6px; letter-spacing: 2px;");
 
-    btnCopyHostCode = new QPushButton("Copier le code Internet", codeBox);
+    btnCopyHostCode = new QPushButton("Copy Internet Code", codeBox);
     btnCopyHostCode->setStyleSheet(
         "QPushButton { font-weight: 600; padding: 6px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; }"
         "QPushButton:hover { background-color: #e2e8f0; }"
     );
     connect(btnCopyHostCode, &QPushButton::clicked, this, &DirectP2PDialog::onCopyHostCodeClicked);
 
-    QLabel* lblDescLan = new QLabel("<b>Code Local / LAN</b> (sur la même box ou ce PC) :", codeBox);
+    QLabel* lblDescLan = new QLabel("<b>LAN / Local Code:</b>", codeBox);
     lblHostLanCode = new QLabel("SL-XXXXX-XXXXX", codeBox);
     lblHostLanCode->setFont(fCode);
     lblHostLanCode->setAlignment(Qt::AlignCenter);
     lblHostLanCode->setTextInteractionFlags(Qt::TextSelectableByMouse);
     lblHostLanCode->setStyleSheet("background: #0f172a; color: #a7f3d0; padding: 8px; border: 1px solid #334155; border-radius: 6px; letter-spacing: 2px;");
 
-    btnCopyHostLanCode = new QPushButton("Copier le code Local / LAN", codeBox);
+    btnCopyHostLanCode = new QPushButton("Copy LAN Code", codeBox);
     btnCopyHostLanCode->setStyleSheet(
         "QPushButton { font-weight: 600; padding: 6px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; }"
         "QPushButton:hover { background-color: #e2e8f0; }"
@@ -145,15 +143,15 @@ void DirectP2PDialog::setupUI()
     layCodeBox->addWidget(btnCopyHostLanCode);
     layHostAct->addWidget(codeBox);
 
-    lblHostUPnPStatus = new QLabel("UPnP : En attente...", hostActiveWidget);
-    lblHostPeersStatus = new QLabel("Joueurs connectés : 0/7", hostActiveWidget);
+    lblHostUPnPStatus = new QLabel("UPnP: Ready", hostActiveWidget);
+    lblHostPeersStatus = new QLabel("Connected Players: 0/7", hostActiveWidget);
     lblHostPeersStatus->setStyleSheet("font-weight: 600;");
 
     lblHostRoster = new QLabel(hostActiveWidget);
     lblHostRoster->setStyleSheet("background: #0f172a; color: #f8fafc; padding: 8px; border: 1px solid #334155; border-radius: 6px; font-family: Consolas, monospace;");
     lblHostRoster->setWordWrap(true);
 
-    btnStopHost = new QPushButton("Fermer le salon", hostActiveWidget);
+    btnStopHost = new QPushButton("Close Room", hostActiveWidget);
     btnStopHost->setStyleSheet(
         "QPushButton { background-color: #dc2626; color: white; padding: 8px; font-weight: 600; border: none; border-radius: 5px; }"
         "QPushButton:hover { background-color: #b91c1c; }"
@@ -167,7 +165,7 @@ void DirectP2PDialog::setupUI()
 
     layHost->addWidget(hostActiveWidget);
     layHost->addStretch();
-    tabWidget->addTab(tabHost, "Héberger");
+    tabWidget->addTab(tabHost, "Host");
 
     // -------------------------------------------------------------------------
     // TAB 2: JOIN
@@ -188,14 +186,14 @@ void DirectP2PDialog::setupUI()
     edJoinName->setStyleSheet("padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;");
 
     edJoinCode = new QLineEdit(joinConfigWidget);
-    edJoinCode->setPlaceholderText("ex: SL-4LADD-A69NE ou IP:Port");
+    edJoinCode->setPlaceholderText("e.g. SL-4LADD-A69NE or IP:Port");
     edJoinCode->setStyleSheet("padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: Consolas, monospace;");
 
-    formJoin->addRow("Votre pseudo :", edJoinName);
-    formJoin->addRow("Code de salon :", edJoinCode);
+    formJoin->addRow("Player Name:", edJoinName);
+    formJoin->addRow("Room Code:", edJoinCode);
     layJoinCfg->addLayout(formJoin);
 
-    btnTestLocalJoin = new QPushButton("Tester sur ce PC (Même machine - 1 clic)", joinConfigWidget);
+    btnTestLocalJoin = new QPushButton("Connect to Localhost (127.0.0.1)", joinConfigWidget);
     btnTestLocalJoin->setStyleSheet(
         "QPushButton { font-weight: 600; font-size: 12px; padding: 8px; background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; border-radius: 6px; }"
         "QPushButton:hover { background-color: #dcfce7; }"
@@ -206,19 +204,13 @@ void DirectP2PDialog::setupUI()
     });
     layJoinCfg->addWidget(btnTestLocalJoin);
 
-    QLabel* joinHelp = new QLabel("Collez le code de salon partagé par l'hôte ou cliquez ci-dessus pour tester sur ce PC.<br>"
-                                  "L'adresse et le port sont résolus automatiquement.", joinConfigWidget);
-    joinHelp->setWordWrap(true);
-    joinHelp->setStyleSheet("color: #64748b; font-size: 12px;");
-    layJoinCfg->addWidget(joinHelp);
-
     lblJoinError = new QLabel(joinConfigWidget);
     lblJoinError->setWordWrap(true);
     lblJoinError->setStyleSheet("color: #dc2626; font-weight: 600; font-size: 12px; padding: 4px 0;");
     lblJoinError->setVisible(false);
     layJoinCfg->addWidget(lblJoinError);
 
-    btnJoin = new QPushButton("Rejoindre le salon", joinConfigWidget);
+    btnJoin = new QPushButton("Join Room", joinConfigWidget);
     btnJoin->setStyleSheet(
         "QPushButton { font-weight: 600; font-size: 13px; padding: 10px; background-color: #16a34a; color: white; border: none; border-radius: 6px; }"
         "QPushButton:hover { background-color: #15803d; }"
@@ -234,14 +226,14 @@ void DirectP2PDialog::setupUI()
     layJoinAct->setContentsMargins(0, 0, 0, 0);
     layJoinAct->setSpacing(8);
 
-    lblJoinStatus = new QLabel("Connexion à l'hôte...", joinActiveWidget);
+    lblJoinStatus = new QLabel("Connecting to host...", joinActiveWidget);
     lblJoinStatus->setStyleSheet("font-weight: 600;");
 
     lblJoinRoster = new QLabel(joinActiveWidget);
     lblJoinRoster->setStyleSheet("background: #0f172a; color: #f8fafc; padding: 8px; border: 1px solid #334155; border-radius: 6px; font-family: Consolas, monospace;");
     lblJoinRoster->setWordWrap(true);
 
-    btnLeaveJoin = new QPushButton("Quitter le salon", joinActiveWidget);
+    btnLeaveJoin = new QPushButton("Leave Room", joinActiveWidget);
     btnLeaveJoin->setStyleSheet(
         "QPushButton { background-color: #dc2626; color: white; padding: 8px; font-weight: 600; border: none; border-radius: 5px; }"
         "QPushButton:hover { background-color: #b91c1c; }"
@@ -254,20 +246,20 @@ void DirectP2PDialog::setupUI()
 
     layJoin->addWidget(joinActiveWidget);
     layJoin->addStretch();
-    tabWidget->addTab(tabJoin, "Rejoindre");
+    tabWidget->addTab(tabJoin, "Join");
 
     mainLay->addWidget(tabWidget);
 
     // Dialog Footer
     QHBoxLayout* footLay = new QHBoxLayout();
-    QPushButton* btnOverlay = new QPushButton("Ouvrir l'Overlay OBS", this);
+    QPushButton* btnOverlay = new QPushButton("Open OBS Overlay", this);
     btnOverlay->setStyleSheet(
         "QPushButton { padding: 6px 12px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; font-weight: 500; }"
         "QPushButton:hover { background-color: #e2e8f0; }"
     );
     connect(btnOverlay, &QPushButton::clicked, this, &DirectP2PDialog::onOpenOverlayClicked);
 
-    QPushButton* btnClose = new QPushButton("Fermer", this);
+    QPushButton* btnClose = new QPushButton("Close", this);
     btnClose->setStyleSheet(
         "QPushButton { padding: 6px 14px; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 5px; font-weight: 500; }"
         "QPushButton:hover { background-color: #e2e8f0; }"
@@ -293,7 +285,7 @@ void DirectP2PDialog::onStartHostClicked()
     Config::Save();
 
     btnStartHost->setEnabled(false);
-    btnStartHost->setText("Démarrage en cours...");
+    btnStartHost->setText("Starting...");
 
     // Run IP lookup & UPnP in worker thread so UI doesn't freeze
     std::thread([this, name, port, useUPnP]() {
@@ -305,7 +297,7 @@ void DirectP2PDialog::onStartHostClicked()
         if (useUPnP) {
             upnpOk = DirectP2P::UPnPOpenPort((uint16_t)port, localIp, upnpMsg);
         } else {
-            upnpMsg = "Port configuré : 7820 (sans UPnP)";
+            upnpMsg = "UPnP: Disabled";
         }
 
         std::string internetIp = pubIp.empty() ? localIp : pubIp;
@@ -314,7 +306,7 @@ void DirectP2PDialog::onStartHostClicked()
 
         QMetaObject::invokeMethod(this, [this, name, port, roomCodeInternet, roomCodeLan, upnpMsg, upnpOk]() {
             btnStartHost->setEnabled(true);
-            btnStartHost->setText("Créer le salon");
+            btnStartHost->setText("Host Room");
 
             MpDirectHost(port, name.toStdString().c_str(), roomCodeInternet.c_str());
 
@@ -345,7 +337,7 @@ void DirectP2PDialog::onJoinClicked()
     QString codeStr = edJoinCode->text().trimmed();
 
     if (codeStr.isEmpty()) {
-        lblJoinError->setText("Veuillez entrer un code de salon ou une adresse IP.");
+        lblJoinError->setText("Please enter a room code or IP address.");
         lblJoinError->setVisible(true);
         return;
     }
@@ -353,14 +345,14 @@ void DirectP2PDialog::onJoinClicked()
     std::string outIp;
     uint16_t outPort = DirectP2P::DEFAULT_PORT;
     if (!DirectP2P::DecodeRoomCode(codeStr.toStdString(), outIp, outPort)) {
-        lblJoinError->setText("Code invalide. Format attendu : SL-XXXXX-XXXXX (10 caractères) ou IP:Port.");
+        lblJoinError->setText("Invalid room code format. Expected SL-XXXXX-XXXXX or IP:Port.");
         lblJoinError->setVisible(true);
         return;
     }
 
     lblJoinError->setVisible(false);
     btnJoin->setEnabled(false);
-    btnJoin->setText("Connexion en cours...");
+    btnJoin->setText("Connecting...");
 
     Config::Table& globalCfg = mainWin->globalCfg;
     globalCfg.SetQString("Online.PlayerName", name);
@@ -378,7 +370,7 @@ void DirectP2PDialog::onLeaveClicked()
     joinPending = false;
     MpOnlineStop();
     btnJoin->setEnabled(true);
-    btnJoin->setText("Rejoindre le salon");
+    btnJoin->setText("Join Room");
     updateStatus();
 }
 
@@ -386,9 +378,9 @@ void DirectP2PDialog::onCopyHostCodeClicked()
 {
     QString code = lblHostRoomCode->text();
     QApplication::clipboard()->setText(code);
-    btnCopyHostCode->setText("Code copié !");
+    btnCopyHostCode->setText("Copied!");
     QTimer::singleShot(2000, this, [this]() {
-        btnCopyHostCode->setText("Copier le code Internet");
+        btnCopyHostCode->setText("Copy Internet Code");
     });
 }
 
@@ -396,9 +388,9 @@ void DirectP2PDialog::onCopyHostLanCodeClicked()
 {
     QString code = lblHostLanCode->text();
     QApplication::clipboard()->setText(code);
-    btnCopyHostLanCode->setText("Code LAN copié !");
+    btnCopyHostLanCode->setText("Copied!");
     QTimer::singleShot(2000, this, [this]() {
-        btnCopyHostLanCode->setText("Copier le code Local / LAN");
+        btnCopyHostLanCode->setText("Copy LAN Code");
     });
 }
 
@@ -428,7 +420,7 @@ void DirectP2PDialog::updateStatus()
             // Successfully connected!
             joinPending = false;
             btnJoin->setEnabled(true);
-            btnJoin->setText("Rejoindre le salon");
+            btnJoin->setText("Join Room");
             lblJoinError->setVisible(false);
         }
         else if (st.mode == 0 || joinElapsedSec >= 24) // 12 seconds timeout (24 ticks of 500ms)
@@ -437,8 +429,8 @@ void DirectP2PDialog::updateStatus()
             joinPending = false;
             MpOnlineStop();
             btnJoin->setEnabled(true);
-            btnJoin->setText("Rejoindre le salon");
-            lblJoinError->setText("Délai de connexion dépassé (12s). Impossible de joindre l'hôte. Vérifiez le code de salon ou le pare-feu de l'hôte.");
+            btnJoin->setText("Join Room");
+            lblJoinError->setText("Connection timed out (12s). Unable to reach host. Check the room code or firewall.");
             lblJoinError->setVisible(true);
             isJoinActive = false;
         }
@@ -460,12 +452,12 @@ void DirectP2PDialog::updateStatus()
             std::string lanCode = DirectP2P::EncodeRoomCode(localIp, DirectP2P::DEFAULT_PORT);
             lblHostLanCode->setText(QString::fromStdString(lanCode));
         }
-        lblHostPeersStatus->setText(QString("Joueurs connectés : %1/7").arg(st.peers));
+        lblHostPeersStatus->setText(QString("Connected Players: %1/7").arg(st.peers));
 
-        QString rosterText = "<b>Participants :</b><br>";
+        QString rosterText = "<b>Players:</b><br>";
         for (int r = 1; r <= 8; r++) {
             if (!st.roster[r][0]) continue;
-            QString roleTag = (r == 1) ? " [Hôte]" : "";
+            QString roleTag = (r == 1) ? " [Host]" : "";
             QString pingTag = (st.rosterPing[r] > 0) ? QString(" [%1 ms]").arg(st.rosterPing[r]) : "";
             rosterText += QString("  • %1%2%3<br>").arg(st.roster[r]).arg(roleTag).arg(pingTag);
         }
@@ -474,16 +466,16 @@ void DirectP2PDialog::updateStatus()
     else if (isJoinActive)
     {
         if (st.peers > 0) {
-            lblJoinStatus->setText(QString("<font color='#10b981'>●</font> Connecté à l'hôte (%1 participants)").arg(st.peers + 1));
+            lblJoinStatus->setText(QString("<font color='#10b981'>●</font> Connected to host (%1 players)").arg(st.peers + 1));
         } else {
             int secRemaining = qMax(0, 12 - (joinElapsedSec / 2));
-            lblJoinStatus->setText(QString("<font color='#f59e0b'>●</font> Connexion à l'hôte en cours (%1s)...").arg(secRemaining));
+            lblJoinStatus->setText(QString("<font color='#f59e0b'>●</font> Connecting to host (%1s)...").arg(secRemaining));
         }
 
-        QString rosterText = "<b>Participants :</b><br>";
+        QString rosterText = "<b>Players:</b><br>";
         for (int r = 1; r <= 8; r++) {
             if (!st.roster[r][0]) continue;
-            QString roleTag = (r == 1) ? " [Hôte]" : (r == st.myRole ? " [Moi]" : "");
+            QString roleTag = (r == 1) ? " [Host]" : (r == st.myRole ? " [Me]" : "");
             QString pingTag = (st.rosterPing[r] > 0) ? QString(" [%1 ms]").arg(st.rosterPing[r]) : "";
             rosterText += QString("  • %1%2%3<br>").arg(st.roster[r]).arg(roleTag).arg(pingTag);
         }

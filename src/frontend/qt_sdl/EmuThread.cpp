@@ -1198,7 +1198,7 @@ struct Net
         mode = 2; started = true; online = 0;
         directJoinDeadline = GetTickCount() + 12000;
         char msg[128];
-        snprintf(msg, sizeof(msg), "Direct P2P: Connexion a %s:%d", joinIP, directPort);
+        snprintf(msg, sizeof(msg), "Direct P2P: Connecting to %s:%d", joinIP, directPort);
         setMsg(msg);
         printf("[BR] direct P2P joining %s:%d (roomCode: %s)\n", joinIP, directPort, roomCode);
     }
@@ -1714,7 +1714,7 @@ struct Net
                 connecting = false;
                 mode = 0;
                 directJoinDeadline = 0;
-                setMsg("Délai de connexion dépassé (l'hôte est introuvable ou le port 7820 est bloqué)");
+                setMsg("Connection timed out (Host unreachable or port 7820 blocked)");
                 printf("[BR] direct P2P connection timed out\n");
                 publishStatus();
                 return;
@@ -2656,7 +2656,7 @@ void MpDirectHost(int port, const char* name, const char* roomCode)
     char srv[64]; snprintf(srv, sizeof(srv), "%d", mpnet::gUiReq.port);
     mpnet::setStr(mpnet::gUiStatus.server, srv);
     mpnet::setStr(mpnet::gUiStatus.code, roomCode ? roomCode : "");
-    mpnet::setStr(mpnet::gUiStatus.text, "Direct P2P: Hébergement actif...");
+    mpnet::setStr(mpnet::gUiStatus.text, "Direct P2P: Hosting active...");
 }
 
 void MpDirectJoin(const char* ip, int port, const char* name, const char* roomCode)
@@ -2672,7 +2672,7 @@ void MpDirectJoin(const char* ip, int port, const char* name, const char* roomCo
     char srv[96]; snprintf(srv, sizeof(srv), "%s:%d", mpnet::gUiReq.disp, mpnet::gUiReq.port);
     mpnet::setStr(mpnet::gUiStatus.server, srv);
     mpnet::setStr(mpnet::gUiStatus.code, roomCode ? roomCode : "");
-    mpnet::setStr(mpnet::gUiStatus.text, "Direct P2P: Connexion...");
+    mpnet::setStr(mpnet::gUiStatus.text, "Direct P2P: Connecting...");
 }
 
 void MpOnlineGetStatus(MpOnlineStatus* out)

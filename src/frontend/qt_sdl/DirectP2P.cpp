@@ -474,7 +474,7 @@ static bool DirectSSDPUPnPOpen(uint16_t port, const std::string& localIp, std::s
         sLastRouterPort = ctrlPort;
         sLastControlPath = ctrlPath;
         sLastServiceType = svcType;
-        outMsg = "Port 7820 ouvert avec succès sur votre Box (UPnP) !";
+        outMsg = "UPnP port forward established";
         return true;
     }
     return false;
@@ -493,7 +493,7 @@ bool UPnPOpenPort(uint16_t port, const std::string& localIp, std::string& outMsg
     IUPnPNAT* nat = nullptr;
     hr = CoCreateInstance(CLSID_UPnPNAT, NULL, CLSCTX_INPROC_SERVER, IID_IUPnPNAT, (void**)&nat);
     if (FAILED(hr) || !nat) {
-        outMsg = "Service UPnP Windows indisponible";
+        outMsg = "Windows UPnP service unavailable";
         if (SUCCEEDED(hr)) CoUninitialize();
         return false;
     }
@@ -501,7 +501,7 @@ bool UPnPOpenPort(uint16_t port, const std::string& localIp, std::string& outMsg
     IStaticPortMappingCollection* col = nullptr;
     hr = nat->get_StaticPortMappingCollection(&col);
     if (FAILED(hr) || !col) {
-        outMsg = "Aucun routeur UPnP détecté sur votre réseau local";
+        outMsg = "No UPnP router found on local network";
         nat->Release();
         CoUninitialize();
         return false;
@@ -519,21 +519,21 @@ bool UPnPOpenPort(uint16_t port, const std::string& localIp, std::string& outMsg
     SysFreeString(bstrDesc);
 
     if (SUCCEEDED(hr)) {
-        outMsg = "Port ouvert avec succès sur votre Box (UPnP) !";
+        outMsg = "UPnP port forward established";
         if (map) map->Release();
         col->Release();
         nat->Release();
         CoUninitialize();
         return true;
     } else {
-        outMsg = "La Box a rejeté l'ouverture automatique de port (UPnP désactivé ?)";
+        outMsg = "Router rejected UPnP port request";
         col->Release();
         nat->Release();
         CoUninitialize();
         return false;
     }
 #else
-    outMsg = "UPnP non disponible sur cette plateforme";
+    outMsg = "UPnP not available on this platform";
     return false;
 #endif
 }

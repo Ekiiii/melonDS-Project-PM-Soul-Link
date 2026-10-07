@@ -441,7 +441,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 submenu->addSeparator();
 
-                actDirectP2P = submenu->addAction("Direct P2P Soul Link (UPnP & Codes)...");
+                actDirectP2P = submenu->addAction("Direct P2P Soul Link...");
                 actDirectP2P->setMenuRole(QAction::NoRole);
                 connect(actDirectP2P, &QAction::triggered, this, &MainWindow::onOpenDirectP2P);
 
@@ -465,7 +465,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 QMenu* overlaySubmenu = submenu->addMenu("Twitch / OBS Overlay (Soul Link)");
 
-                actOverlayEnable = overlaySubmenu->addAction("Activer l'Overlay Twitch (Port 8080)");
+                actOverlayEnable = overlaySubmenu->addAction("Enable Twitch / OBS Overlay (Port 8080)");
                 actOverlayEnable->setMenuRole(QAction::NoRole);
                 actOverlayEnable->setCheckable(true);
                 bool overlayOn = globalCfg.GetBool("Overlay.Enabled");
@@ -475,27 +475,27 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 overlaySubmenu->addSeparator();
 
-                actOverlayCopyLinkSoloH = overlaySubmenu->addAction("Copier lien OBS : Équipe Streamer Solo (Horizontal)");
+                actOverlayCopyLinkSoloH = overlaySubmenu->addAction("Copy OBS Link: Streamer Team (Horizontal)");
                 actOverlayCopyLinkSoloH->setMenuRole(QAction::NoRole);
                 connect(actOverlayCopyLinkSoloH, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkSoloH);
 
-                actOverlayCopyLinkSoloV = overlaySubmenu->addAction("Copier lien OBS : Équipe Streamer Solo (Vertical)");
+                actOverlayCopyLinkSoloV = overlaySubmenu->addAction("Copy OBS Link: Streamer Team (Vertical)");
                 actOverlayCopyLinkSoloV->setMenuRole(QAction::NoRole);
                 connect(actOverlayCopyLinkSoloV, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkSoloV);
 
                 overlaySubmenu->addSeparator();
 
-                actOverlayCopyLinkAllH = overlaySubmenu->addAction("Copier lien OBS : Tous les Joueurs (Horizontal)");
+                actOverlayCopyLinkAllH = overlaySubmenu->addAction("Copy OBS Link: All Players (Horizontal)");
                 actOverlayCopyLinkAllH->setMenuRole(QAction::NoRole);
                 connect(actOverlayCopyLinkAllH, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkAllH);
 
-                actOverlayCopyLinkAllV = overlaySubmenu->addAction("Copier lien OBS : Tous les Joueurs (Grille)");
+                actOverlayCopyLinkAllV = overlaySubmenu->addAction("Copy OBS Link: All Players (Grid)");
                 actOverlayCopyLinkAllV->setMenuRole(QAction::NoRole);
                 connect(actOverlayCopyLinkAllV, &QAction::triggered, this, &MainWindow::onCopyOverlayLinkAllV);
 
                 overlaySubmenu->addSeparator();
 
-                actOverlayOpenBrowser = overlaySubmenu->addAction("Ouvrir l'Overlay dans le navigateur");
+                actOverlayOpenBrowser = overlaySubmenu->addAction("Open Overlay in Browser");
                 actOverlayOpenBrowser->setMenuRole(QAction::NoRole);
                 connect(actOverlayOpenBrowser, &QAction::triggered, this, &MainWindow::onOpenOverlayBrowser);
 
@@ -1956,36 +1956,36 @@ void MainWindow::onCopyOverlayLinkSoloH()
 {
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=me&layout=horizontal");
     QMessageBox::information(this, "Twitch Overlay - Soul Link",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=me&layout=horizontal\n\n"
-        "Affiche uniquement VOTRE équipe dans une disposition horizontale compacte.");
+        "Link copied to clipboard!\n\n"
+        "URL: http://localhost:8080/overlay?player=me&layout=horizontal\n\n"
+        "Displays only your team in a compact horizontal layout.");
 }
 
 void MainWindow::onCopyOverlayLinkSoloV()
 {
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=me&layout=vertical");
     QMessageBox::information(this, "Twitch Overlay - Soul Link",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=me&layout=vertical\n\n"
-        "Affiche uniquement VOTRE équipe dans une colonne verticale compacte.");
+        "Link copied to clipboard!\n\n"
+        "URL: http://localhost:8080/overlay?player=me&layout=vertical\n\n"
+        "Displays only your team in a compact vertical layout.");
 }
 
 void MainWindow::onCopyOverlayLinkAllH()
 {
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=all&layout=horizontal");
     QMessageBox::information(this, "Twitch Overlay - Soul Link",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=all&layout=horizontal\n\n"
-        "Affiche TOUS les joueurs connectés de la session (vue de groupe horizontale).");
+        "Link copied to clipboard!\n\n"
+        "URL: http://localhost:8080/overlay?player=all&layout=horizontal\n\n"
+        "Displays all connected players in a group horizontal layout.");
 }
 
 void MainWindow::onCopyOverlayLinkAllV()
 {
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=all&layout=vertical");
     QMessageBox::information(this, "Twitch Overlay - Soul Link",
-        "Lien copié dans le presse-papiers !\n\n"
-        "URL : http://localhost:8080/overlay?player=all&layout=vertical\n\n"
-        "Affiche TOUS les joueurs connectés de la session (vue de groupe grille/verticale).");
+        "Link copied to clipboard!\n\n"
+        "URL: http://localhost:8080/overlay?player=all&layout=vertical\n\n"
+        "Displays all connected players in a grid/vertical layout.");
 }
 
 void MainWindow::onOnlineStartHost()
@@ -2186,33 +2186,33 @@ void MainWindow::updateOnlineStatus()
     if (st.mode == 1)
     {
         if (st.code[0])
-            s = QString("Online Relay - Salon %1 sur %2").arg(st.code).arg(st.server);
+            s = QString("Online Relay - Room %1 on %2").arg(st.code).arg(st.server);
         else
-            s = QString("Online Relay - %1").arg(st.text[0] ? st.text : "connexion au relais...");
-        s += QString("\nJoueurs connectés : %1").arg(st.peers);
+            s = QString("Online Relay - %1").arg(st.text[0] ? st.text : "connecting to relay...");
+        s += QString("\nConnected Players: %1").arg(st.peers);
     }
     else if (st.mode == 2)
     {
-        s = QString("Online Relay - Salon %1 (%2)")
+        s = QString("Online Relay - Room %1 (%2)")
             .arg(st.code[0] ? st.code : "-")
-            .arg(st.text[0] ? st.text : "connexion...");
+            .arg(st.text[0] ? st.text : "connecting...");
     }
     else if (st.mode == 3)
     {
-        s = QString("Direct P2P - Hébergement sur le port %1").arg(st.server);
-        if (st.code[0]) s += QString("\nCode de salon : %1").arg(st.code);
-        s += QString("\nJoueurs connectés : %1/7").arg(st.peers);
+        s = QString("Direct P2P - Hosting on port %1").arg(st.server);
+        if (st.code[0]) s += QString("\nRoom Code: %1").arg(st.code);
+        s += QString("\nConnected Players: %1/7").arg(st.peers);
     }
     else if (st.mode == 4)
     {
-        s = QString("Direct P2P - Cible : %1").arg(st.server);
-        if (st.code[0]) s += QString("\nCode de salon : %1").arg(st.code);
-        if (st.peers == 0) s += "\nStatut : En attente de connexion...";
-        else s += QString("\nStatut : Connecté à l'hôte ! (Joueurs : %1)").arg(st.peers + 1);
+        s = QString("Direct P2P - Target: %1").arg(st.server);
+        if (st.code[0]) s += QString("\nRoom Code: %1").arg(st.code);
+        if (st.peers == 0) s += "\nStatus: Waiting for connection...";
+        else s += QString("\nStatus: Connected to host! (Players: %1)").arg(st.peers + 1);
     }
     else
     {
-        s = "Multiplayer - Déconnecté";
+        s = "Multiplayer - Disconnected";
     }
     if (st.pending) s += "\nStarting: waiting for emulation to run.";
 
