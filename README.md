@@ -5,7 +5,7 @@
 <a href="https://www.gnu.org/licenses/gpl-3.0" alt="License: GPLv3"><img src="https://img.shields.io/badge/License-GPL%20v3-%23ff554d.svg"></a>
 <a href="https://discord.gg/pAMAtExcqV" alt="Discord"><img src="https://img.shields.io/badge/Discord-Kuribo64-7289da?logo=discord&logoColor=white"></a>
 <br>
-<a href="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml/badge.svg" /></a>
+<a href="https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke/actions/workflows/build-windows.yml/badge.svg" /></a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 ---
 
-## SoulLocke Edition ([melonDS-Project-PM-Soul-Link](https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link))
+## SoulLocke Edition ([melonDS-Project-PM-SoulLocke](https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke))
 
 This fork by **Ekiiii** extends melonDS and Project PM specifically for **SoulLocke** co-op adventures, introducing direct P2P connectivity, one-click UPnP port forwarding, automated death & pair synchronization, and a live broadcast-ready streaming overlay with a rich retro customization dashboard.
 
@@ -38,6 +38,7 @@ This fork by **Ekiiii** extends melonDS and Project PM specifically for **SoulLo
 
 4. **Multi-Player Live OBS / Twitch Streaming Overlay (`http://localhost:8080/overlay`)**:
    - Built-in lightweight HTTP server serving a zero-dependency HTML5/CSS/JS overlay.
+   - **Automatic Player Nicknames**: Displays each participant's configured nickname from melonDS (`Online.PlayerName` or `Firmware.Username`, e.g. *Ekiii*, *Ted*) directly on their team card and filter controls instead of generic role numbers.
    - **Sub-frame RAM Decryption**: Automatically decrypts Gen 4 `BoxMon` and `PartyPokemon` structures directly from Nintendo DS RAM using the official Gen 4 LCRNG algorithm (with PID seed) to report accurate HP, levels, species, and fainted states.
    - **Smooth Animated GIFs**: Intelligent DOM node retention prevents animated Pokemon GIFs from resetting their animation cycle on every polling tick.
    - **Enlarged Cards & Dynamic Sprite Scaling**: Generous 172×184px cards, 130px Pokéball watermark, and adjustable Pokémon sprite scaling (`100%`, `135%` default, `165%`, `200%`) so even smaller Pokémon (like Piplup) fill the card beautifully.

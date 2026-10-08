@@ -5,7 +5,7 @@
 <a href="https://www.gnu.org/licenses/gpl-3.0" alt="Licence : GPLv3"><img src="https://img.shields.io/badge/Licence-GPL%20v3-%23ff554d.svg"></a>
 <a href="https://discord.gg/pAMAtExcqV" alt="Discord"><img src="https://img.shields.io/badge/Discord-Kuribo64-7289da?logo=discord&logoColor=white"></a>
 <br>
-<a href="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link/actions/workflows/build-windows.yml/badge.svg" /></a>
+<a href="https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke/actions/workflows/build-windows.yml/badge.svg" /></a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 ---
 
-## Édition SoulLocke ([melonDS-Project-PM-Soul-Link](https://github.com/Ekiiii/melonDS-Project-PM-Soul-Link))
+## Édition SoulLocke ([melonDS-Project-PM-SoulLocke](https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke))
 
 Ce fork développé par **Ekiiii** enrichit melonDS et Project PM spécialement pour les aventures coopératives en **SoulLocke**. Il intègre une connexion Peer-to-Peer directe, un hébergement en un clic avec UPnP, une synchronisation automatique des morts et des paires, ainsi qu'un overlay de streaming en direct complet pour OBS et Twitch avec tableau de bord de personnalisation en temps réel.
 
@@ -38,6 +38,7 @@ Ce fork développé par **Ekiiii** enrichit melonDS et Project PM spécialement 
 
 4. **Overlay HTML Twitch & OBS en Direct (`http://localhost:8080/overlay`)** :
    - Serveur HTTP léger intégré délivrant une interface HTML5/CSS/JS sans dépendance externe.
+   - **Pseudos Personnalisés de l'Émulateur** : Récupère et affiche automatiquement le vrai pseudo configuré dans melonDS (`Online.PlayerName` ou `Firmware.Username`, ex. *Ekiii*, *Ted*) sur les cartes d'équipe et les filtres, remplaçant les libellés génériques.
    - **Déchiffrement Mémoire Temps Réel** : Déchiffre les structures `BoxMon` et `PartyPokemon` directement depuis la mémoire vive ARM9 de la Nintendo DS (algorithme LCRNG officiel 4G avec seed PID) pour restituer les vrais PV, niveaux, espèces et états K.O. avec une latence sub-frame.
    - **Animation Fluide des GIFs** : Maintien dynamique des nœuds DOM pour éviter que les GIFs animés des Pokémon ne redémarrent en boucle à chaque rafraîchissement.
    - **Cadres Agrandis & Sprites Dynamiques** : Cases spacieuses de 172×184px, filigrane Pokéball de 130px et échelle des Pokémon dynamique (`100%`, `135%` par défaut, `165%`, `200%`) pour que même les petits Pokémon (comme Tiplouf) remplissent harmonieusement le cadre.
