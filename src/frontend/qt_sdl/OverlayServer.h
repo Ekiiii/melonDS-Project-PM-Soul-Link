@@ -29,7 +29,8 @@ public:
     void UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS::u8* partyN, melonDS::u32 partySize,
                           int myRole, const char roster[9][24], const melonDS::u8* partyImp,
                           const std::vector<BoxMonSummary>& localBoxes = {},
-                          const std::map<int, std::vector<BoxMonSummary>>& peerBoxes = {});
+                          const std::map<int, std::vector<BoxMonSummary>>& peerBoxes = {},
+                          bool isSoulLink = false);
 
 private slots:
     void onNewConnection();

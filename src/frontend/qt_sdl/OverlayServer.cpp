@@ -51,7 +51,8 @@ OverlayServer::OverlayServer(QObject* parent)
     QJsonObject initObj;
     initObj["active"] = false;
     initObj["my_role"] = 1;
-    initObj["build_id"] = "V0.4.5-SL-20261008-03";
+    initObj["build_id"] = "V0.4.5-SL-20261008-04";
+    initObj["is_soullink"] = false;
     initObj["player1"] = QJsonArray();
     initObj["player2"] = QJsonArray();
     initObj["pairs"] = QJsonArray();
@@ -303,14 +304,16 @@ void OverlayServer::UpdateTeams(const melonDS::u8* partyExp, const melonDS::u8* 
 void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS::u8* partyN, melonDS::u32 partySize,
                                      int myRole, const char roster[9][24], const melonDS::u8* partyImp,
                                      const std::vector<BoxMonSummary>& localBoxes,
-                                     const std::map<int, std::vector<BoxMonSummary>>& peerBoxes)
+                                     const std::map<int, std::vector<BoxMonSummary>>& peerBoxes,
+                                     bool isSoulLink)
 {
     if (myRole < 1 || myRole > 8) myRole = 1;
 
     QJsonObject root;
     root["active"] = (partyExp != nullptr && partySize >= 8);
     root["my_role"] = myRole;
-    root["build_id"] = "V0.4.5-SL-20261008-03";
+    root["build_id"] = "V0.4.5-SL-20261008-04";
+    root["is_soullink"] = isSoulLink;
 
     QJsonArray playersArray;
     QJsonArray p1Array;
@@ -379,12 +382,12 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
             QJsonObject mon = parsePartyPokemon(monPtr, s);
             if (!mon.isEmpty()) {
                 int loc = mon["met_location"].toInt();
-                bool dead = (loc > 0) && SoulLink_IsLocationDead(loc);
+                bool dead = isSoulLink && (loc > 0) && SoulLink_IsLocationDead(loc);
                 bool fainted = mon["is_fainted"].toBool() || dead;
                 mon["is_fainted"] = fainted;
                 teamArray.append(mon);
                 if (!fainted) aliveCount++;
-                if (loc > 0) {
+                if (isSoulLink && loc > 0) {
                     MonLocInfo info;
                     info.role = r;
                     info.slot = mon["slot"].toInt();
@@ -413,18 +416,20 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
                 bObj["met_location"] = bMon.metLoc;
                 bObj["box"] = bMon.box;
                 bObj["slot"] = bMon.slot;
-                bool dead = SoulLink_IsLocationDead(bMon.metLoc);
+                bool dead = isSoulLink && SoulLink_IsLocationDead(bMon.metLoc);
                 bObj["is_fainted"] = dead;
                 pcArray.append(bObj);
 
-                MonLocInfo info;
-                info.role = r;
-                info.slot = bMon.slot;
-                info.species = bMon.species;
-                info.is_fainted = dead;
-                info.in_box = true;
-                info.box_num = bMon.box;
-                locClusters[bMon.metLoc].append(info);
+                if (isSoulLink) {
+                    MonLocInfo info;
+                    info.role = r;
+                    info.slot = bMon.slot;
+                    info.species = bMon.species;
+                    info.is_fainted = dead;
+                    info.in_box = true;
+                    info.box_num = bMon.box;
+                    locClusters[bMon.metLoc].append(info);
+                }
             }
             playerObj["pc_box"] = pcArray;
         }
@@ -446,90 +451,96 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
 
     // Detect Soul Link pairs / clusters
     QJsonArray pairsArray;
-    for (auto it = locClusters.begin(); it != locClusters.end(); ++it)
+    if (isSoulLink)
     {
-        int loc = it.key();
-        const QVector<MonLocInfo>& list = it.value();
-        bool isDeadZone = SoulLink_IsLocationDead(loc);
-
-        if (list.size() >= 2 || isDeadZone)
+        for (auto it = locClusters.begin(); it != locClusters.end(); ++it)
         {
-            QJsonObject pair;
-            pair["location_id"] = loc;
-            bool anyDead = isDeadZone;
-            QJsonArray members;
-            int p1Slot = 0;
-            int p2Slot = 0;
-            bool p1InBox = false;
-            bool p2InBox = false;
-            int p1Box = 0;
-            int p2Box = 0;
+            int loc = it.key();
+            const QVector<MonLocInfo>& list = it.value();
+            bool isDeadZone = SoulLink_IsLocationDead(loc);
 
-            for (const MonLocInfo& m : list)
+            if (list.size() >= 2 || isDeadZone)
             {
-                if (m.is_fainted) anyDead = true;
-                QJsonObject mem;
-                mem["role"] = m.role;
-                mem["slot"] = m.slot;
-                mem["species"] = m.species;
-                mem["is_fainted"] = m.is_fainted;
-                mem["in_box"] = m.in_box;
-                mem["box_num"] = m.box_num;
-                members.append(mem);
+                QJsonObject pair;
+                pair["location_id"] = loc;
+                bool anyDead = isDeadZone;
+                QJsonArray members;
+                int p1Slot = 0;
+                int p2Slot = 0;
+                bool p1InBox = false;
+                bool p2InBox = false;
+                int p1Box = 0;
+                int p2Box = 0;
 
-                if (m.role == myRole) {
-                    p1Slot = m.slot;
-                    p1InBox = m.in_box;
-                    p1Box = m.box_num;
-                } else if (p2Slot == 0) {
-                    p2Slot = m.slot;
-                    p2InBox = m.in_box;
-                    p2Box = m.box_num;
+                for (const MonLocInfo& m : list)
+                {
+                    if (m.is_fainted) anyDead = true;
+                    QJsonObject mem;
+                    mem["role"] = m.role;
+                    mem["slot"] = m.slot;
+                    mem["species"] = m.species;
+                    mem["is_fainted"] = m.is_fainted;
+                    mem["in_box"] = m.in_box;
+                    mem["box_num"] = m.box_num;
+                    members.append(mem);
+
+                    if (m.role == myRole) {
+                        p1Slot = m.slot;
+                        p1InBox = m.in_box;
+                        p1Box = m.box_num;
+                    } else if (p2Slot == 0) {
+                        p2Slot = m.slot;
+                        p2InBox = m.in_box;
+                        p2Box = m.box_num;
+                    }
                 }
-            }
 
-            // If partner is not in the active list (e.g. peer's mon died or boxed):
-            if (list.size() == 1)
-            {
-                int presentRole = list[0].role;
-                int absentRole = (presentRole == myRole) ? (myRole == 1 ? 2 : 1) : myRole;
-                QJsonObject ghostMem;
-                ghostMem["role"] = absentRole;
-                ghostMem["slot"] = 0;
-                ghostMem["species"] = 0;
-                ghostMem["is_fainted"] = isDeadZone;
-                ghostMem["in_box"] = true;
-                ghostMem["box_num"] = isDeadZone ? 18 : 0;
-                members.append(ghostMem);
+                // If partner is not in the active list (e.g. peer's mon died or boxed):
+                if (list.size() == 1)
+                {
+                    int presentRole = list[0].role;
+                    int absentRole = (presentRole == myRole) ? (myRole == 1 ? 2 : 1) : myRole;
+                    QJsonObject ghostMem;
+                    ghostMem["role"] = absentRole;
+                    ghostMem["slot"] = 0;
+                    ghostMem["species"] = 0;
+                    ghostMem["is_fainted"] = isDeadZone;
+                    ghostMem["in_box"] = true;
+                    ghostMem["box_num"] = isDeadZone ? 18 : 0;
+                    members.append(ghostMem);
 
-                if (absentRole == myRole) {
-                    p1Slot = 0;
-                    p1InBox = true;
-                    p1Box = isDeadZone ? 18 : 0;
-                } else {
-                    p2Slot = 0;
-                    p2InBox = true;
-                    p2Box = isDeadZone ? 18 : 0;
+                    if (absentRole == myRole) {
+                        p1Slot = 0;
+                        p1InBox = true;
+                        p1Box = isDeadZone ? 18 : 0;
+                    } else {
+                        p2Slot = 0;
+                        p2InBox = true;
+                        p2Box = isDeadZone ? 18 : 0;
+                    }
                 }
-            }
 
-            pair["status"] = anyDead ? "DEAD" : "ALIVE";
-            pair["members"] = members;
-            pair["p1_slot"] = p1Slot;
-            pair["p2_slot"] = p2Slot;
-            pair["p1_in_box"] = p1InBox;
-            pair["p2_in_box"] = p2InBox;
-            pair["p1_box"] = p1Box;
-            pair["p2_box"] = p2Box;
-            pairsArray.append(pair);
+                pair["status"] = anyDead ? "DEAD" : "ALIVE";
+                pair["members"] = members;
+                pair["p1_slot"] = p1Slot;
+                pair["p2_slot"] = p2Slot;
+                pair["p1_in_box"] = p1InBox;
+                pair["p2_in_box"] = p2InBox;
+                pair["p1_box"] = p1Box;
+                pair["p2_box"] = p2Box;
+                pairsArray.append(pair);
+            }
         }
     }
     root["pairs"] = pairsArray;
 
     QJsonArray deadLocsArray;
-    for (int locId = 1; locId < 4000; locId++) {
-        if (SoulLink_IsLocationDead(locId)) {
-            deadLocsArray.append(locId);
+    if (isSoulLink)
+    {
+        for (int locId = 1; locId < 4000; locId++) {
+            if (SoulLink_IsLocationDead(locId)) {
+                deadLocsArray.append(locId);
+            }
         }
     }
     root["dead_locations"] = deadLocsArray;
@@ -857,6 +868,16 @@ void OverlayServer::buildHtml()
             font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
             line-height: 1;
+        }
+
+        /* Badges & Container */
+        .badge-wrap {
+            margin-top: 3px;
+        }
+        .badge-wrap:empty {
+            display: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         /* Flat Badges (Zero 3D Emojis) */
@@ -1338,6 +1359,16 @@ void OverlayServer::buildHtml()
             </div>
         </div>
 
+        <!-- Section: Badges Soul Link -->
+        <div class="cfg-section">
+            <div id="lbl-badges" class="cfg-section-title">Badges Soul Link</div>
+            <div class="cfg-btn-grid">
+                <button class="cfg-btn" data-badge-mode="auto">Auto (ROM)</button>
+                <button class="cfg-btn" data-badge-mode="show">Toujours affichés</button>
+                <button class="cfg-btn" data-badge-mode="hide">Toujours masqués</button>
+            </div>
+        </div>
+
         <!-- Section: OBS Export -->
         <div class="cfg-obs-box">
             <button id="btn-copy-obs" class="cfg-obs-btn">
@@ -1389,7 +1420,11 @@ void OverlayServer::buildHtml()
                 fainted: "K.O.",
                 level: "Niv.",
                 slot: "Emplacement",
-                unknown: "Inconnu"
+                unknown: "Inconnu",
+                badges: "Badges Soul Link",
+                badgeAuto: "Auto (ROM)",
+                badgeShow: "Toujours affichés",
+                badgeHide: "Toujours masqués"
             },
             en: {
                 openCfg: "CONFIGURE OVERLAY",
@@ -1418,7 +1453,11 @@ void OverlayServer::buildHtml()
                 fainted: "FAINTED",
                 level: "Lv.",
                 slot: "Slot",
-                unknown: "Unknown"
+                unknown: "Unknown",
+                badges: "Soul Link Badges",
+                badgeAuto: "Auto (ROM)",
+                badgeShow: "Always shown",
+                badgeHide: "Always hidden"
             }
         };
 
@@ -1467,6 +1506,7 @@ void OverlayServer::buildHtml()
         let customBg = urlParams.get('bg') || localStorage.getItem('ov_bg') || null;
         let currentOpacity = parseFloat(urlParams.get('opacity') || localStorage.getItem('ov_opacity') || '0.94');
         let langChoice = urlParams.get('langChoice') || localStorage.getItem('ov_lang_choice') || 'auto';
+        let badgeMode = urlParams.get('badgeMode') || localStorage.getItem('ov_badge_mode') || 'auto';
         let activeLang = 'fr';
         let lastJsonData = null;
         const isObs = urlParams.get('obs') === '1' || urlParams.get('hide_ui') === '1';
@@ -1628,23 +1668,28 @@ void OverlayServer::buildHtml()
                     const isFainted = mon.is_fainted || mon.hp === 0;
 
                     let badgeHtml = '';
-                    const loc = mon.met_location;
-                    const pair = pairs.find(pr => pr.location_id === loc);
-                    const isDeadPair = deadLocs.includes(loc) || (pair && pair.status === 'DEAD');
+                    const isSoulLinkRom = (data.is_soullink === true);
+                    const showBadges = (badgeMode === 'show') || (badgeMode === 'auto' && isSoulLinkRom);
 
-                    if (isDeadPair || isFainted) {
-                        badgeHtml = `<div class="badge-slot badge-broken">${SVG_BROKEN} <span>${t.broken}</span></div>`;
-                    } else if (pair) {
-                        const partner = pair.members && pair.members.find(m => m.role !== p.role);
-                        if (partner) {
-                            badgeHtml = partner.in_box 
-                                ? `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linkedPc}</span></div>`
-                                : `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linked}</span></div>`;
-                        } else {
+                    if (showBadges) {
+                        const loc = mon.met_location;
+                        const pair = pairs.find(pr => pr.location_id === loc);
+                        const isDeadPair = deadLocs.includes(loc) || (pair && pair.status === 'DEAD');
+
+                        if (isDeadPair || isFainted) {
+                            badgeHtml = `<div class="badge-slot badge-broken">${SVG_BROKEN} <span>${t.broken}</span></div>`;
+                        } else if (pair) {
+                            const partner = pair.members && pair.members.find(m => m.role !== p.role);
+                            if (partner) {
+                                badgeHtml = partner.in_box 
+                                    ? `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linkedPc}</span></div>`
+                                    : `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linked}</span></div>`;
+                            } else {
+                                badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
+                            }
+                        } else if (loc > 0) {
                             badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
                         }
-                    } else if (loc > 0) {
-                        badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
                     }
 
                     const name = getMonName(species);
@@ -1765,6 +1810,13 @@ void OverlayServer::buildHtml()
             setTxt('lbl-opacity', t.opacity);
             setTxt('lbl-players', t.players);
             setTxt('lbl-lang', t.language);
+            setTxt('lbl-badges', t.badges);
+            const bAuto = document.querySelector('[data-badge-mode="auto"]');
+            if (bAuto) bAuto.textContent = t.badgeAuto;
+            const bShow = document.querySelector('[data-badge-mode="show"]');
+            if (bShow) bShow.textContent = t.badgeShow;
+            const bHide = document.querySelector('[data-badge-mode="hide"]');
+            if (bHide) bHide.textContent = t.badgeHide;
             setTxt('txt-copy-obs', t.copyObs);
             setTxt('txt-obs-hint', t.obsHint);
 
@@ -1792,6 +1844,7 @@ void OverlayServer::buildHtml()
             document.querySelectorAll('[data-sprite-scale]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.spriteScale) === currentSpriteScale));
             document.querySelectorAll('[data-player]').forEach(b => b.classList.toggle('active', b.dataset.player === targetPlayer));
             document.querySelectorAll('[data-lang-choice]').forEach(b => b.classList.toggle('active', b.dataset.langChoice === langChoice));
+            document.querySelectorAll('[data-badge-mode]').forEach(b => b.classList.toggle('active', b.dataset.badgeMode === badgeMode));
 
             applyTheme();
             updateTexts();
@@ -1803,6 +1856,7 @@ void OverlayServer::buildHtml()
             localStorage.setItem('ov_theme', currentTheme);
             localStorage.setItem('ov_opacity', currentOpacity);
             localStorage.setItem('ov_lang_choice', langChoice);
+            localStorage.setItem('ov_badge_mode', badgeMode);
             if (customAccent) localStorage.setItem('ov_accent', customAccent);
             if (customBg) localStorage.setItem('ov_bg', customBg);
         }
@@ -1945,6 +1999,14 @@ void OverlayServer::buildHtml()
             });
         });
 
+        document.querySelectorAll('[data-badge-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                badgeMode = btn.dataset.badgeMode;
+                applySettings();
+                if (lastJsonData) render(lastJsonData);
+            });
+        });
+
         const btnCopyObs = document.getElementById('btn-copy-obs');
         if (btnCopyObs) {
             btnCopyObs.addEventListener('click', () => {
@@ -1952,6 +2014,7 @@ void OverlayServer::buildHtml()
                 if (customAccent) obsUrl += `&accent=${encodeURIComponent(customAccent)}`;
                 if (customBg) obsUrl += `&bg=${encodeURIComponent(customBg)}`;
                 if (langChoice !== 'auto') obsUrl += `&langChoice=${langChoice}`;
+                if (badgeMode !== 'auto') obsUrl += `&badgeMode=${badgeMode}`;
 
                 navigator.clipboard.writeText(obsUrl);
                 showToast(I18N[activeLang].copiedToast);

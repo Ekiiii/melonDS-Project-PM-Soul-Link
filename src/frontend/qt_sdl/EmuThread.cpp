@@ -2019,14 +2019,16 @@ static void SoulLink_UpdateOverlayDeaths(melonDS::NDS* nds)
     // Scan ROM's SoulLinkSharedState (0x534C4E4B)
     if (!sSharedStateAddr || (gBr.frame % 180) == 0)
     {
+        melonDS::u32 found = 0;
         for (melonDS::u32 off = 0x3DF000; off < 0x3E0000; off += 4)
         {
             if (apRd32(nds, 0x02000000 + off) == 0x534C4E4B) // "SLNK"
             {
-                sSharedStateAddr = 0x02000000 + off;
+                found = 0x02000000 + off;
                 break;
             }
         }
+        sSharedStateAddr = found;
     }
 
     sSessionDeadLocations.clear();
@@ -2184,6 +2186,7 @@ void BridgePump(melonDS::NDS* nds)
         if (gBr.partyExp)
         {
             SoulLink_UpdateOverlayDeaths(nds);
+            bool isSoulLink = (sSharedStateAddr != 0 && apRd32(nds, sSharedStateAddr) == 0x534C4E4B);
             std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
             OverlayServer::Instance().UpdateTeamsMulti(
                 apPtr(nds, gBr.partyExp),
@@ -2192,7 +2195,9 @@ void BridgePump(melonDS::NDS* nds)
                 mpnet::gNet.myRole(),
                 mpnet::gNet.rname,
                 gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
-                localBoxes
+                localBoxes,
+                {},
+                isSoulLink
             );
         }
         else
