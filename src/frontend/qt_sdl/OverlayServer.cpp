@@ -29,11 +29,6 @@ static QString GetEmulatorPlayerName(int role = 1, bool isMe = true)
             QString name = QString::fromStdString(Config::GetLocalTable(0).GetString("Firmware.Username")).trimmed();
             if (!name.isEmpty() && name.toLower() != "melonds") return name;
         } catch (...) {}
-    } else if (role > 1) {
-        try {
-            QString name = QString::fromStdString(Config::GetLocalTable(role - 1).GetString("Firmware.Username")).trimmed();
-            if (!name.isEmpty() && name.toLower() != "melonds") return name;
-        } catch (...) {}
     }
     return QString();
 }
@@ -52,7 +47,7 @@ OverlayServer::OverlayServer(QObject* parent)
     QJsonObject initObj;
     initObj["active"] = false;
     initObj["my_role"] = 1;
-    initObj["build_id"] = "V0.4.5-SL-20261008-06";
+    initObj["build_id"] = "V0.4.5-SL-20261008-07";
     initObj["is_soullink"] = false;
     initObj["lang"] = MelonTranslator::GetLanguage().isEmpty() ? "fr" : MelonTranslator::GetLanguage();
     initObj["player1"] = QJsonArray();
@@ -301,21 +296,22 @@ QJsonObject OverlayServer::parsePartyPokemon(const melonDS::u8* data, int slotIn
 
 void OverlayServer::UpdateTeams(const melonDS::u8* partyExp, const melonDS::u8* partyImp, melonDS::u32 partySize)
 {
-    UpdateTeamsMulti(partyExp, nullptr, partySize, 1, nullptr, partyImp);
+    UpdateTeamsMulti(partyExp, nullptr, partySize, 1, nullptr, partyImp, {}, {}, false, 0x01);
 }
 
 void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS::u8* partyN, melonDS::u32 partySize,
                                      int myRole, const char roster[9][24], const melonDS::u8* partyImp,
                                      const std::vector<BoxMonSummary>& localBoxes,
                                      const std::map<int, std::vector<BoxMonSummary>>& peerBoxes,
-                                     bool isSoulLink)
+                                     bool isSoulLink,
+                                     melonDS::u8 activeRolesMask)
 {
     if (myRole < 1 || myRole > 8) myRole = 1;
 
     QJsonObject root;
     root["active"] = (partyExp != nullptr && partySize >= 8);
     root["my_role"] = myRole;
-    root["build_id"] = "V0.4.5-SL-20261008-06";
+    root["build_id"] = "V0.4.5-SL-20261008-07";
     root["is_soullink"] = isSoulLink;
 
     QJsonArray playersArray;
@@ -334,6 +330,12 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
 
     for (int r = 1; r <= 8; r++)
     {
+        bool isMe = (r == myRole);
+        bool isActive = (activeRolesMask & (1 << (r - 1))) != 0;
+
+        // Only include player if active in mask or is local player
+        if (!isMe && !isActive) continue;
+
         const melonDS::u8* pBuf = nullptr;
         if (partyExp && partySize >= 8) {
             if (r == myRole) {
@@ -345,20 +347,11 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
             }
         }
 
-        bool isMe = (r == myRole);
-        bool inRoster = (roster && roster[r][0] != '\0');
-
-        // Only include player if it is me, or in lobby roster, or has a valid party buffer
-        if (!isMe && !inRoster && !pBuf) continue;
-
         quint32 count = 0;
         if (pBuf) {
             count = *(const quint32*)(pBuf + 4);
             if (count > 6) count = 0;
         }
-
-        // If peer has no buffer and not in roster, skip
-        if (!isMe && !inRoster && count == 0) continue;
 
         QJsonObject playerObj;
         playerObj["role"] = r;
@@ -368,7 +361,7 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
         if (roster && roster[r][0] != '\0') {
             pName = QString::fromUtf8(roster[r]).trimmed();
         }
-        if (pName.isEmpty()) {
+        if (pName.isEmpty() && isMe) {
             pName = GetEmulatorPlayerName(r, isMe);
         }
         if (pName.isEmpty()) {
@@ -503,23 +496,26 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
                 {
                     int presentRole = list[0].role;
                     int absentRole = (presentRole == myRole) ? (myRole == 1 ? 2 : 1) : myRole;
-                    QJsonObject ghostMem;
-                    ghostMem["role"] = absentRole;
-                    ghostMem["slot"] = 0;
-                    ghostMem["species"] = 0;
-                    ghostMem["is_fainted"] = isDeadZone;
-                    ghostMem["in_box"] = true;
-                    ghostMem["box_num"] = isDeadZone ? 18 : 0;
-                    members.append(ghostMem);
+                    if ((activeRolesMask & (1 << (absentRole - 1))) != 0)
+                    {
+                        QJsonObject ghostMem;
+                        ghostMem["role"] = absentRole;
+                        ghostMem["slot"] = 0;
+                        ghostMem["species"] = 0;
+                        ghostMem["is_fainted"] = isDeadZone;
+                        ghostMem["in_box"] = true;
+                        ghostMem["box_num"] = isDeadZone ? 18 : 0;
+                        members.append(ghostMem);
 
-                    if (absentRole == myRole) {
-                        p1Slot = 0;
-                        p1InBox = true;
-                        p1Box = isDeadZone ? 18 : 0;
-                    } else {
-                        p2Slot = 0;
-                        p2InBox = true;
-                        p2Box = isDeadZone ? 18 : 0;
+                        if (absentRole == myRole) {
+                            p1Slot = 0;
+                            p1InBox = true;
+                            p1Box = isDeadZone ? 18 : 0;
+                        } else {
+                            p2Slot = 0;
+                            p2InBox = true;
+                            p2Box = isDeadZone ? 18 : 0;
+                        }
                     }
                 }
 
@@ -1359,10 +1355,8 @@ void OverlayServer::buildHtml()
         <div class="cfg-row-2col">
             <div class="cfg-section">
                 <div id="lbl-players" class="cfg-section-title">Joueurs affichés</div>
-                <div class="cfg-btn-grid">
-                    <button class="cfg-btn" data-player="all">Tous</button>
-                    <button class="cfg-btn" data-player="1">Joueur 1</button>
-                    <button class="cfg-btn" data-player="2">Joueur 2</button>
+                <div id="player-selector-btns" class="cfg-btn-grid">
+                    <button class="cfg-btn active" data-player="all">Tous</button>
                 </div>
             </div>
 
@@ -1597,6 +1591,12 @@ void OverlayServer::buildHtml()
             setTimeout(() => t.remove(), 2500);
         }
 
+        function selectPlayer(player) {
+            targetPlayer = String(player);
+            applySettings();
+            if (lastJsonData) render(lastJsonData);
+        }
+
         // 4. RENDER FUNCTION
         function render(data) {
             const container = document.getElementById('container');
@@ -1609,21 +1609,26 @@ void OverlayServer::buildHtml()
             let playersToRender = [];
             if (data.players && data.players.length > 0) {
                 playersToRender = data.players.slice();
-            } else {
-                if (data.player1 && data.player1.length > 0) playersToRender.push({ role: 1, name: "Joueur 1", team: data.player1 });
-                if (data.player2 && data.player2.length > 0) playersToRender.push({ role: 2, name: "Joueur 2", team: data.player2 });
+            } else if (data.player1 && data.player1.length > 0) {
+                playersToRender.push({ role: 1, name: "Joueur 1", team: data.player1 });
             }
 
-            if (targetPlayer === '1') {
-                playersToRender = playersToRender.filter(p => p.role === 1);
-            } else if (targetPlayer === '2') {
-                playersToRender = playersToRender.filter(p => p.role === 2);
+            if (targetPlayer !== 'all') {
+                const tr = parseInt(targetPlayer);
+                if (!isNaN(tr)) {
+                    playersToRender = playersToRender.filter(p => p.role === tr);
+                }
             }
 
-            // If no players array received yet, default to target or local player
+            // If selected player not found or empty, fallback
             if (playersToRender.length === 0) {
-                const r = (targetPlayer === '2') ? 2 : ((targetPlayer === '1') ? 1 : myRole);
-                playersToRender.push({ role: r, name: (r === 1 ? "Joueur 1" : "Joueur " + r), is_me: (r === myRole), team: [] });
+                if (data.players && data.players.length > 0) {
+                    targetPlayer = 'all';
+                    playersToRender = data.players.slice();
+                } else {
+                    const r = (targetPlayer !== 'all') ? parseInt(targetPlayer) : myRole;
+                    playersToRender.push({ role: r, name: (r === 1 ? "Joueur 1" : "Joueur " + r), is_me: (r === myRole), team: [] });
+                }
             }
 
             const currentBoxIds = new Set(playersToRender.map(p => `player-box-${p.role}`));
@@ -1803,19 +1808,59 @@ void OverlayServer::buildHtml()
 
         function updatePlayerSelectorButtons(data) {
             const d = data || lastJsonData;
-            const players = (d && d.players) ? d.players : [];
+            const players = (d && d.players && d.players.length > 0) ? d.players : [];
             const t = I18N[activeLang] || I18N.fr;
-            document.querySelectorAll('[data-player]').forEach(btn => {
-                if (btn.dataset.player === 'all') btn.textContent = t.allPlayers;
-                if (btn.dataset.player === '1') {
-                    const p1 = players.find(p => p.role === 1);
-                    btn.textContent = (p1 && p1.name) ? p1.name : t.p1Only;
-                }
-                if (btn.dataset.player === '2') {
-                    const p2 = players.find(p => p.role === 2);
-                    btn.textContent = (p2 && p2.name) ? p2.name : t.p2Only;
-                }
+            const container = document.getElementById('player-selector-btns');
+            if (!container) return;
+
+            // Ensure targetPlayer is still valid if players list changed
+            if (targetPlayer !== 'all' && !players.some(p => String(p.role) === targetPlayer)) {
+                targetPlayer = 'all';
+                localStorage.setItem('ov_player', 'all');
+            }
+
+            const expectedRoles = ['all'];
+            players.forEach(p => {
+                if (p && p.role) expectedRoles.push(String(p.role));
             });
+
+            const currentButtons = Array.from(container.querySelectorAll('button[data-player]'));
+            const currentRoles = currentButtons.map(b => b.dataset.player);
+            const needsRebuild = (expectedRoles.length !== currentRoles.length) ||
+                                 expectedRoles.some((r, i) => r !== currentRoles[i]);
+
+            if (needsRebuild) {
+                container.innerHTML = '';
+                const allBtn = document.createElement('button');
+                allBtn.className = `cfg-btn ${targetPlayer === 'all' ? 'active' : ''}`;
+                allBtn.dataset.player = 'all';
+                allBtn.textContent = t.allPlayers;
+                allBtn.onclick = () => selectPlayer('all');
+                container.appendChild(allBtn);
+
+                players.forEach(p => {
+                    const btn = document.createElement('button');
+                    const rStr = String(p.role);
+                    btn.className = `cfg-btn ${targetPlayer === rStr ? 'active' : ''}`;
+                    btn.dataset.player = rStr;
+                    btn.textContent = p.name || `${t.p1Only.replace(' 1', '')} ${p.role}`;
+                    btn.onclick = () => selectPlayer(rStr);
+                    container.appendChild(btn);
+                });
+            } else {
+                currentButtons.forEach(btn => {
+                    if (btn.dataset.player === 'all') {
+                        btn.textContent = t.allPlayers;
+                    } else {
+                        const r = parseInt(btn.dataset.player);
+                        const p = players.find(x => x.role === r);
+                        if (p && p.name && btn.textContent !== p.name) {
+                            btn.textContent = p.name;
+                        }
+                    }
+                    btn.classList.toggle('active', btn.dataset.player === targetPlayer);
+                });
+            }
         }
 
         // 5. THEMES & UI SETTINGS
@@ -2031,12 +2076,11 @@ void OverlayServer::buildHtml()
             });
         });
 
-        document.querySelectorAll('[data-player]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                targetPlayer = btn.dataset.player;
-                applySettings();
-                if (lastJsonData) render(lastJsonData);
-            });
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-player]');
+            if (btn) {
+                selectPlayer(btn.dataset.player);
+            }
         });
 
         document.querySelectorAll('.cfg-theme-btn').forEach(btn => {

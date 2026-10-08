@@ -2052,6 +2052,41 @@ static void SoulLink_UpdateOverlayDeaths(melonDS::NDS* nds)
     }
 }
 
+static melonDS::u8 SoulLink_GetActiveRolesMask()
+{
+    melonDS::u8 mask = 0;
+    int mr = mpnet::gNet.myRole();
+    if (mr >= 1 && mr <= 8) {
+        mask |= (1 << (mr - 1));
+    }
+
+    if (mpnet::gNet.mode == 1) // Host
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            if (mpnet::gNet.peers[i].up)
+            {
+                mask |= (1 << (1 + i)); // client i is role 2 + i (bit 1 + i)
+            }
+        }
+    }
+    else if (mpnet::gNet.mode == 2) // Joiner
+    {
+        if (mpnet::gNet.peers[0].up)
+        {
+            mask |= (1 << 0); // Host is role 1 (bit 0)
+        }
+        for (int r = 2; r <= 8; r++)
+        {
+            if (r != mr && (mpnet::gNet.lobbySeen[r] != 0 || (mpnet::gNet.rname[r][0] != '\0') || (gBr.roleSeenAt[r] != 0 && gBr.frame - gBr.roleSeenAt[r] <= 180)))
+            {
+                mask |= (1 << (r - 1));
+            }
+        }
+    }
+    return mask;
+}
+
 void NetTick()
 {
     gBr.frame++;
@@ -2089,7 +2124,7 @@ void NetTick()
             if (OverlayServer::Instance().IsRunning() && (gBr.frame % 30) == 0 && !gBr.partyExp)
             {
                 OverlayServer::Instance().UpdateTeamsMulti(
-                    nullptr, nullptr, 0, 1, mpnet::gNet.rname, nullptr
+                    nullptr, nullptr, 0, 1, mpnet::gNet.rname, nullptr, {}, {}, false, SoulLink_GetActiveRolesMask()
                 );
             }
             return;
@@ -2103,7 +2138,11 @@ void NetTick()
             nullptr, nullptr, 0,
             mpnet::gNet.myRole(),
             mpnet::gNet.rname,
-            nullptr
+            nullptr,
+            {},
+            {},
+            false,
+            SoulLink_GetActiveRolesMask()
         );
     }
 
@@ -2124,7 +2163,6 @@ void BridgePump(melonDS::NDS* nds)
     NetTick();
 
     if (!nds) return;
-    if (mpnet::gNet.mode == 0) return;
 
     if (!gBr.disc)
     {
@@ -2158,6 +2196,44 @@ void BridgePump(melonDS::NDS* nds)
     gBr.partySize = apRd16s(nds, gBr.ctl + 10) & 0xFFFF;
     gBr.pktSize   = apRd16s(nds, gBr.ctl + 12) & 0xFFFF;
 
+    // Overlay server update: independent of wireless activation so stream overlay always works!
+    if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0)
+    {
+        if (gBr.partyExp)
+        {
+            SoulLink_UpdateOverlayDeaths(nds);
+            bool isSoulLink = (sSharedStateAddr != 0 && apRd32(nds, sSharedStateAddr) == 0x534C4E4B);
+            std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
+            OverlayServer::Instance().UpdateTeamsMulti(
+                apPtr(nds, gBr.partyExp),
+                gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
+                gBr.partySize,
+                mpnet::gNet.myRole(),
+                mpnet::gNet.rname,
+                gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
+                localBoxes,
+                {},
+                isSoulLink,
+                SoulLink_GetActiveRolesMask()
+            );
+        }
+        else
+        {
+            OverlayServer::Instance().UpdateTeamsMulti(
+                nullptr, nullptr, 0,
+                mpnet::gNet.myRole(),
+                mpnet::gNet.rname,
+                nullptr,
+                {},
+                {},
+                false,
+                SoulLink_GetActiveRolesMask()
+            );
+        }
+    }
+
+    if (mpnet::gNet.mode == 0) return;
+
     apWr8(nds, gBr.ctl + 6, ++gBr.beat);   // fork heartbeat
 
     u8 wanted = apRd8(nds, gBr.ctl + 4);
@@ -2179,37 +2255,6 @@ void BridgePump(melonDS::NDS* nds)
 
     int myRole = mpnet::gNet.myRole();
     apWr8(nds, gBr.ctl + 8, (u8)myRole);
-
-    // Overlay server update: independent of wireless activation so stream overlay always works!
-    if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0)
-    {
-        if (gBr.partyExp)
-        {
-            SoulLink_UpdateOverlayDeaths(nds);
-            bool isSoulLink = (sSharedStateAddr != 0 && apRd32(nds, sSharedStateAddr) == 0x534C4E4B);
-            std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
-            OverlayServer::Instance().UpdateTeamsMulti(
-                apPtr(nds, gBr.partyExp),
-                gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
-                gBr.partySize,
-                mpnet::gNet.myRole(),
-                mpnet::gNet.rname,
-                gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
-                localBoxes,
-                {},
-                isSoulLink
-            );
-        }
-        else
-        {
-            OverlayServer::Instance().UpdateTeamsMulti(
-                nullptr, nullptr, 0,
-                mpnet::gNet.myRole(),
-                mpnet::gNet.rname,
-                nullptr
-            );
-        }
-    }
 
     if (inGame && mpnet::gNet.anyUp())
     {

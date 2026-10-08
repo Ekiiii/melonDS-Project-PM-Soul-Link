@@ -30,7 +30,8 @@ public:
                           int myRole, const char roster[9][24], const melonDS::u8* partyImp,
                           const std::vector<BoxMonSummary>& localBoxes = {},
                           const std::map<int, std::vector<BoxMonSummary>>& peerBoxes = {},
-                          bool isSoulLink = false);
+                          bool isSoulLink = false,
+                          melonDS::u8 activeRolesMask = 0x01);
 
 private slots:
     void onNewConnection();
