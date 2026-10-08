@@ -1113,7 +1113,7 @@ void OverlayServer::buildHtml()
 <body>
     <!-- Floating Configurator Button (hidden in OBS) -->
     <button id="cfg-toggle-btn" class="cfg-toggle-btn" title="Ouvrir le configurateur d'overlay">
-        <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <svg class="flat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         <span id="txt-open-cfg">CONFIGURER L'OVERLAY</span>
     </button>
 
@@ -1121,7 +1121,7 @@ void OverlayServer::buildHtml()
     <div id="cfg-panel" class="cfg-panel hidden">
         <div class="cfg-header">
             <div class="cfg-title-wrap">
-                <svg class="flat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg class="flat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 <div>
                     <div id="txt-cfg-title" class="cfg-title">CONFIGURATEUR D'OVERLAY</div>
                     <div id="txt-cfg-sub" class="cfg-sub">Personnalisation en direct pour Stream & OBS</div>
@@ -1258,6 +1258,7 @@ void OverlayServer::buildHtml()
     </div>
 
     <script>
+        // 1. ALL CONSTANTS DECLARED AT THE VERY TOP
         const PKMN_NAMES_FR = {"1": "Bulbizarre", "2": "Herbizarre", "3": "Florizarre", "4": "Salamèche", "5": "Reptincel", "6": "Dracaufeu", "7": "Carapuce", "8": "Carabaffe", "9": "Tortank", "10": "Chenipan", "11": "Chrysacier", "12": "Papilusion", "13": "Aspicot", "14": "Coconfort", "15": "Dardargnan", "16": "Roucool", "17": "Roucoups", "18": "Roucarnage", "19": "Rattata", "20": "Rattatac", "21": "Piafabec", "22": "Rapasdepic", "23": "Abo", "24": "Arbok", "25": "Pikachu", "26": "Raichu", "27": "Sabelette", "28": "Sablaireau", "29": "Nidoran♀", "30": "Nidorina", "31": "Nidoqueen", "32": "Nidoran♂", "33": "Nidorino", "34": "Nidoking", "35": "Mélofée", "36": "Mélodelfe", "37": "Goupix", "38": "Feunard", "39": "Rondoudou", "40": "Grodoudou", "41": "Nosferapti", "42": "Nosferalto", "43": "Mystherbe", "44": "Ortide", "45": "Rafflesia", "46": "Paras", "47": "Parasect", "48": "Mimitoss", "49": "Aéromite", "50": "Taupiqueur", "51": "Triopikeur", "52": "Miaouss", "53": "Persian", "54": "Psykokwak", "55": "Akwakwak", "56": "Férosinge", "57": "Colossinge", "58": "Caninos", "59": "Arcanin", "60": "Ptitard", "61": "Têtarte", "62": "Tartard", "63": "Abra", "64": "Kadabra", "65": "Alakazam", "66": "Machoc", "67": "Machopeur", "68": "Mackogneur", "69": "Chétiflor", "70": "Boustiflor", "71": "Empiflor", "72": "Tentacool", "73": "Tentacruel", "74": "Racaillou", "75": "Gravalanch", "76": "Grolem", "77": "Ponyta", "78": "Galopa", "79": "Ramoloss", "80": "Flagadoss", "81": "Magnéti", "82": "Magnéton", "83": "Canarticho", "84": "Doduo", "85": "Dodrio", "86": "Otaria", "87": "Lamantine", "88": "Tadmorv", "89": "Grotadmorv", "90": "Kokiyas", "91": "Crustabri", "92": "Fantominus", "93": "Spectrum", "94": "Ectoplasma", "95": "Onix", "96": "Soporifik", "97": "Hypnomade", "98": "Krabby", "99": "Krabboss", "100": "Voltorbe", "101": "Électrode", "102": "Noeunoeuf", "103": "Noadkoko", "104": "Osselait", "105": "Ossatueur", "106": "Kicklee", "107": "Tygnon", "108": "Excelangue", "109": "Smogo", "110": "Smogogo", "111": "Rhinocorne", "112": "Rhinoféros", "113": "Leveinard", "114": "Saquedeneu", "115": "Kangourex", "116": "Hypotrempe", "117": "Hypocéan", "118": "Poissirène", "119": "Poissoroy", "120": "Stari", "121": "Staross", "122": "M. Mime", "123": "Insécateur", "124": "Lippoutou", "125": "Élektek", "126": "Magmar", "127": "Scarabrute", "128": "Tauros", "129": "Magicarpe", "130": "Léviator", "131": "Lokhlass", "132": "Métamorph", "133": "Évoli", "134": "Aquali", "135": "Voltali", "136": "Pyroli", "137": "Porygon", "138": "Amonita", "139": "Amonistar", "140": "Kabuto", "141": "Kabutops", "142": "Ptéra", "143": "Ronflex", "144": "Artikodin", "145": "Électhor", "146": "Sulfura", "147": "Minidraco", "148": "Draco", "149": "Dracolosse", "150": "Mewtwo", "151": "Mew", "152": "Germignon", "153": "Macronium", "154": "Méganium", "155": "Héricendre", "156": "Feurisson", "157": "Typhlosion", "158": "Kaiminus", "159": "Crocrodil", "160": "Aligatueur", "161": "Fouinette", "162": "Fouinar", "163": "Hoothoot", "164": "Noarfang", "165": "Coxy", "166": "Coxyclaque", "167": "Mimigal", "168": "Migalos", "169": "Nostenfer", "170": "Loupio", "171": "Lanturn", "172": "Pichu", "173": "Mélo", "174": "Toudoudou", "175": "Togepi", "176": "Togetic", "177": "Natu", "178": "Xatu", "179": "Wattouat", "180": "Lainergie", "181": "Pharamp", "182": "Joliflor", "183": "Marill", "184": "Azumarill", "185": "Simularbre", "186": "Tarpaud", "187": "Granivol", "188": "Floravol", "189": "Cotovol", "190": "Capumain", "191": "Tournegrin", "192": "Héliatronc", "193": "Yanma", "194": "Axoloto", "195": "Maraiste", "196": "Mentali", "197": "Noctali", "198": "Cornèbre", "199": "Roigada", "200": "Feuforêve", "201": "Zarbi", "202": "Qulbutoké", "203": "Girafarig", "204": "Pomdepik", "205": "Foretress", "206": "Insolourdo", "207": "Scorplane", "208": "Steelix", "209": "Snubbull", "210": "Granbull", "211": "Qwilfish", "212": "Cizayox", "213": "Caratroc", "214": "Scarhino", "215": "Farfuret", "216": "Teddiursa", "217": "Ursaring", "218": "Limagma", "219": "Volcaropod", "220": "Marcacrin", "221": "Cochignon", "222": "Corayon", "223": "Rémoraid", "224": "Octillery", "225": "Cadoizo", "226": "Démanta", "227": "Airmure", "228": "Malosse", "229": "Démolosse", "230": "Hyporoi", "231": "Phanpy", "232": "Donphan", "233": "Porygon2", "234": "Cerfrousse", "235": "Queulorior", "236": "Debugant", "237": "Kapoera", "238": "Lippouti", "239": "Élekid", "240": "Magby", "241": "Écrémeuh", "242": "Leuphorie", "243": "Raikou", "244": "Entei", "245": "Suicune", "246": "Embrylex", "247": "Ymphect", "248": "Tyranocif", "249": "Lugia", "250": "Ho-Oh", "251": "Celebi", "252": "Arcko", "253": "Massko", "254": "Jungko", "255": "Poussifeu", "256": "Galifeu", "257": "Braségali", "258": "Gobou", "259": "Flobio", "260": "Laggron", "261": "Medhyèna", "262": "Grahyèna", "263": "Zigzaton", "264": "Linéon", "265": "Chenipotte", "266": "Armulys", "267": "Charmillon", "268": "Blindalys", "269": "Papinox", "270": "Nénupiot", "271": "Lombre", "272": "Ludicolo", "273": "Grainipiot", "274": "Pifeuil", "275": "Tengalice", "276": "Nirondelle", "277": "Hélédelle", "278": "Goélise", "279": "Bekipan", "280": "Tarsal", "281": "Kirlia", "282": "Gardevoir", "283": "Arakdo", "284": "Maskadra", "285": "Balignon", "286": "Chapignon", "287": "Parecool", "288": "Vigoroth", "289": "Monaflèmit", "290": "Ningale", "291": "Ninjask", "292": "Munja", "293": "Chuchmur", "294": "Ramboum", "295": "Brouhabam", "296": "Makuhita", "297": "Hariyama", "298": "Azurill", "299": "Tarinor", "300": "Skitty", "301": "Delcatty", "302": "Ténéfix", "303": "Mysdibule", "304": "Galekid", "305": "Galegon", "306": "Galeking", "307": "Méditikka", "308": "Charmina", "309": "Dynavolt", "310": "Élecsprint", "311": "Posipi", "312": "Négapi", "313": "Muciole", "314": "Lumivole", "315": "Rosélia", "316": "Gloupti", "317": "Avaltout", "318": "Carvanha", "319": "Sharpedo", "320": "Wailmer", "321": "Wailord", "322": "Chamallot", "323": "Camérupt", "324": "Chartor", "325": "Spoink", "326": "Groret", "327": "Spinda", "328": "Kraknoix", "329": "Vibraninf", "330": "Libégon", "331": "Cacnea", "332": "Cacturne", "333": "Tylton", "334": "Altaria", "335": "Mangriff", "336": "Séviper", "337": "Séléroc", "338": "Solaroc", "339": "Barloche", "340": "Barbicha", "341": "Écrapince", "342": "Colhomard", "343": "Balbuto", "344": "Kaorine", "345": "Lilia", "346": "Vacilys", "347": "Anorith", "348": "Armaldo", "349": "Barpau", "350": "Milobellus", "351": "Morphéo", "352": "Kecleon", "353": "Polichombr", "354": "Branette", "355": "Skelénox", "356": "Téraclope", "357": "Tropius", "358": "Éoko", "359": "Absol", "360": "Okéoké", "361": "Stalgamin", "362": "Oniglali", "363": "Obalie", "364": "Phogleur", "365": "Kaimorse", "366": "Coquiperl", "367": "Serpang", "368": "Rosabyss", "369": "Relicanth", "370": "Lovdisc", "371": "Draby", "372": "Drackhaus", "373": "Drattak", "374": "Terhal", "375": "Métang", "376": "Métalosse", "377": "Regirock", "378": "Regice", "379": "Registeel", "380": "Latias", "381": "Latios", "382": "Kyogre", "383": "Groudon", "384": "Rayquaza", "385": "Jirachi", "386": "Deoxys", "387": "Tortipouss", "388": "Boskara", "389": "Torterra", "390": "Ouisticram", "391": "Chimpenfeu", "392": "Simiabraz", "393": "Tiplouf", "394": "Prinplouf", "395": "Pingoléon", "396": "Étourmi", "397": "Étourvol", "398": "Étouraptor", "399": "Keunotor", "400": "Castorno", "401": "Crikzik", "402": "Mélokrik", "403": "Lixy", "404": "Luxio", "405": "Luxray", "406": "Rozbouton", "407": "Roserade", "408": "Kranidos", "409": "Charkos", "410": "Dinoclier", "411": "Bastiodon", "412": "Cheniti", "413": "Cheniselle", "414": "Papilord", "415": "Apitrini", "416": "Apireine", "417": "Pachirisu", "418": "Mustébouée", "419": "Mustéflott", "420": "Ceribou", "421": "Ceriflor", "422": "Sancoki", "423": "Tritosor", "424": "Capidextre", "425": "Baudrive", "426": "Grodrive", "427": "Laporeille", "428": "Lockpin", "429": "Magirêve", "430": "Corboss", "431": "Chaglam", "432": "Chaffreux", "433": "Korillon", "434": "Moufouette", "435": "Moufflair", "436": "Archéomire", "437": "Archéodong", "438": "Manzaï", "439": "Mime Jr", "440": "Ptiravi", "441": "Pijako", "442": "Spiritomb", "443": "Griknot", "444": "Carmache", "445": "Carchacrok", "446": "Goinfrex", "447": "Riolu", "448": "Lucario", "449": "Hippopotas", "450": "Hippodocus", "451": "Rapion", "452": "Drascore", "453": "Cradopaud", "454": "Coatox", "455": "Vortente", "456": "Écayon", "457": "Luminéon", "458": "Babimanta", "459": "Blizzi", "460": "Blizzaroi", "461": "Dimoret", "462": "Magnézone", "463": "Coudlangue", "464": "Rhinastoc", "465": "Bouldeneu", "466": "Élekable", "467": "Maganon", "468": "Togekiss", "469": "Yanmega", "470": "Phyllali", "471": "Givrali", "472": "Scorvol", "473": "Mammochon", "474": "Porygon-Z", "475": "Gallame", "476": "Tarinorme", "477": "Noctunoir", "478": "Momartik", "479": "Motisma", "480": "Créhelf", "481": "Créfollet", "482": "Créfadet", "483": "Dialga", "484": "Palkia", "485": "Heatran", "486": "Regigigas", "487": "Giratina", "488": "Cresselia", "489": "Phione", "490": "Manaphy", "491": "Darkrai", "492": "Shaymin", "493": "Arceus"};
         const PKMN_NAMES_EN = {"1": "Bulbasaur", "2": "Ivysaur", "3": "Venusaur", "4": "Charmander", "5": "Charmeleon", "6": "Charizard", "7": "Squirtle", "8": "Wartortle", "9": "Blastoise", "10": "Caterpie", "11": "Metapod", "12": "Butterfree", "13": "Weedle", "14": "Kakuna", "15": "Beedrill", "16": "Pidgey", "17": "Pidgeotto", "18": "Pidgeot", "19": "Rattata", "20": "Raticate", "21": "Spearow", "22": "Fearow", "23": "Ekans", "24": "Arbok", "25": "Pikachu", "26": "Raichu", "27": "Sandshrew", "28": "Sandslash", "29": "Nidoran♀", "30": "Nidorina", "31": "Nidoqueen", "32": "Nidoran♂", "33": "Nidorino", "34": "Nidoking", "35": "Clefairy", "36": "Clefable", "37": "Vulpix", "38": "Ninetales", "39": "Jigglypuff", "40": "Wigglytuff", "41": "Zubat", "42": "Golbat", "43": "Oddish", "44": "Gloom", "45": "Vileplume", "46": "Paras", "47": "Parasect", "48": "Venonat", "49": "Venomoth", "50": "Diglett", "51": "Dugtrio", "52": "Meowth", "53": "Persian", "54": "Psyduck", "55": "Golduck", "56": "Mankey", "57": "Primeape", "58": "Growlithe", "59": "Arcanine", "60": "Poliwag", "61": "Poliwhirl", "62": "Poliwrath", "63": "Abra", "64": "Kadabra", "65": "Alakazam", "66": "Machop", "67": "Machoke", "68": "Machamp", "69": "Bellsprout", "70": "Weepinbell", "71": "Victreebel", "72": "Tentacool", "73": "Tentacruel", "74": "Geodude", "75": "Graveler", "76": "Golem", "77": "Ponyta", "78": "Rapidash", "79": "Slowpoke", "80": "Slowbro", "81": "Magnemite", "82": "Magneton", "83": "Farfetch’d", "84": "Doduo", "85": "Dodrio", "86": "Seel", "87": "Dewgong", "88": "Grimer", "89": "Muk", "90": "Shellder", "91": "Cloyster", "92": "Gastly", "93": "Haunter", "94": "Gengar", "95": "Onix", "96": "Drowzee", "97": "Hypno", "98": "Krabby", "99": "Kingler", "100": "Voltorb", "101": "Electrode", "102": "Exeggcute", "103": "Exeggutor", "104": "Cubone", "105": "Marowak", "106": "Hitmonlee", "107": "Hitmonchan", "108": "Lickitung", "109": "Koffing", "110": "Weezing", "111": "Rhyhorn", "112": "Rhydon", "113": "Chansey", "114": "Tangela", "115": "Kangaskhan", "116": "Horsea", "117": "Seadra", "118": "Goldeen", "119": "Seaking", "120": "Staryu", "121": "Starmie", "122": "Mr. Mime", "123": "Scyther", "124": "Jynx", "125": "Electabuzz", "126": "Magmar", "127": "Pinsir", "128": "Tauros", "129": "Magikarp", "130": "Gyarados", "131": "Lapras", "132": "Ditto", "133": "Eevee", "134": "Vaporeon", "135": "Jolteon", "136": "Flareon", "137": "Porygon", "138": "Omanyte", "139": "Omastar", "140": "Kabuto", "141": "Kabutops", "142": "Aerodactyl", "143": "Snorlax", "144": "Articuno", "145": "Zapdos", "146": "Moltres", "147": "Dratini", "148": "Dragonair", "149": "Dragonite", "150": "Mewtwo", "151": "Mew", "152": "Chikorita", "153": "Bayleef", "154": "Meganium", "155": "Cyndaquil", "156": "Quilava", "157": "Typhlosion", "158": "Totodile", "159": "Croconaw", "160": "Feraligatr", "161": "Sentret", "162": "Furret", "163": "Hoothoot", "164": "Noctowl", "165": "Ledyba", "166": "Ledian", "167": "Spinarak", "168": "Ariados", "169": "Crobat", "170": "Chinchou", "171": "Lanturn", "172": "Pichu", "173": "Cleffa", "174": "Igglybuff", "175": "Togepi", "176": "Togetic", "177": "Natu", "178": "Xatu", "179": "Mareep", "180": "Flaaffy", "181": "Ampharos", "182": "Bellossom", "183": "Marill", "184": "Azumarill", "185": "Sudowoodo", "186": "Politoed", "187": "Hoppip", "188": "Skiploom", "189": "Jumpluff", "190": "Aipom", "191": "Sunkern", "192": "Sunflora", "193": "Yanma", "194": "Wooper", "195": "Quagsire", "196": "Espeon", "197": "Umbreon", "198": "Murkrow", "199": "Slowking", "200": "Misdreavus", "201": "Unown", "202": "Wobbuffet", "203": "Girafarig", "204": "Pineco", "205": "Forretress", "206": "Dunsparce", "207": "Gligar", "208": "Steelix", "209": "Snubbull", "210": "Granbull", "211": "Qwilfish", "212": "Scizor", "213": "Shuckle", "214": "Heracross", "215": "Sneasel", "216": "Teddiursa", "217": "Ursaring", "218": "Slugma", "219": "Magcargo", "220": "Swinub", "221": "Piloswine", "222": "Corsola", "223": "Remoraid", "224": "Octillery", "225": "Delibird", "226": "Mantine", "227": "Skarmory", "228": "Houndour", "229": "Houndoom", "230": "Kingdra", "231": "Phanpy", "232": "Donphan", "233": "Porygon2", "234": "Stantler", "235": "Smeargle", "236": "Tyrogue", "237": "Hitmontop", "238": "Smoochum", "239": "Elekid", "240": "Magby", "241": "Miltank", "242": "Blissey", "243": "Raikou", "244": "Entei", "245": "Suicune", "246": "Larvitar", "247": "Pupitar", "248": "Tyranitar", "249": "Lugia", "250": "Ho-Oh", "251": "Celebi", "252": "Treecko", "253": "Grovyle", "254": "Sceptile", "255": "Torchic", "256": "Combusken", "257": "Blaziken", "258": "Mudkip", "259": "Marshtomp", "260": "Swampert", "261": "Poochyena", "262": "Mightyena", "263": "Zigzagoon", "264": "Linoone", "265": "Wurmple", "266": "Silcoon", "267": "Beautifly", "268": "Cascoon", "269": "Dustox", "270": "Lotad", "271": "Lombre", "272": "Ludicolo", "273": "Seedot", "274": "Nuzleaf", "275": "Shiftry", "276": "Taillow", "277": "Swellow", "278": "Wingull", "279": "Pelipper", "280": "Ralts", "281": "Kirlia", "282": "Gardevoir", "283": "Surskit", "284": "Masquerain", "285": "Shroomish", "286": "Breloom", "287": "Slakoth", "288": "Vigoroth", "289": "Slaking", "290": "Nincada", "291": "Ninjask", "292": "Shedinja", "293": "Whismur", "294": "Loudred", "295": "Exploud", "296": "Makuhita", "297": "Hariyama", "298": "Azurill", "299": "Nosepass", "300": "Skitty", "301": "Delcatty", "302": "Sableye", "303": "Mawile", "304": "Aron", "305": "Lairon", "306": "Aggron", "307": "Meditite", "308": "Medicham", "309": "Electrike", "310": "Manectric", "311": "Plusle", "312": "Minun", "313": "Volbeat", "314": "Illumise", "315": "Roselia", "316": "Gulpin", "317": "Swalot", "318": "Carvanha", "319": "Sharpedo", "320": "Wailmer", "321": "Wailord", "322": "Numel", "323": "Camerupt", "324": "Torkoal", "325": "Spoink", "326": "Grumpig", "327": "Spinda", "328": "Trapinch", "329": "Vibrava", "330": "Flygon", "331": "Cacnea", "332": "Cacturne", "333": "Swablu", "334": "Altaria", "335": "Zangoose", "336": "Seviper", "337": "Lunatone", "338": "Solrock", "339": "Barboach", "340": "Whiscash", "341": "Corphish", "342": "Crawdaunt", "343": "Baltoy", "344": "Claydol", "345": "Lileep", "346": "Cradily", "347": "Anorith", "348": "Armaldo", "349": "Feebas", "350": "Milotic", "351": "Castform", "352": "Kecleon", "353": "Shuppet", "354": "Banette", "355": "Duskull", "356": "Dusclops", "357": "Tropius", "358": "Chimecho", "359": "Absol", "360": "Wynaut", "361": "Snorunt", "362": "Glalie", "363": "Spheal", "364": "Sealeo", "365": "Walrein", "366": "Clamperl", "367": "Huntail", "368": "Gorebyss", "369": "Relicanth", "370": "Luvdisc", "371": "Bagon", "372": "Shelgon", "373": "Salamence", "374": "Beldum", "375": "Metang", "376": "Metagross", "377": "Regirock", "378": "Regice", "379": "Registeel", "380": "Latias", "381": "Latios", "382": "Kyogre", "383": "Groudon", "384": "Rayquaza", "385": "Jirachi", "386": "Deoxys", "387": "Turtwig", "388": "Grotle", "389": "Torterra", "390": "Chimchar", "391": "Monferno", "392": "Infernape", "393": "Piplup", "394": "Prinplup", "395": "Empoleon", "396": "Starly", "397": "Staravia", "398": "Staraptor", "399": "Bidoof", "400": "Bibarel", "401": "Kricketot", "402": "Kricketune", "403": "Shinx", "404": "Luxio", "405": "Luxray", "406": "Budew", "407": "Roserade", "408": "Cranidos", "409": "Rampardos", "410": "Shieldon", "411": "Bastiodon", "412": "Burmy", "413": "Wormadam", "414": "Mothim", "415": "Combee", "416": "Vespiquen", "417": "Pachirisu", "418": "Buizel", "419": "Floatzel", "420": "Cherubi", "421": "Cherrim", "422": "Shellos", "423": "Gastrodon", "424": "Ambipom", "425": "Drifloon", "426": "Drifblim", "427": "Buneary", "428": "Lopunny", "429": "Mismagius", "430": "Honchkrow", "431": "Glameow", "432": "Purugly", "433": "Chingling", "434": "Stunky", "435": "Skuntank", "436": "Bronzor", "437": "Bronzong", "438": "Bonsly", "439": "Mime Jr.", "440": "Happiny", "441": "Chatot", "442": "Spiritomb", "443": "Gible", "444": "Gabite", "445": "Garchomp", "446": "Munchlax", "447": "Riolu", "448": "Lucario", "449": "Hippopotas", "450": "Hippowdon", "451": "Skorupi", "452": "Drapion", "453": "Croagunk", "454": "Toxicroak", "455": "Carnivine", "456": "Finneon", "457": "Lumineon", "458": "Mantyke", "459": "Snover", "460": "Abomasnow", "461": "Weavile", "462": "Magnezone", "463": "Lickilicky", "464": "Rhyperior", "465": "Tangrowth", "466": "Electivire", "467": "Magmortar", "468": "Togekiss", "469": "Yanmega", "470": "Leafeon", "471": "Glaceon", "472": "Gliscor", "473": "Mamoswine", "474": "Porygon-Z", "475": "Gallade", "476": "Probopass", "477": "Dusknoir", "478": "Froslass", "479": "Rotom", "480": "Uxie", "481": "Mesprit", "482": "Azelf", "483": "Dialga", "484": "Palkia", "485": "Heatran", "486": "Regigigas", "487": "Giratina", "488": "Cresselia", "489": "Phione", "490": "Manaphy", "491": "Darkrai", "492": "Shaymin", "493": "Arceus"};
 
@@ -1331,6 +1332,11 @@ void OverlayServer::buildHtml()
             slate: { accent: '#94a3b8', glow: 'rgba(148, 163, 184, 0.3)', bgBox: '#0f172a', bgCard: '#1e293b' }
         };
 
+        const ROLE_COLORS = [
+            '#4ade80', '#38bdf8', '#c084fc', '#f59e0b',
+            '#f43f5e', '#818cf8', '#2dd4bf', '#fb923c'
+        ];
+
         const RESOLUTION_HINTS = {
             vertical: '380 × 660 px',
             horizontal: '660 × 430 px',
@@ -1339,7 +1345,18 @@ void OverlayServer::buildHtml()
             sidebar: '230 × 1180 px'
         };
 
-        // State initialization (declared BEFORE applySettings to avoid TDZ errors!)
+        const POKEBALL_SVG = `<svg class="pkball-bg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#ffffff" stroke-width="6"/>
+            <line x1="4" y1="50" x2="96" y2="50" stroke="#ffffff" stroke-width="6"/>
+            <circle cx="50" cy="50" r="14" fill="#090d16" stroke="#ffffff" stroke-width="6"/>
+            <circle cx="50" cy="50" r="6" fill="#ffffff"/>
+        </svg>`;
+
+        const SVG_CHAIN = `<svg class="flat-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+        const SVG_CLOCK = `<svg class="flat-icon" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+        const SVG_BROKEN = `<svg class="flat-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+        // 2. ALL STATE VARIABLES DECLARED
         const urlParams = new URLSearchParams(window.location.search);
         let currentLayout = urlParams.get('layout') || localStorage.getItem('ov_layout') || 'vertical';
         let currentScale = parseFloat(urlParams.get('scale') || localStorage.getItem('ov_scale') || '1');
@@ -1355,18 +1372,10 @@ void OverlayServer::buildHtml()
         let lastJsonData = null;
         const isObs = urlParams.get('obs') === '1' || urlParams.get('hide_ui') === '1';
 
-        // Flat SVG Pokeball Watermark
-        const POKEBALL_SVG = `<svg class="pkball-bg" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#ffffff" stroke-width="6"/>
-            <line x1="4" y1="50" x2="96" y2="50" stroke="#ffffff" stroke-width="6"/>
-            <circle cx="50" cy="50" r="14" fill="#090d16" stroke="#ffffff" stroke-width="6"/>
-            <circle cx="50" cy="50" r="6" fill="#ffffff"/>
-        </svg>`;
-
-        // Flat Badge SVGs
-        const SVG_CHAIN = `<svg class="flat-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
-        const SVG_CLOCK = `<svg class="flat-icon" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
-        const SVG_BROKEN = `<svg class="flat-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+        // 3. ALL HELPER FUNCTIONS
+        function getRoleColor(role) {
+            return ROLE_COLORS[Math.max(0, (role - 1) % ROLE_COLORS.length)];
+        }
 
         function getMonName(species) {
             if (!species || species <= 0) return I18N[activeLang].unknown;
@@ -1385,7 +1394,6 @@ void OverlayServer::buildHtml()
             return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/${species}.png`;
         }
 
-        // Color Hex to RGBA Helper
         function hexToRgba(hex, alpha) {
             let c = hex.replace('#', '');
             if (c.length === 3) c = c.split('').map(x => x + x).join('');
@@ -1393,6 +1401,178 @@ void OverlayServer::buildHtml()
             return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
         }
 
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `<svg class="flat-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>${msg}</span>`;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        }
+
+        // 4. RENDER FUNCTION
+        function render(data) {
+            const container = document.getElementById('container');
+            if (!container) return;
+
+            const myRole = data.my_role || 1;
+            const pairs = data.pairs || [];
+            const deadLocs = data.dead_locations || [];
+
+            let playersToRender = [];
+            if (data.players && data.players.length > 0) {
+                playersToRender = data.players.slice();
+            } else {
+                if (data.player1 && data.player1.length > 0) playersToRender.push({ role: 1, name: "Joueur 1", team: data.player1 });
+                if (data.player2 && data.player2.length > 0) playersToRender.push({ role: 2, name: "Joueur 2", team: data.player2 });
+            }
+
+            // If no players array received yet, default to local player
+            if (playersToRender.length === 0) {
+                playersToRender.push({ role: myRole, name: myRole === 1 ? "Joueur 1" : "Joueur " + myRole, is_me: true, team: [] });
+            }
+
+            if (targetPlayer === '1') {
+                playersToRender = playersToRender.filter(p => p.role === 1 || p.role === myRole);
+            } else if (targetPlayer === '2') {
+                playersToRender = playersToRender.filter(p => p.role !== myRole && p.role !== 1);
+            }
+
+            const currentBoxIds = new Set(playersToRender.map(p => `player-box-${p.role}`));
+            Array.from(container.children).forEach(child => {
+                if (!currentBoxIds.has(child.id)) child.remove();
+            });
+
+            const t = I18N[activeLang];
+
+            playersToRender.forEach(p => {
+                const boxId = `player-box-${p.role}`;
+                let box = document.getElementById(boxId);
+                const isMe = (p.role === myRole);
+
+                if (!box) {
+                    box = document.createElement('div');
+                    box.id = boxId;
+                    box.className = `team-box ${isMe ? 'active-player' : ''}`;
+                    box.innerHTML = `
+                        <div class="team-header">
+                            <div class="player-name" style="color: ${getRoleColor(p.role)}">${p.name || 'J' + p.role}</div>
+                            <div class="team-status">0/6 ${t.alive}</div>
+                        </div>
+                        <div class="slots-grid"></div>
+                    `;
+                    container.appendChild(box);
+                }
+
+                const grid = box.querySelector('.slots-grid');
+                if (!grid) return;
+
+                const party = p.team || p.party || [];
+                const aliveCount = party.filter(m => m && !m.is_fainted && m.species > 0).length;
+                const statusEl = box.querySelector('.team-status');
+                if (statusEl) {
+                    statusEl.textContent = `${aliveCount}/6 ${t.alive}`;
+                }
+
+                for (let i = 0; i < 6; i++) {
+                    const slotId = `slot-${p.role}-${i}`;
+                    let slotEl = document.getElementById(slotId);
+                    const mon = party[i];
+
+                    if (!mon || !mon.species) {
+                        if (!slotEl || !slotEl.classList.contains('empty')) {
+                            if (slotEl) slotEl.remove();
+                            slotEl = document.createElement('div');
+                            slotEl.id = slotId;
+                            slotEl.className = 'mon-card empty';
+                            slotEl.innerHTML = `${POKEBALL_SVG}<div class="empty-slot-text">- ${t.slot} ${i + 1} -</div>`;
+                            grid.appendChild(slotEl);
+                        }
+                        continue;
+                    }
+
+                    const species = mon.species;
+                    const hpPercent = mon.max_hp > 0 ? Math.min(100, Math.max(0, (mon.hp / mon.max_hp) * 100)) : 0;
+                    let hpColor = '#22c55e';
+                    if (hpPercent <= 20) hpColor = '#ef4444';
+                    else if (hpPercent <= 50) hpColor = '#eab308';
+
+                    const isFainted = mon.is_fainted || mon.hp === 0;
+
+                    let badgeHtml = '';
+                    const loc = mon.met_location;
+                    const pair = pairs.find(pr => pr.location_id === loc);
+                    const isDeadPair = deadLocs.includes(loc) || (pair && pair.status === 'DEAD');
+
+                    if (isDeadPair || isFainted) {
+                        badgeHtml = `<div class="badge-slot badge-broken">${SVG_BROKEN} <span>${t.broken}</span></div>`;
+                    } else if (pair) {
+                        const partner = pair.members && pair.members.find(m => m.role !== p.role);
+                        if (partner) {
+                            badgeHtml = partner.in_box 
+                                ? `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linkedPc}</span></div>`
+                                : `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linked}</span></div>`;
+                        } else {
+                            badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
+                        }
+                    } else if (loc > 0) {
+                        badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
+                    }
+
+                    const name = getMonName(species);
+
+                    if (!slotEl || slotEl.classList.contains('empty')) {
+                        if (slotEl) slotEl.remove();
+                        slotEl = document.createElement('div');
+                        slotEl.id = slotId;
+                        slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
+                        slotEl.dataset.species = species;
+                        slotEl.innerHTML = `
+                            <div class="card-top">
+                                <span class="mon-name">${name}</span>
+                                <span class="mon-lvl">${t.level}${mon.level || '?'}</span>
+                            </div>
+                            <div class="sprite-container">
+                                ${POKEBALL_SVG}
+                                <img class="pkmn-sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
+                            </div>
+                            <div class="card-bottom">
+                                <div class="hp-bar-wrap">
+                                    <div class="hp-bar-fill" style="width: ${hpPercent}%; background: ${hpColor};"></div>
+                                </div>
+                                <div class="hp-text">${mon.hp}/${mon.max_hp}</div>
+                                <div class="badge-wrap">${badgeHtml}</div>
+                            </div>
+                        `;
+                        grid.appendChild(slotEl);
+                    } else {
+                        slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
+                        const nameEl = slotEl.querySelector('.mon-name');
+                        if (nameEl) nameEl.textContent = name;
+                        const lvlEl = slotEl.querySelector('.mon-lvl');
+                        if (lvlEl) lvlEl.textContent = `${t.level}${mon.level || '?'}`;
+
+                        const img = slotEl.querySelector('.pkmn-sprite');
+                        if (img && slotEl.dataset.species !== String(species)) {
+                            slotEl.dataset.species = species;
+                            img.src = getSpriteUrl(species);
+                            img.alt = name;
+                        }
+
+                        const fill = slotEl.querySelector('.hp-bar-fill');
+                        if (fill) {
+                            fill.style.width = `${hpPercent}%`;
+                            fill.style.background = hpColor;
+                        }
+                        const hpTxt = slotEl.querySelector('.hp-text');
+                        if (hpTxt) hpTxt.textContent = `${mon.hp}/${mon.max_hp}`;
+                        const bWrap = slotEl.querySelector('.badge-wrap');
+                        if (bWrap) bWrap.innerHTML = badgeHtml;
+                    }
+                }
+            });
+        }
+
+        // 5. THEMES & UI SETTINGS
         function applyTheme() {
             const t = THEMES[currentTheme] || THEMES.cyan;
             const accent = customAccent || t.accent;
@@ -1442,7 +1622,6 @@ void OverlayServer::buildHtml()
                 if (btn.dataset.player === '2') btn.textContent = t.p2Only;
             });
 
-            // Force refresh of Pokémon cards texts on language change
             if (lastJsonData) render(lastJsonData);
         }
 
@@ -1480,7 +1659,29 @@ void OverlayServer::buildHtml()
             if (customBg) localStorage.setItem('ov_bg', customBg);
         }
 
-        // Config Panel UI Events
+        // 6. FETCH POLLING
+        async function fetchTeams() {
+            try {
+                const res = await fetch('/api/teams');
+                if (!res.ok) return;
+                const data = await res.json();
+                lastJsonData = data;
+
+                if (data.lang) {
+                    const emuLang = data.lang.toLowerCase() === 'en' ? 'en' : 'fr';
+                    if (langChoice === 'auto' && activeLang !== emuLang) {
+                        activeLang = emuLang;
+                        updateTexts();
+                    }
+                }
+
+                render(data);
+            } catch (err) {
+                // Ignore fetch errors during emulator boot
+            }
+        }
+
+        // 7. EVENT LISTENERS
         const cfgToggleBtn = document.getElementById('cfg-toggle-btn');
         const cfgPanel = document.getElementById('cfg-panel');
         const cfgCloseBtn = document.getElementById('cfg-close-btn');
@@ -1508,7 +1709,6 @@ void OverlayServer::buildHtml()
             if (cfgPanel) cfgPanel.style.display = 'none';
         }
 
-        // Button clicks in panel
         document.querySelectorAll('[data-layout]').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentLayout = btn.dataset.layout;
@@ -1596,214 +1796,9 @@ void OverlayServer::buildHtml()
             });
         }
 
-        function showToast(msg) {
-            const t = document.createElement('div');
-            t.className = 'toast';
-            t.innerHTML = `<svg class="flat-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>${msg}</span>`;
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 2500);
-        }
-
-        // Setup initial display
+        // 8. INITIAL STARTUP
         applySettings();
-
-        // Render initial empty slots so the overlay is NEVER blank before polling completes!
         render({ my_role: 1, players: [{ role: 1, name: "Joueur 1", is_me: true, team: [] }] });
-
-        async function fetchTeams() {
-            try {
-                const res = await fetch('/api/teams');
-                if (!res.ok) return;
-                const data = await res.json();
-                lastJsonData = data;
-
-                // Sync emulator language if auto mode
-                if (data.lang) {
-                    const emuLang = data.lang.toLowerCase() === 'en' ? 'en' : 'fr';
-                    if (langChoice === 'auto' && activeLang !== emuLang) {
-                        activeLang = emuLang;
-                        updateTexts();
-                    }
-                }
-
-                render(data);
-            } catch (err) {
-                // Ignore fetch errors during emulator boot
-            }
-        }
-
-        const ROLE_COLORS = [
-            '#4ade80', '#38bdf8', '#c084fc', '#f59e0b',
-            '#f43f5e', '#818cf8', '#2dd4bf', '#fb923c'
-        ];
-        function getRoleColor(role) {
-            return ROLE_COLORS[Math.max(0, (role - 1) % ROLE_COLORS.length)];
-        }
-
-        function render(data) {
-            const container = document.getElementById('container');
-            if (!container) return;
-
-            const myRole = data.my_role || 1;
-            const pairs = data.pairs || [];
-            const deadLocs = data.dead_locations || [];
-
-            let playersToRender = [];
-            if (data.players && data.players.length > 0) {
-                playersToRender = data.players.slice();
-            } else {
-                if (data.player1 && data.player1.length > 0) playersToRender.push({ role: 1, name: "Joueur 1", team: data.player1 });
-                if (data.player2 && data.player2.length > 0) playersToRender.push({ role: 2, name: "Joueur 2", team: data.player2 });
-            }
-
-            // Fallback: if no players yet, show at least local player box
-            if (playersToRender.length === 0) {
-                playersToRender.push({ role: myRole, name: myRole === 1 ? "Joueur 1 (Moi)" : "Joueur " + myRole, is_me: true, team: [] });
-            }
-
-            if (targetPlayer === '1') {
-                playersToRender = playersToRender.filter(p => p.role === 1 || p.role === myRole);
-            } else if (targetPlayer === '2') {
-                playersToRender = playersToRender.filter(p => p.role !== myRole && p.role !== 1);
-            }
-
-            const currentBoxIds = new Set(playersToRender.map(p => `player-box-${p.role}`));
-            Array.from(container.children).forEach(child => {
-                if (!currentBoxIds.has(child.id)) child.remove();
-            });
-
-            const t = I18N[activeLang];
-
-            playersToRender.forEach(p => {
-                const boxId = `player-box-${p.role}`;
-                let box = document.getElementById(boxId);
-                const isMe = (p.role === myRole);
-
-                if (!box) {
-                    box = document.createElement('div');
-                    box.id = boxId;
-                    box.className = `team-box ${isMe ? 'active-player' : ''}`;
-                    box.innerHTML = `
-                        <div class="team-header">
-                            <div class="player-name" style="color: ${getRoleColor(p.role)}">${p.name || 'J' + p.role}</div>
-                            <div class="team-status">0/6 ${t.alive}</div>
-                        </div>
-                        <div class="slots-grid"></div>
-                    `;
-                    container.appendChild(box);
-                }
-
-                const grid = box.querySelector('.slots-grid');
-                if (!grid) return;
-
-                const party = p.team || p.party || [];
-                const aliveCount = party.filter(m => m && !m.is_fainted && m.species > 0).length;
-                const statusEl = box.querySelector('.team-status');
-                if (statusEl) {
-                    statusEl.textContent = `${aliveCount}/6 ${t.alive}`;
-                }
-
-                for (let i = 0; i < 6; i++) {
-                    const slotId = `slot-${p.role}-${i}`;
-                    let slotEl = document.getElementById(slotId);
-                    const mon = party[i];
-
-                    if (!mon || !mon.species) {
-                        if (!slotEl || !slotEl.classList.contains('empty')) {
-                            if (slotEl) slotEl.remove();
-                            slotEl = document.createElement('div');
-                            slotEl.id = slotId;
-                            slotEl.className = 'mon-card empty';
-                            slotEl.innerHTML = `${POKEBALL_SVG}<div class="empty-slot-text">- ${t.slot} ${i + 1} -</div>`;
-                            grid.appendChild(slotEl);
-                        }
-                        continue;
-                    }
-
-                    const species = mon.species;
-                    const hpPercent = mon.max_hp > 0 ? Math.min(100, Math.max(0, (mon.hp / mon.max_hp) * 100)) : 0;
-                    let hpColor = '#22c55e';
-                    if (hpPercent <= 20) hpColor = '#ef4444';
-                    else if (hpPercent <= 50) hpColor = '#eab308';
-
-                    const isFainted = mon.is_fainted || mon.hp === 0;
-
-                    // Soul Link pair detection
-                    let badgeHtml = '';
-                    const loc = mon.met_location;
-                    const pair = pairs.find(pr => pr.location_id === loc);
-                    const isDeadPair = deadLocs.includes(loc) || (pair && pair.status === 'DEAD');
-
-                    if (isDeadPair || isFainted) {
-                        badgeHtml = `<div class="badge-slot badge-broken">${SVG_BROKEN} <span>${t.broken}</span></div>`;
-                    } else if (pair) {
-                        const partner = pair.members && pair.members.find(m => m.role !== p.role);
-                        if (partner) {
-                            badgeHtml = partner.in_box 
-                                ? `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linkedPc}</span></div>`
-                                : `<div class="badge-slot badge-linked">${SVG_CHAIN} <span>${t.linked}</span></div>`;
-                        } else {
-                            badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
-                        }
-                    } else if (loc > 0) {
-                        badgeHtml = `<div class="badge-slot badge-pending">${SVG_CLOCK} <span>${t.pending}</span></div>`;
-                    }
-
-                    const name = getMonName(species);
-
-                    if (!slotEl || slotEl.classList.contains('empty')) {
-                        if (slotEl) slotEl.remove();
-                        slotEl = document.createElement('div');
-                        slotEl.id = slotId;
-                        slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
-                        slotEl.dataset.species = species;
-                        slotEl.innerHTML = `
-                            <div class="card-top">
-                                <span class="mon-name">${name}</span>
-                                <span class="mon-lvl">${t.level}${mon.level || '?'}</span>
-                            </div>
-                            <div class="sprite-container">
-                                ${POKEBALL_SVG}
-                                <img class="pkmn-sprite" src="${getSpriteUrl(species)}" onerror="this.onerror=null; this.src=getFallbackSpriteUrl(${species});" alt="${name}">
-                            </div>
-                            <div class="card-bottom">
-                                <div class="hp-bar-wrap">
-                                    <div class="hp-bar-fill" style="width: ${hpPercent}%; background: ${hpColor};"></div>
-                                </div>
-                                <div class="hp-text">${mon.hp}/${mon.max_hp}</div>
-                                <div class="badge-wrap">${badgeHtml}</div>
-                            </div>
-                        `;
-                        grid.appendChild(slotEl);
-                    } else {
-                        // Incremental update
-                        slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
-                        const nameEl = slotEl.querySelector('.mon-name');
-                        if (nameEl) nameEl.textContent = name;
-                        const lvlEl = slotEl.querySelector('.mon-lvl');
-                        if (lvlEl) lvlEl.textContent = `${t.level}${mon.level || '?'}`;
-
-                        const img = slotEl.querySelector('.pkmn-sprite');
-                        if (img && slotEl.dataset.species !== String(species)) {
-                            slotEl.dataset.species = species;
-                            img.src = getSpriteUrl(species);
-                            img.alt = name;
-                        }
-
-                        const fill = slotEl.querySelector('.hp-bar-fill');
-                        if (fill) {
-                            fill.style.width = `${hpPercent}%`;
-                            fill.style.background = hpColor;
-                        }
-                        const hpTxt = slotEl.querySelector('.hp-text');
-                        if (hpTxt) hpTxt.textContent = `${mon.hp}/${mon.max_hp}`;
-                        const bWrap = slotEl.querySelector('.badge-wrap');
-                        if (bWrap) bWrap.innerHTML = badgeHtml;
-                    }
-                }
-            });
-        }
-
         setInterval(fetchTeams, 1000);
         fetchTeams();
     </script>
