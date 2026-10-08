@@ -50,6 +50,8 @@ OverlayServer::OverlayServer(QObject* parent)
     buildHtml();
     QJsonObject initObj;
     initObj["active"] = false;
+    initObj["my_role"] = 1;
+    initObj["build_id"] = "V0.4.5-SL-20261008-03";
     initObj["player1"] = QJsonArray();
     initObj["player2"] = QJsonArray();
     initObj["pairs"] = QJsonArray();
@@ -308,6 +310,7 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     QJsonObject root;
     root["active"] = (partyExp != nullptr && partySize >= 8);
     root["my_role"] = myRole;
+    root["build_id"] = "V0.4.5-SL-20261008-03";
 
     QJsonArray playersArray;
     QJsonArray p1Array;
@@ -1572,8 +1575,17 @@ void OverlayServer::buildHtml()
                 const grid = box.querySelector('.slots-grid');
                 if (!grid) return;
 
-                // Ensure grid always contains exactly 6 slot cards in order [0..5]
-                if (grid.children.length !== 6) {
+                // Ensure grid always contains exactly 6 slot cards in pristine order [0..5]
+                let needsReset = (grid.children.length !== 6);
+                if (!needsReset) {
+                    for (let s = 0; s < 6; s++) {
+                        if (grid.children[s].id !== `slot-${p.role}-${s}`) {
+                            needsReset = true;
+                            break;
+                        }
+                    }
+                }
+                if (needsReset) {
                     grid.innerHTML = '';
                     for (let s = 0; s < 6; s++) {
                         const sEl = document.createElement('div');
@@ -1795,12 +1807,26 @@ void OverlayServer::buildHtml()
             if (customBg) localStorage.setItem('ov_bg', customBg);
         }
 
+        let currentBuildId = null;
+
         // 6. FETCH POLLING
         async function fetchTeams() {
             try {
                 const res = await fetch('/api/teams?t=' + Date.now(), { cache: 'no-store' });
                 if (!res.ok) return;
                 const data = await res.json();
+
+                // If melonDS was updated with a new build while overlay was open (e.g. in OBS), reload automatically!
+                if (data.build_id) {
+                    if (currentBuildId === null) {
+                        currentBuildId = data.build_id;
+                    } else if (currentBuildId !== data.build_id) {
+                        console.log('New melonDS build detected (' + data.build_id + '), reloading overlay...');
+                        window.location.reload();
+                        return;
+                    }
+                }
+
                 lastJsonData = data;
 
                 if (data.lang) {

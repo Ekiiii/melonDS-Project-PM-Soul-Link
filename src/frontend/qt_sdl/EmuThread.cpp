@@ -1014,18 +1014,32 @@ struct Net
 
     void setName(const char* nm)
     {
-        if (nm && nm[0]) { setStr(myName, nm); nameSet = true; }
+        if (nm && nm[0]) {
+            setStr(myName, nm);
+            nameSet = true;
+            int mr = myRole();
+            if (mr >= 1 && mr <= 8) {
+                setStr(rname[mr], myName);
+            }
+        }
     }
 
     // Falls back to the PC name, matching what the LAN beacon advertises.
     void ensureName()
     {
-        if (nameSet) return;
-        nameSet = true;
-        const char* e = getenv("MELONDS_AP_NAME");
-        if (e && e[0]) { setStr(myName, e); return; }
-        char nm[24]; DWORD n = 24;
-        if (GetComputerNameA(nm, &n)) setStr(myName, nm);
+        if (!nameSet) {
+            nameSet = true;
+            const char* e = getenv("MELONDS_AP_NAME");
+            if (e && e[0]) { setStr(myName, e); }
+            else {
+                char nm[24]; DWORD n = 24;
+                if (GetComputerNameA(nm, &n)) setStr(myName, nm);
+            }
+        }
+        int mr = myRole();
+        if (mr >= 1 && mr <= 8 && myName[0]) {
+            setStr(rname[mr], myName);
+        }
     }
 
     void sendName(int role)
@@ -1074,7 +1088,11 @@ struct Net
                 fflush(stdout);
             }
             assignedRole = rx[1];
-            sendName(myRole());                         // announce ourselves at once
+            int mr = myRole();
+            if (mr >= 1 && mr <= 8 && myName[0]) {
+                setStr(rname[mr], myName);
+            }
+            sendName(mr);                         // announce ourselves at once
             return true;
         }
         if (n == 6 && rx[0] == 0xFD)                    // ping: echo it back as a pong
@@ -1179,6 +1197,10 @@ struct Net
         mode = 1; started = true; online = 0;
         myPingMs = 0;
         rping[1] = 0;
+        int mr = myRole();
+        if (mr >= 1 && mr <= 8 && myName[0]) {
+            setStr(rname[mr], myName);
+        }
         directPort = (port > 0 && port < 65536) ? port : PORT;
         if (code && code[0]) setStr(roomCode, code);
         listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -1713,6 +1735,7 @@ struct Net
                 peers[i].s = s; peers[i].up = true; freshPeer = true;
                 melonDS::u8 ctl[4] = { 2, 0, 0xFF, (melonDS::u8)(2 + i) };
                 peers[i].tx.insert(peers[i].tx.end(), ctl, ctl + 4);
+                sendName(1);
                 printf("[BR] peer accepted -> role %d\n", 2 + i);
             }
         }
