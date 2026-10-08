@@ -11,6 +11,28 @@ static const char* s_Gen4BlockOrders[24] = {
     "DABC", "DACB", "DBAC", "DBCA", "DCAB", "DCBA"
 };
 
+static QString GetEmulatorPlayerName(int role = 1, bool isMe = true)
+{
+    if (isMe) {
+        try {
+            QString name = Config::GetGlobalTable().GetQString("Online.PlayerName").trimmed();
+            if (!name.isEmpty()) return name;
+        } catch (...) {}
+
+        try {
+            QString name = QString::fromStdString(Config::GetLocalTable(0).GetString("Firmware.Username")).trimmed();
+            if (!name.isEmpty() && name.toLower() != "melonds") return name;
+        } catch (...) {}
+    } else if (role > 1) {
+        try {
+            QString name = QString::fromStdString(Config::GetLocalTable(role - 1).GetString("Firmware.Username")).trimmed();
+            if (!name.isEmpty() && name.toLower() != "melonds") return name;
+        } catch (...) {}
+    }
+    return QString();
+}
+
+
 OverlayServer& OverlayServer::Instance()
 {
     static OverlayServer s_instance;
@@ -26,6 +48,20 @@ OverlayServer::OverlayServer(QObject* parent)
     initObj["player1"] = QJsonArray();
     initObj["player2"] = QJsonArray();
     initObj["pairs"] = QJsonArray();
+
+    QString defName = GetEmulatorPlayerName(1, true);
+    if (defName.isEmpty()) defName = "Joueur 1";
+
+    QJsonObject p1Obj;
+    p1Obj["role"] = 1;
+    p1Obj["name"] = defName;
+    p1Obj["is_me"] = true;
+    p1Obj["team"] = QJsonArray();
+
+    QJsonArray pArray;
+    pArray.append(p1Obj);
+    initObj["players"] = pArray;
+
     cachedJsonResponse = QJsonDocument(initObj).toJson(QJsonDocument::Compact);
 }
 
@@ -298,9 +334,19 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
 
         QJsonObject playerObj;
         playerObj["role"] = r;
-        QString pName = (roster && roster[r][0]) ? QString::fromUtf8(roster[r]) : (r == myRole ? "Joueur 1 (Moi)" : QString("Joueur %1").arg(r));
-        playerObj["name"] = pName;
         playerObj["is_me"] = (r == myRole);
+
+        QString pName;
+        if (roster && roster[r][0] != '\0') {
+            pName = QString::fromUtf8(roster[r]).trimmed();
+        }
+        if (pName.isEmpty()) {
+            pName = GetEmulatorPlayerName(r, r == myRole);
+        }
+        if (pName.isEmpty()) {
+            pName = QString("Joueur %1").arg(r);
+        }
+        playerObj["name"] = pName;
 
         QJsonArray teamArray;
         int aliveCount = 0;
@@ -583,9 +629,40 @@ void OverlayServer::buildHtml()
             flex-direction: row;
             width: fit-content;
         }
+        .layout-sidebar .team-box {
+            width: calc(var(--slot-w) + 24px);
+            max-width: calc(var(--slot-w) + 24px);
+            box-sizing: border-box;
+        }
+        .layout-sidebar .team-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 4px;
+            padding-bottom: 8px;
+        }
+        .layout-sidebar .player-name {
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            letter-spacing: 1px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .layout-sidebar .team-status {
+            width: 100%;
+            text-align: center;
+            font-size: 9px;
+            letter-spacing: 0.5px;
+        }
         .layout-sidebar .slots-grid {
-            grid-template-columns: var(--slot-w);
+            grid-template-columns: 1fr;
+            width: 100%;
             gap: 8px;
+        }
+        .layout-sidebar .mon-card {
+            width: 100%;
         }
 
         /* Team Box Container */
@@ -1342,7 +1419,7 @@ void OverlayServer::buildHtml()
             horizontal: '660 × 430 px',
             grid: '660 × 430 px',
             bar: '1120 × 230 px',
-            sidebar: '230 × 1180 px'
+            sidebar: '200 × 1180 px'
         };
 
         const POKEBALL_SVG = `<svg class="pkball-bg" viewBox="0 0 100 100">
@@ -1455,12 +1532,21 @@ void OverlayServer::buildHtml()
                     box.className = `team-box ${isMe ? 'active-player' : ''}`;
                     box.innerHTML = `
                         <div class="team-header">
-                            <div class="player-name" style="color: ${getRoleColor(p.role)}">${p.name || 'J' + p.role}</div>
+                            <div class="player-name" style="color: ${getRoleColor(p.role)}">${p.name || 'Joueur ' + p.role}</div>
                             <div class="team-status">0/6 ${t.alive}</div>
                         </div>
                         <div class="slots-grid"></div>
                     `;
                     container.appendChild(box);
+                } else {
+                    const nameEl = box.querySelector('.player-name');
+                    if (nameEl && p.name && nameEl.textContent !== p.name) {
+                        nameEl.textContent = p.name;
+                    }
+                    if (nameEl) {
+                        nameEl.style.color = getRoleColor(p.role);
+                    }
+                    box.classList.toggle('active-player', isMe);
                 }
 
                 const grid = box.querySelector('.slots-grid');
@@ -1618,8 +1704,14 @@ void OverlayServer::buildHtml()
 
             document.querySelectorAll('[data-player]').forEach(btn => {
                 if (btn.dataset.player === 'all') btn.textContent = t.allPlayers;
-                if (btn.dataset.player === '1') btn.textContent = t.p1Only;
-                if (btn.dataset.player === '2') btn.textContent = t.p2Only;
+                if (btn.dataset.player === '1') {
+                    const p1 = (lastJsonData && lastJsonData.players && lastJsonData.players.find(p => p.role === 1));
+                    btn.textContent = (p1 && p1.name) ? p1.name : t.p1Only;
+                }
+                if (btn.dataset.player === '2') {
+                    const p2 = (lastJsonData && lastJsonData.players && lastJsonData.players.find(p => p.role === 2));
+                    btn.textContent = (p2 && p2.name) ? p2.name : t.p2Only;
+                }
             });
 
             if (lastJsonData) render(lastJsonData);
