@@ -111,6 +111,10 @@ Consultez le fichier [BUILD.md](./BUILD.md) pour les instructions détaillées d
 * **Cydrak** pour les recherches sur le GPU 3D de la Nintendo DS.
 * **limittox** pour l'icône de l'application.
 * **L'équipe melonDS** et tous les contributeurs de la communauté.
+* **L'équipe Project PM** (Créateurs originaux du mod multijoueur coopératif pour Pokémon Platine) :
+  * **ComicartOlie** - Développeur principal & Architecture du pont multijoueur
+  * **nUt** (nUt0225) - Développeur & Systèmes internes
+  * **MottledAbyss** - Développeur & Équilibrage du jeu
 * **Ekiiii** pour l'implémentation SoulLocke, le P2P Direct UPnP, la synchronisation des morts, l'overlay streaming OBS et son configurateur interactif.
 
 ---

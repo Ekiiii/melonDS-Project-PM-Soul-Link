@@ -122,6 +122,10 @@ See [BUILD.md](./BUILD.md) for build instructions.
  * **Cydrak** for 3D GPU research
  * **limittox** for the application icon
  * **The melonDS team** and contributors
+ * **The Project PM Team** (Original creators of Pokémon Platinum Multiplayer):
+   * **ComicartOlie** - Lead Developer & Multiplayer Bridge Architecture
+   * **nUt** (nUt0225) - Developer & Core Systems
+   * **MottledAbyss** - Developer & Game Balancer
  * **Ekiiii** for the SoulLocke implementation, Direct P2P with UPnP, automatic death sync, and OBS streaming overlay.
 
 ---
