@@ -2061,10 +2061,26 @@ void NetTick()
         if (mpnet::gNet.mode == 0)
         {
             mpnet::gNet.publishStatus();
+            if (OverlayServer::Instance().IsRunning() && (gBr.frame % 30) == 0 && !gBr.partyExp)
+            {
+                OverlayServer::Instance().UpdateTeamsMulti(
+                    nullptr, nullptr, 0, 1, mpnet::gNet.rname, nullptr
+                );
+            }
             return;
         }
     }
     mpnet::gNet.tick(gBr.frame);
+
+    if (OverlayServer::Instance().IsRunning() && (gBr.frame % 30) == 0 && !gBr.partyExp)
+    {
+        OverlayServer::Instance().UpdateTeamsMulti(
+            nullptr, nullptr, 0,
+            mpnet::gNet.myRole(),
+            mpnet::gNet.rname,
+            nullptr
+        );
+    }
 
     // A peer link just came up: drop the on-change send caches so the next
     // pump resends party/pkt — a peer connecting AFTER our first send never
@@ -2140,19 +2156,31 @@ void BridgePump(melonDS::NDS* nds)
     apWr8(nds, gBr.ctl + 8, (u8)myRole);
 
     // Overlay server update: independent of wireless activation so stream overlay always works!
-    if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0 && gBr.partyExp)
+    if (OverlayServer::Instance().IsRunning() && (gBr.frame % 10) == 0)
     {
-        SoulLink_UpdateOverlayDeaths(nds);
-        std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
-        OverlayServer::Instance().UpdateTeamsMulti(
-            apPtr(nds, gBr.partyExp),
-            gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
-            gBr.partySize,
-            mpnet::gNet.myRole(),
-            mpnet::gNet.rname,
-            gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
-            localBoxes
-        );
+        if (gBr.partyExp)
+        {
+            SoulLink_UpdateOverlayDeaths(nds);
+            std::vector<BoxMonSummary> localBoxes = SoulLink_GetLocalBoxedMons(nds);
+            OverlayServer::Instance().UpdateTeamsMulti(
+                apPtr(nds, gBr.partyExp),
+                gBr.partyN ? apPtr(nds, gBr.partyN) : nullptr,
+                gBr.partySize,
+                mpnet::gNet.myRole(),
+                mpnet::gNet.rname,
+                gBr.partyImp ? apPtr(nds, gBr.partyImp) : nullptr,
+                localBoxes
+            );
+        }
+        else
+        {
+            OverlayServer::Instance().UpdateTeamsMulti(
+                nullptr, nullptr, 0,
+                mpnet::gNet.myRole(),
+                mpnet::gNet.rname,
+                nullptr
+            );
+        }
     }
 
     if (inGame && mpnet::gNet.anyUp())

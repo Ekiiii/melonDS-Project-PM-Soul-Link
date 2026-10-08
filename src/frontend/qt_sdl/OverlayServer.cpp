@@ -20,6 +20,11 @@ static QString GetEmulatorPlayerName(int role = 1, bool isMe = true)
         } catch (...) {}
 
         try {
+            QString name = Config::GetGlobalTable().GetQString("LAN.PlayerName").trimmed();
+            if (!name.isEmpty()) return name;
+        } catch (...) {}
+
+        try {
             QString name = QString::fromStdString(Config::GetLocalTable(0).GetString("Firmware.Username")).trimmed();
             if (!name.isEmpty() && name.toLower() != "melonds") return name;
         } catch (...) {}
@@ -153,6 +158,9 @@ void OverlayServer::onReadyRead()
         QByteArray respBody = "{\"status\":\"ok\",\"lang\":\"" + lang.toUtf8() + "\"}";
         QByteArray response = "HTTP/1.1 200 OK\r\n"
                               "Content-Type: application/json; charset=utf-8\r\n"
+                              "Cache-Control: no-cache, no-store, must-revalidate\r\n"
+                              "Pragma: no-cache\r\n"
+                              "Expires: 0\r\n"
                               "Access-Control-Allow-Origin: *\r\n"
                               "Content-Length: " + QByteArray::number(respBody.size()) + "\r\n"
                               "Connection: close\r\n\r\n" + respBody;
@@ -169,6 +177,9 @@ void OverlayServer::onReadyRead()
 
         QByteArray response = "HTTP/1.1 200 OK\r\n"
                               "Content-Type: application/json; charset=utf-8\r\n"
+                              "Cache-Control: no-cache, no-store, must-revalidate\r\n"
+                              "Pragma: no-cache\r\n"
+                              "Expires: 0\r\n"
                               "Access-Control-Allow-Origin: *\r\n"
                               "Content-Length: " + QByteArray::number(body.size()) + "\r\n"
                               "Connection: close\r\n\r\n" + body;
@@ -292,11 +303,10 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
                                      const std::vector<BoxMonSummary>& localBoxes,
                                      const std::map<int, std::vector<BoxMonSummary>>& peerBoxes)
 {
-    if (!partyExp || partySize < 8) return;
     if (myRole < 1 || myRole > 8) myRole = 1;
 
     QJsonObject root;
-    root["active"] = true;
+    root["active"] = (partyExp != nullptr && partySize >= 8);
     root["my_role"] = myRole;
 
     QJsonArray playersArray;
@@ -316,32 +326,41 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     for (int r = 1; r <= 8; r++)
     {
         const melonDS::u8* pBuf = nullptr;
-        if (r == myRole) {
-            pBuf = partyExp;
-        } else if (partyN != nullptr) {
-            pBuf = partyN + (r - 1) * partySize;
-        } else if (r == 2 && partyImp != nullptr) {
-            pBuf = partyImp;
+        if (partyExp && partySize >= 8) {
+            if (r == myRole) {
+                pBuf = partyExp;
+            } else if (partyN != nullptr) {
+                pBuf = partyN + (r - 1) * partySize;
+            } else if (r == 2 && partyImp != nullptr) {
+                pBuf = partyImp;
+            }
         }
 
-        if (!pBuf) continue;
+        bool isMe = (r == myRole);
+        bool inRoster = (roster && roster[r][0] != '\0');
 
-        quint32 count = *(const quint32*)(pBuf + 4);
-        if (count == 0 || count > 6) {
-            if (r != myRole) continue;
-            count = 0;
+        // Only include player if it is me, or in lobby roster, or has a valid party buffer
+        if (!isMe && !inRoster && !pBuf) continue;
+
+        quint32 count = 0;
+        if (pBuf) {
+            count = *(const quint32*)(pBuf + 4);
+            if (count > 6) count = 0;
         }
+
+        // If peer has no buffer and not in roster, skip
+        if (!isMe && !inRoster && count == 0) continue;
 
         QJsonObject playerObj;
         playerObj["role"] = r;
-        playerObj["is_me"] = (r == myRole);
+        playerObj["is_me"] = isMe;
 
         QString pName;
         if (roster && roster[r][0] != '\0') {
             pName = QString::fromUtf8(roster[r]).trimmed();
         }
         if (pName.isEmpty()) {
-            pName = GetEmulatorPlayerName(r, r == myRole);
+            pName = GetEmulatorPlayerName(r, isMe);
         }
         if (pName.isEmpty()) {
             pName = QString("Joueur %1").arg(r);
@@ -1503,15 +1522,16 @@ void OverlayServer::buildHtml()
                 if (data.player2 && data.player2.length > 0) playersToRender.push({ role: 2, name: "Joueur 2", team: data.player2 });
             }
 
-            // If no players array received yet, default to local player
-            if (playersToRender.length === 0) {
-                playersToRender.push({ role: myRole, name: myRole === 1 ? "Joueur 1" : "Joueur " + myRole, is_me: true, team: [] });
+            if (targetPlayer === '1') {
+                playersToRender = playersToRender.filter(p => p.role === 1);
+            } else if (targetPlayer === '2') {
+                playersToRender = playersToRender.filter(p => p.role === 2);
             }
 
-            if (targetPlayer === '1') {
-                playersToRender = playersToRender.filter(p => p.role === 1 || p.role === myRole);
-            } else if (targetPlayer === '2') {
-                playersToRender = playersToRender.filter(p => p.role !== myRole && p.role !== 1);
+            // If no players array received yet, default to target or local player
+            if (playersToRender.length === 0) {
+                const r = (targetPlayer === '2') ? 2 : ((targetPlayer === '1') ? 1 : myRole);
+                playersToRender.push({ role: r, name: (r === 1 ? "Joueur 1" : "Joueur " + r), is_me: (r === myRole), team: [] });
             }
 
             const currentBoxIds = new Set(playersToRender.map(p => `player-box-${p.role}`));
@@ -1552,6 +1572,18 @@ void OverlayServer::buildHtml()
                 const grid = box.querySelector('.slots-grid');
                 if (!grid) return;
 
+                // Ensure grid always contains exactly 6 slot cards in order [0..5]
+                if (grid.children.length !== 6) {
+                    grid.innerHTML = '';
+                    for (let s = 0; s < 6; s++) {
+                        const sEl = document.createElement('div');
+                        sEl.id = `slot-${p.role}-${s}`;
+                        sEl.className = 'mon-card empty';
+                        sEl.innerHTML = `${POKEBALL_SVG}<div class="empty-slot-text">- ${t.slot} ${s + 1} -</div>`;
+                        grid.appendChild(sEl);
+                    }
+                }
+
                 const party = p.team || p.party || [];
                 const aliveCount = party.filter(m => m && !m.is_fainted && m.species > 0).length;
                 const statusEl = box.querySelector('.team-status');
@@ -1560,18 +1592,17 @@ void OverlayServer::buildHtml()
                 }
 
                 for (let i = 0; i < 6; i++) {
-                    const slotId = `slot-${p.role}-${i}`;
-                    let slotEl = document.getElementById(slotId);
+                    const slotEl = grid.children[i];
                     const mon = party[i];
 
                     if (!mon || !mon.species) {
-                        if (!slotEl || !slotEl.classList.contains('empty')) {
-                            if (slotEl) slotEl.remove();
-                            slotEl = document.createElement('div');
-                            slotEl.id = slotId;
+                        if (!slotEl.classList.contains('empty')) {
                             slotEl.className = 'mon-card empty';
+                            slotEl.removeAttribute('data-species');
                             slotEl.innerHTML = `${POKEBALL_SVG}<div class="empty-slot-text">- ${t.slot} ${i + 1} -</div>`;
-                            grid.appendChild(slotEl);
+                        } else {
+                            const txtEl = slotEl.querySelector('.empty-slot-text');
+                            if (txtEl) txtEl.textContent = `- ${t.slot} ${i + 1} -`;
                         }
                         continue;
                     }
@@ -1606,10 +1637,8 @@ void OverlayServer::buildHtml()
 
                     const name = getMonName(species);
 
-                    if (!slotEl || slotEl.classList.contains('empty')) {
-                        if (slotEl) slotEl.remove();
-                        slotEl = document.createElement('div');
-                        slotEl.id = slotId;
+                    if (slotEl.classList.contains('empty')) {
+                        // Slot transitions from empty to having a Pokemon
                         slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
                         slotEl.dataset.species = species;
                         slotEl.innerHTML = `
@@ -1629,13 +1658,16 @@ void OverlayServer::buildHtml()
                                 <div class="badge-wrap">${badgeHtml}</div>
                             </div>
                         `;
-                        grid.appendChild(slotEl);
                     } else {
+                        // In-place update to preserve DOM order and animated GIF stability
                         slotEl.className = `mon-card ${isFainted ? 'fainted' : ''}`;
                         const nameEl = slotEl.querySelector('.mon-name');
-                        if (nameEl) nameEl.textContent = name;
+                        if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
                         const lvlEl = slotEl.querySelector('.mon-lvl');
-                        if (lvlEl) lvlEl.textContent = `${t.level}${mon.level || '?'}`;
+                        if (lvlEl) {
+                            const lvlText = `${t.level}${mon.level || '?'}`;
+                            if (lvlEl.textContent !== lvlText) lvlEl.textContent = lvlText;
+                        }
 
                         const img = slotEl.querySelector('.pkmn-sprite');
                         if (img && slotEl.dataset.species !== String(species)) {
@@ -1650,10 +1682,32 @@ void OverlayServer::buildHtml()
                             fill.style.background = hpColor;
                         }
                         const hpTxt = slotEl.querySelector('.hp-text');
-                        if (hpTxt) hpTxt.textContent = `${mon.hp}/${mon.max_hp}`;
+                        if (hpTxt) {
+                            const hpVal = `${mon.hp}/${mon.max_hp}`;
+                            if (hpTxt.textContent !== hpVal) hpTxt.textContent = hpVal;
+                        }
                         const bWrap = slotEl.querySelector('.badge-wrap');
-                        if (bWrap) bWrap.innerHTML = badgeHtml;
+                        if (bWrap && bWrap.innerHTML !== badgeHtml) bWrap.innerHTML = badgeHtml;
                     }
+                }
+            });
+
+            updatePlayerSelectorButtons(data);
+        }
+
+        function updatePlayerSelectorButtons(data) {
+            const d = data || lastJsonData;
+            const players = (d && d.players) ? d.players : [];
+            const t = I18N[activeLang] || I18N.fr;
+            document.querySelectorAll('[data-player]').forEach(btn => {
+                if (btn.dataset.player === 'all') btn.textContent = t.allPlayers;
+                if (btn.dataset.player === '1') {
+                    const p1 = players.find(p => p.role === 1);
+                    btn.textContent = (p1 && p1.name) ? p1.name : t.p1Only;
+                }
+                if (btn.dataset.player === '2') {
+                    const p2 = players.find(p => p.role === 2);
+                    btn.textContent = (p2 && p2.name) ? p2.name : t.p2Only;
                 }
             });
         }
@@ -1702,17 +1756,7 @@ void OverlayServer::buildHtml()
             setTxt('txt-copy-obs', t.copyObs);
             setTxt('txt-obs-hint', t.obsHint);
 
-            document.querySelectorAll('[data-player]').forEach(btn => {
-                if (btn.dataset.player === 'all') btn.textContent = t.allPlayers;
-                if (btn.dataset.player === '1') {
-                    const p1 = (lastJsonData && lastJsonData.players && lastJsonData.players.find(p => p.role === 1));
-                    btn.textContent = (p1 && p1.name) ? p1.name : t.p1Only;
-                }
-                if (btn.dataset.player === '2') {
-                    const p2 = (lastJsonData && lastJsonData.players && lastJsonData.players.find(p => p.role === 2));
-                    btn.textContent = (p2 && p2.name) ? p2.name : t.p2Only;
-                }
-            });
+            updatePlayerSelectorButtons(lastJsonData);
 
             if (lastJsonData) render(lastJsonData);
         }
@@ -1754,7 +1798,7 @@ void OverlayServer::buildHtml()
         // 6. FETCH POLLING
         async function fetchTeams() {
             try {
-                const res = await fetch('/api/teams');
+                const res = await fetch('/api/teams?t=' + Date.now(), { cache: 'no-store' });
                 if (!res.ok) return;
                 const data = await res.json();
                 lastJsonData = data;
