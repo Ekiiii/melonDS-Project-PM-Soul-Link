@@ -52,7 +52,7 @@ OverlayServer::OverlayServer(QObject* parent)
     QJsonObject initObj;
     initObj["active"] = false;
     initObj["my_role"] = 1;
-    initObj["build_id"] = "V0.4.5-SL-20261008-05";
+    initObj["build_id"] = "V0.4.5-SL-20261008-06";
     initObj["is_soullink"] = false;
     initObj["lang"] = MelonTranslator::GetLanguage().isEmpty() ? "fr" : MelonTranslator::GetLanguage();
     initObj["player1"] = QJsonArray();
@@ -315,7 +315,7 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     QJsonObject root;
     root["active"] = (partyExp != nullptr && partySize >= 8);
     root["my_role"] = myRole;
-    root["build_id"] = "V0.4.5-SL-20261008-05";
+    root["build_id"] = "V0.4.5-SL-20261008-06";
     root["is_soullink"] = isSoulLink;
 
     QJsonArray playersArray;
@@ -570,7 +570,7 @@ void OverlayServer::buildHtml()
     <title>Overlay SoulLocke - Project PM</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --c-accent: #38bdf8;
@@ -581,7 +581,7 @@ void OverlayServer::buildHtml()
             --c-text-main: #f8fafc;
             --c-text-muted: #94a3b8;
             --slot-w: 172px;
-            --slot-h: 184px;
+            --slot-h: 192px;
             --scale: 1;
             --sprite-scale: 1.35;
         }
@@ -734,7 +734,7 @@ void OverlayServer::buildHtml()
         }
 
         .team-status {
-            font-size: 9px;
+            font-size: 9.5px;
             color: var(--c-text-muted);
             letter-spacing: 0.5px;
         }
@@ -796,26 +796,36 @@ void OverlayServer::buildHtml()
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 104px;
+            flex: 1;
+            min-width: 0;
+            margin-right: 6px;
             letter-spacing: 0.5px;
         }
 
         .mon-lvl {
-            color: #e2e8f0;
-            font-size: 8px;
+            color: #ffffff;
+            font-size: 12.5px;
             font-family: 'Rajdhani', sans-serif;
-            font-weight: 700;
+            font-weight: 800;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            line-height: 1.2;
+            flex-shrink: 0;
         }
 
         /* Enlarged Sprite Area */
         .sprite-container {
             position: relative;
-            height: 122px;
+            height: 114px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: visible;
-            margin: 2px 0 4px 0;
+            margin: 1px 0 2px 0;
         }
 
         .pkball-bg {
@@ -831,8 +841,8 @@ void OverlayServer::buildHtml()
         .pkmn-sprite {
             position: relative;
             z-index: 2;
-            max-height: 110px;
-            max-width: 110px;
+            max-height: 106px;
+            max-width: 106px;
             transform: scale(var(--sprite-scale, 1.35));
             transform-origin: center center;
             object-fit: contain;
@@ -850,10 +860,11 @@ void OverlayServer::buildHtml()
 
         .hp-bar-wrap {
             width: 100%;
-            height: 7px;
+            height: 8px;
             background: #090d16;
             border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
             overflow: hidden;
             position: relative;
         }
@@ -866,17 +877,19 @@ void OverlayServer::buildHtml()
         }
 
         .hp-text {
-            font-size: 8px;
+            font-size: 13.5px;
             text-align: right;
-            color: var(--c-text-muted);
+            color: #ffffff;
             font-family: 'Rajdhani', sans-serif;
-            font-weight: 700;
-            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            line-height: 1.1;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
 
         /* Badges & Container */
         .badge-wrap {
-            margin-top: 3px;
+            margin-top: 2px;
         }
         .badge-wrap:empty {
             display: none !important;
@@ -889,11 +902,11 @@ void OverlayServer::buildHtml()
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            font-size: 7.5px;
-            padding: 3px 6px;
+            gap: 5px;
+            font-size: 9.5px;
+            padding: 3px 8px;
             border-radius: 4px;
-            font-weight: bold;
+            font-weight: 800;
             letter-spacing: 0.5px;
             text-transform: uppercase;
             width: fit-content;
