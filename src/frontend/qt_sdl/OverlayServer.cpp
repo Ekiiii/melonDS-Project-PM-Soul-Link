@@ -1,5 +1,6 @@
 #include "OverlayServer.h"
 #include "Config.h"
+#include "Translation.h"
 #include <QDebug>
 #include <QUrlQuery>
 #include <QUrl>
@@ -51,8 +52,9 @@ OverlayServer::OverlayServer(QObject* parent)
     QJsonObject initObj;
     initObj["active"] = false;
     initObj["my_role"] = 1;
-    initObj["build_id"] = "V0.4.5-SL-20261008-04";
+    initObj["build_id"] = "V0.4.5-SL-20261008-05";
     initObj["is_soullink"] = false;
+    initObj["lang"] = MelonTranslator::GetLanguage().isEmpty() ? "fr" : MelonTranslator::GetLanguage();
     initObj["player1"] = QJsonArray();
     initObj["player2"] = QJsonArray();
     initObj["pairs"] = QJsonArray();
@@ -157,6 +159,7 @@ void OverlayServer::onReadyRead()
         QString lang = query.queryItemValue("lang");
         if (lang == "fr" || lang == "en") {
             Config::GetGlobalTable().SetQString("UI.Language", lang);
+            MelonTranslator::SetLanguage(lang);
         }
         QByteArray respBody = "{\"status\":\"ok\",\"lang\":\"" + lang.toUtf8() + "\"}";
         QByteArray response = "HTTP/1.1 200 OK\r\n"
@@ -312,7 +315,7 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     QJsonObject root;
     root["active"] = (partyExp != nullptr && partySize >= 8);
     root["my_role"] = myRole;
-    root["build_id"] = "V0.4.5-SL-20261008-04";
+    root["build_id"] = "V0.4.5-SL-20261008-05";
     root["is_soullink"] = isSoulLink;
 
     QJsonArray playersArray;
@@ -545,7 +548,8 @@ void OverlayServer::UpdateTeamsMulti(const melonDS::u8* partyExp, const melonDS:
     }
     root["dead_locations"] = deadLocsArray;
 
-    QString emuLang = Config::GetGlobalTable().GetQString("UI.Language");
+    QString emuLang = MelonTranslator::GetLanguage();
+    if (emuLang.isEmpty()) emuLang = Config::GetGlobalTable().GetQString("UI.Language");
     if (emuLang.isEmpty()) emuLang = "fr";
     root["lang"] = emuLang;
 
@@ -1256,11 +1260,11 @@ void OverlayServer::buildHtml()
         <div class="cfg-section">
             <div id="lbl-layout" class="cfg-section-title">Disposition (Layout)</div>
             <div class="cfg-btn-grid">
-                <button class="cfg-btn" data-layout="vertical">Vertical (2x3)</button>
-                <button class="cfg-btn" data-layout="horizontal">Horizontal (3x2)</button>
-                <button class="cfg-btn" data-layout="grid">Grille Co-op</button>
-                <button class="cfg-btn" data-layout="bar">Bandeau Bas (1x6)</button>
-                <button class="cfg-btn" data-layout="sidebar">Colonne (6x1)</button>
+                <button class="cfg-btn" data-layout="vertical"><span id="txt-layout-vertical">Vertical (2x3)</span></button>
+                <button class="cfg-btn" data-layout="horizontal"><span id="txt-layout-horizontal">Horizontal (3x2)</span></button>
+                <button class="cfg-btn" data-layout="grid"><span id="txt-layout-grid">Grille Co-op</span></button>
+                <button class="cfg-btn" data-layout="bar"><span id="txt-layout-bar">Bandeau Bas (1x6)</span></button>
+                <button class="cfg-btn" data-layout="sidebar"><span id="txt-layout-sidebar">Colonne (6x1)</span></button>
             </div>
         </div>
 
@@ -1280,10 +1284,10 @@ void OverlayServer::buildHtml()
             <div class="cfg-section">
                 <div id="lbl-sprite-size" class="cfg-section-title">Taille Pokémon</div>
                 <div class="cfg-btn-grid">
-                    <button class="cfg-btn" data-sprite-scale="1">Normal</button>
-                    <button class="cfg-btn" data-sprite-scale="1.35">Grand</button>
-                    <button class="cfg-btn" data-sprite-scale="1.65">Maxi</button>
-                    <button class="cfg-btn" data-sprite-scale="2">Ultra</button>
+                    <button class="cfg-btn" data-sprite-scale="1"><span id="txt-sprite-normal">Normal</span></button>
+                    <button class="cfg-btn" data-sprite-scale="1.35"><span id="txt-sprite-large">Grand</span></button>
+                    <button class="cfg-btn" data-sprite-scale="1.65"><span id="txt-sprite-extra">Maxi</span></button>
+                    <button class="cfg-btn" data-sprite-scale="2"><span id="txt-sprite-ultra">Ultra</span></button>
                 </div>
             </div>
         </div>
@@ -1294,27 +1298,27 @@ void OverlayServer::buildHtml()
             <div class="cfg-themes-grid">
                 <button class="cfg-theme-btn" data-theme="cyan">
                     <span class="theme-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span>
-                    <span>Cyan Néon</span>
+                    <span id="txt-theme-cyan">Cyan Néon</span>
                 </button>
                 <button class="cfg-theme-btn" data-theme="red">
                     <span class="theme-dot" style="background:#f43f5e;box-shadow:0 0 8px #f43f5e;"></span>
-                    <span>Rouge Platine</span>
+                    <span id="txt-theme-red">Rouge Platine</span>
                 </button>
                 <button class="cfg-theme-btn" data-theme="emerald">
                     <span class="theme-dot" style="background:#10b981;box-shadow:0 0 8px #10b981;"></span>
-                    <span>Émeraude</span>
+                    <span id="txt-theme-emerald">Émeraude</span>
                 </button>
                 <button class="cfg-theme-btn" data-theme="purple">
                     <span class="theme-dot" style="background:#c084fc;box-shadow:0 0 8px #c084fc;"></span>
-                    <span>Améthyste</span>
+                    <span id="txt-theme-purple">Améthyste</span>
                 </button>
                 <button class="cfg-theme-btn" data-theme="amber">
                     <span class="theme-dot" style="background:#fbbf24;box-shadow:0 0 8px #fbbf24;"></span>
-                    <span>Or Rétro</span>
+                    <span id="txt-theme-amber">Or Rétro</span>
                 </button>
                 <button class="cfg-theme-btn" data-theme="slate">
                     <span class="theme-dot" style="background:#94a3b8;box-shadow:0 0 8px #94a3b8;"></span>
-                    <span>Minimaliste</span>
+                    <span id="txt-theme-slate">Minimaliste</span>
                 </button>
             </div>
 
@@ -1363,9 +1367,9 @@ void OverlayServer::buildHtml()
         <div class="cfg-section">
             <div id="lbl-badges" class="cfg-section-title">Badges Soul Link</div>
             <div class="cfg-btn-grid">
-                <button class="cfg-btn" data-badge-mode="auto">Auto (ROM)</button>
-                <button class="cfg-btn" data-badge-mode="show">Toujours affichés</button>
-                <button class="cfg-btn" data-badge-mode="hide">Toujours masqués</button>
+                <button class="cfg-btn" data-badge-mode="auto"><span id="txt-badge-auto">Auto (ROM)</span></button>
+                <button class="cfg-btn" data-badge-mode="show"><span id="txt-badge-show">Toujours affichés</span></button>
+                <button class="cfg-btn" data-badge-mode="hide"><span id="txt-badge-hide">Toujours masqués</span></button>
             </div>
         </div>
 
@@ -1397,10 +1401,26 @@ void OverlayServer::buildHtml()
                 openCfg: "CONFIGURER L'OVERLAY",
                 cfgTitle: "CONFIGURATEUR D'OVERLAY",
                 cfgSub: "Personnalisation en direct pour Stream & OBS",
+                closeBtn: "Fermer",
                 layout: "Disposition (Layout)",
+                layoutVert: "Vertical (2x3)",
+                layoutHori: "Horizontal (3x2)",
+                layoutGrid: "Grille Co-op",
+                layoutBar: "Bandeau Bas (1x6)",
+                layoutSidebar: "Colonne (6x1)",
                 scale: "Échelle Globale",
                 spriteSize: "Taille Pokémon",
+                spriteNormal: "Normal",
+                spriteLarge: "Grand",
+                spriteExtra: "Maxi",
+                spriteUltra: "Ultra",
                 themes: "Thèmes & Couleurs",
+                themeCyan: "Cyan Néon",
+                themeRed: "Rouge Platine",
+                themeEmerald: "Émeraude",
+                themePurple: "Améthyste",
+                themeAmber: "Or Rétro",
+                themeSlate: "Minimaliste",
                 accent: "Accent :",
                 bg: "Fond :",
                 opacity: "Opacité :",
@@ -1409,6 +1429,10 @@ void OverlayServer::buildHtml()
                 p1Only: "Joueur 1",
                 p2Only: "Joueur 2",
                 language: "Langue (Language)",
+                badges: "Badges Soul Link",
+                badgeAuto: "Auto (ROM)",
+                badgeShow: "Toujours affichés",
+                badgeHide: "Toujours masqués",
                 copyObs: "COPIER LE LIEN OBS STUDIO",
                 obsHint: "Résolution conseillée dans OBS :",
                 copiedToast: "URL OBS copiée dans le presse-papiers !",
@@ -1420,20 +1444,32 @@ void OverlayServer::buildHtml()
                 fainted: "K.O.",
                 level: "Niv.",
                 slot: "Emplacement",
-                unknown: "Inconnu",
-                badges: "Badges Soul Link",
-                badgeAuto: "Auto (ROM)",
-                badgeShow: "Toujours affichés",
-                badgeHide: "Toujours masqués"
+                unknown: "Inconnu"
             },
             en: {
                 openCfg: "CONFIGURE OVERLAY",
                 cfgTitle: "OVERLAY CONFIGURATOR",
                 cfgSub: "Live customization for Stream & OBS",
+                closeBtn: "Close",
                 layout: "Layout",
+                layoutVert: "Vertical (2x3)",
+                layoutHori: "Horizontal (3x2)",
+                layoutGrid: "Co-op Grid",
+                layoutBar: "Bottom Bar (1x6)",
+                layoutSidebar: "Sidebar (6x1)",
                 scale: "Global Scale",
                 spriteSize: "Pokemon Size",
+                spriteNormal: "Normal",
+                spriteLarge: "Large",
+                spriteExtra: "Extra Large",
+                spriteUltra: "Ultra",
                 themes: "Themes & Colors",
+                themeCyan: "Neon Cyan",
+                themeRed: "Platinum Red",
+                themeEmerald: "Emerald",
+                themePurple: "Amethyst",
+                themeAmber: "Retro Gold",
+                themeSlate: "Minimalist",
                 accent: "Accent:",
                 bg: "Background:",
                 opacity: "Opacity:",
@@ -1442,6 +1478,10 @@ void OverlayServer::buildHtml()
                 p1Only: "Player 1",
                 p2Only: "Player 2",
                 language: "Language",
+                badges: "Soul Link Badges",
+                badgeAuto: "Auto (ROM)",
+                badgeShow: "Always shown",
+                badgeHide: "Always hidden",
                 copyObs: "COPY OBS STUDIO URL",
                 obsHint: "Recommended size in OBS:",
                 copiedToast: "OBS URL copied to clipboard!",
@@ -1453,11 +1493,7 @@ void OverlayServer::buildHtml()
                 fainted: "FAINTED",
                 level: "Lv.",
                 slot: "Slot",
-                unknown: "Unknown",
-                badges: "Soul Link Badges",
-                badgeAuto: "Auto (ROM)",
-                badgeShow: "Always shown",
-                badgeHide: "Always hidden"
+                unknown: "Unknown"
             }
         };
 
@@ -1796,27 +1832,48 @@ void OverlayServer::buildHtml()
         }
 
         function updateTexts() {
-            const t = I18N[activeLang];
+            const t = I18N[activeLang] || I18N.fr;
             const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
             setTxt('txt-open-cfg', t.openCfg);
             setTxt('txt-cfg-title', t.cfgTitle);
             setTxt('txt-cfg-sub', t.cfgSub);
+            const closeBtn = document.getElementById('cfg-close-btn');
+            if (closeBtn) closeBtn.title = t.closeBtn;
+
             setTxt('lbl-layout', t.layout);
+            setTxt('txt-layout-vertical', t.layoutVert);
+            setTxt('txt-layout-horizontal', t.layoutHori);
+            setTxt('txt-layout-grid', t.layoutGrid);
+            setTxt('txt-layout-bar', t.layoutBar);
+            setTxt('txt-layout-sidebar', t.layoutSidebar);
+
             setTxt('lbl-scale', t.scale);
             setTxt('lbl-sprite-size', t.spriteSize);
+            setTxt('txt-sprite-normal', t.spriteNormal);
+            setTxt('txt-sprite-large', t.spriteLarge);
+            setTxt('txt-sprite-extra', t.spriteExtra);
+            setTxt('txt-sprite-ultra', t.spriteUltra);
+
             setTxt('lbl-themes', t.themes);
+            setTxt('txt-theme-cyan', t.themeCyan);
+            setTxt('txt-theme-red', t.themeRed);
+            setTxt('txt-theme-emerald', t.themeEmerald);
+            setTxt('txt-theme-purple', t.themePurple);
+            setTxt('txt-theme-amber', t.themeAmber);
+            setTxt('txt-theme-slate', t.themeSlate);
+
             setTxt('lbl-accent', t.accent);
             setTxt('lbl-bg', t.bg);
             setTxt('lbl-opacity', t.opacity);
+
             setTxt('lbl-players', t.players);
             setTxt('lbl-lang', t.language);
             setTxt('lbl-badges', t.badges);
-            const bAuto = document.querySelector('[data-badge-mode="auto"]');
-            if (bAuto) bAuto.textContent = t.badgeAuto;
-            const bShow = document.querySelector('[data-badge-mode="show"]');
-            if (bShow) bShow.textContent = t.badgeShow;
-            const bHide = document.querySelector('[data-badge-mode="hide"]');
-            if (bHide) bHide.textContent = t.badgeHide;
+            setTxt('txt-badge-auto', t.badgeAuto);
+            setTxt('txt-badge-show', t.badgeShow);
+            setTxt('txt-badge-hide', t.badgeHide);
+
             setTxt('txt-copy-obs', t.copyObs);
             setTxt('txt-obs-hint', t.obsHint);
 
@@ -1862,6 +1919,7 @@ void OverlayServer::buildHtml()
         }
 
         let currentBuildId = null;
+        let lastEmuLang = null;
 
         // 6. FETCH POLLING
         async function fetchTeams() {
@@ -1885,7 +1943,21 @@ void OverlayServer::buildHtml()
 
                 if (data.lang) {
                     const emuLang = data.lang.toLowerCase() === 'en' ? 'en' : 'fr';
-                    if (langChoice === 'auto' && activeLang !== emuLang) {
+                    if (lastEmuLang === null) {
+                        lastEmuLang = emuLang;
+                        if (langChoice === 'auto') {
+                            activeLang = emuLang;
+                            updateTexts();
+                        }
+                    } else if (lastEmuLang !== emuLang) {
+                        // User changed emulator language live in melonDS!
+                        lastEmuLang = emuLang;
+                        langChoice = 'auto';
+                        localStorage.setItem('ov_lang_choice', 'auto');
+                        activeLang = emuLang;
+                        applySettings();
+                        updateTexts();
+                    } else if (langChoice === 'auto' && activeLang !== emuLang) {
                         activeLang = emuLang;
                         updateTexts();
                     }
@@ -1994,8 +2066,12 @@ void OverlayServer::buildHtml()
                 if (langChoice !== 'auto') {
                     activeLang = langChoice;
                     fetch(`/api/set_lang?lang=${activeLang}`).catch(() => {});
+                } else {
+                    if (lastEmuLang) activeLang = lastEmuLang;
                 }
                 applySettings();
+                updateTexts();
+                if (lastJsonData) render(lastJsonData);
             });
         });
 
