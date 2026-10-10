@@ -5,7 +5,7 @@
 <a href="https://www.gnu.org/licenses/gpl-3.0" alt="License: GPLv3"><img src="https://img.shields.io/badge/License-GPL%20v3-%23ff554d.svg"></a>
 <a href="https://discord.gg/pAMAtExcqV" alt="Discord"><img src="https://img.shields.io/badge/Discord-Kuribo64-7289da?logo=discord&logoColor=white"></a>
 <br>
-<a href="https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke/actions/workflows/build-windows.yml/badge.svg" /></a>
+<a href="https://github.com/Ekiiii/melonDS-Project-PM-OBS-Overlay/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/Ekiiii/melonDS-Project-PM-OBS-Overlay/actions/workflows/build-windows.yml/badge.svg" /></a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 ---
 
-## Live OBS Overlay Edition ([melonDS-Project-PM-SoulLocke](https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke))
+## Live OBS Overlay Edition ([melonDS-Project-PM-OBS-Overlay](https://github.com/Ekiiii/melonDS-Project-PM-OBS-Overlay))
 
 This fork by **Ekiiii** extends melonDS and Project PM with a broadcast-ready **Live OBS / Twitch Streaming Overlay**, real-time sub-frame RAM decryption, and high-performance **Direct P2P connectivity** with 1-click UPnP automatic port forwarding.
 
