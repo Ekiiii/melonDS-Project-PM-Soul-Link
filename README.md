@@ -1,5 +1,5 @@
 <p align="center"><img src="https://raw.githubusercontent.com/melonDS-emu/melonDS/master/res/icon/melon_128x128.png"></p>
-<h2 align="center"><b>melonDS - SoulLocke & Project PM Edition</b></h2>
+<h2 align="center"><b>melonDS - Live OBS Overlay & Project PM Edition</b></h2>
 <p align="center">
 <a href="http://melonds.kuribo64.net/" alt="melonDS website"><img src="https://img.shields.io/badge/website-melonds.kuribo64.net-%2331352e.svg"></a>
 <a href="https://www.gnu.org/licenses/gpl-3.0" alt="License: GPLv3"><img src="https://img.shields.io/badge/License-GPL%20v3-%23ff554d.svg"></a>
@@ -14,61 +14,56 @@
 
 ---
 
-## SoulLocke Edition ([melonDS-Project-PM-SoulLocke](https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke))
+## Live OBS Overlay Edition ([melonDS-Project-PM-SoulLocke](https://github.com/Ekiiii/melonDS-Project-PM-SoulLocke))
 
-This fork by **Ekiiii** extends melonDS and Project PM specifically for **SoulLocke** co-op adventures, introducing direct P2P connectivity, one-click UPnP port forwarding, automated death & pair synchronization, and a live broadcast-ready streaming overlay with a rich retro customization dashboard.
+This fork by **Ekiiii** extends melonDS and Project PM with a broadcast-ready **Live OBS / Twitch Streaming Overlay**, real-time sub-frame RAM decryption, and high-performance **Direct P2P connectivity** with 1-click UPnP automatic port forwarding.
 
-### Key Additions & Features
+It is designed to give streamers, content creators, and co-op players a seamless, zero-config on-screen overlay of their team and their friends' teams with animated sprites, live stats, and customizable retro styling.
 
-1. **Direct P2P & Automatic UPnP Port Forwarding**:
-   - **Zero Relay Dependency**: Connect directly peer-to-peer using high-performance streaming TCP sockets without relying on public relay servers or local LAN discovery.
-   - **Automatic UPnP**: Automatically requests port mapping on your router/gateway (`TCP 7820`) in one click—no manual port forwarding or router configuration needed for most home setups.
-   - **Integrated Windows Firewall Helper**: Ensures inbound rules are present with a single prompt.
-   - **1-Click Local Testing**: Instantly test two emulator instances on the same machine via `127.0.0.1:7820`.
+### 🌟 Key Additions & Features
 
-2. **Short, Shareable Room Codes (`SL-XXXXX-XXXXX`)**:
-   - Hosts don't need to look up or share raw IP addresses. The emulator encodes the public IP and port into a clean, 10-character Base32 room code (e.g. `SL-4LADD-A69NE`).
-   - One-click copy for the host, instant decoding for joining players.
-   - Also accepts raw IPv4 addresses or virtual LAN IPs (Radmin VPN, Tailscale, ZeroTier) seamlessly.
+#### 1. 🎥 Multi-Player Live OBS / Twitch Streaming Overlay (`http://localhost:8080/overlay`)
+* **Sub-frame RAM Decryption**: Directly inspects Gen 4 RAM structures (`BoxMon` & `PartyPokemon`) using official Gen 4 LCRNG decryption (with PID seed) to report accurate HP, levels, real nicknames, fainted states, and status effects with zero latency.
+* **Automatic Player Nicknames**: Displays each participant's configured nickname from melonDS (`Online.PlayerName` or `Firmware.Username`, e.g. *Ekiii*, *Ted*) directly on their team card and filter controls instead of generic role numbers.
+* **Smooth Animated GIFs**: Intelligent DOM node retention ensures animated Pokémon sprites keep playing continuously without reset-flickering on polling updates.
+* **Enlarged Cards & Dynamic Sprite Scaling**: Generous 172×184px cards, 130px Pokéball watermark, and adjustable Pokémon sprite scaling (`100%`, `135%` default, `165%`, `200%`) so even smaller Pokémon (like Piplup) fill the card beautifully.
+* **Multi-Player Support (Up to 8 Players)**: Display only your team (`?player=me`) or all connected peers (`?player=all`) with automatic active-player filtering.
+* **5 Broadcast Layout Modes**:
+  * **Vertical** (`2×3` slots stacked): Classic stream sidebar.
+  * **Horizontal** (`3×2` slots side-by-side): Ideal for wide 16:9 bottom layouts.
+  * **Grid** (`2×2` co-op layout): Perfect for two streams side-by-side.
+  * **Bar** (`1×6` horizontal strip): Ultra-compact bottom banner.
+  * **Sidebar** (`6×1` vertical strip): Ultra-narrow side column.
+* **Universal Mode Support**: Compatible with vanilla adventure play, co-op multiplayer, Nuzlocke challenges, and SoulLocke runs.
+  * Includes flat vector badges (`LIÉ`, `LIÉ (PC)`, `EN ATTENTE`, `ÂME BRISÉE`, `K.O.`) with a configurator toggle (`Auto`, `Always Show`, `Always Hide`).
 
-3. **Dedicated Direct P2P Window**:
-   - Custom graphical interface (`System -> Multiplayer -> Direct P2P SoulLocke...`) featuring:
-     - **Host Tab**: One-click session creation, large room code display, copy button, UPnP diagnostic indicator, live roster with latency/ping times, and session controls.
-     - **Join Tab**: Room code / IP input, instant decoding, connection status, and connected roster.
+#### 2. 🎨 Integrated Retro Customization Dashboard
+* Floating **`[ ⚙ CONFIGURE OVERLAY ]`** button that opens a comprehensive retro settings panel (580px wide).
+* **6 Preset Themes**: Cyan Neon, Platinum Red, Emerald Nuzlocke, Amethyst Night, Retro Gold, and Minimalist Slate.
+* **Custom Color Pickers**: Full color customization for Accent color (borders/titles) and Background color.
+* **Background Opacity**: `95% (Opaque)`, `75% (Semi-transparent)`, or `0% (Chroma/Transparent for OBS)`.
+* **Global Zoom**: 100%, 125%, 150%, 175%, 200%.
+* **Bilingual Support (EN / FR)**: Automatic synchronization with melonDS language setting (`Options -> Language`), with dynamic live translation of all texts and all 493 Pokémon names (e.g. *Tiplouf* $\leftrightarrow$ *Piplup*), plus manual language switch buttons.
+* **1-Click OBS Studio Export**: **`[ COPY OBS STUDIO URL ]`** button that embeds all layout, scale, and theme preferences while automatically hiding the configurator panel in OBS (`?obs=1`).
 
-4. **Multi-Player Live OBS / Twitch Streaming Overlay (`http://localhost:8080/overlay`)**:
-   - Built-in lightweight HTTP server serving a zero-dependency HTML5/CSS/JS overlay.
-   - **Automatic Player Nicknames**: Displays each participant's configured nickname from melonDS (`Online.PlayerName` or `Firmware.Username`, e.g. *Ekiii*, *Ted*) directly on their team card and filter controls instead of generic role numbers.
-   - **Sub-frame RAM Decryption**: Automatically decrypts Gen 4 `BoxMon` and `PartyPokemon` structures directly from Nintendo DS RAM using the official Gen 4 LCRNG algorithm (with PID seed) to report accurate HP, levels, species, and fainted states.
-   - **Smooth Animated GIFs**: Intelligent DOM node retention prevents animated Pokemon GIFs from resetting their animation cycle on every polling tick.
-   - **Enlarged Cards & Dynamic Sprite Scaling**: Generous 172×184px cards, 130px Pokéball watermark, and adjustable Pokémon sprite scaling (`100%`, `135%` default, `165%`, `200%`) so even smaller Pokémon (like Piplup) fill the card beautifully.
-   - **Automatic SoulLocke Pair Detection**: Matches caught Pokémon across players using encounter zone IDs (`met_location`).
-   - **100% Flat Vector Badges (No 3D Emojis)**:
-     - `LIÉ` / `LINKED`: Active soul link (partner in party)
-     - `LIÉ (PC)` / `LINKED (PC)`: Active soul link (partner in PC box)
-     - `EN ATTENTE` / `PENDING`: Player has caught a Pokémon in a new zone, waiting for partner's encounter
-     - `ÂME BRISÉE` / `SOUL BROKEN`: Fainted Pokémon / Broken soul pair
-     - `K.O.` / `FAINTED`: Fainted status indicator
-   - **5 Broadcast Layout Modes**:
-     - **Vertical** (`2×3` slots stacked): Classic stream sidebar.
-     - **Horizontal** (`3×2` slots side-by-side): Ideal for wide 16:9 layouts.
-     - **Grid** (`2×2` co-op layout): Perfect for two streams side-by-side.
-     - **Bar** (`1×6` horizontal strip): Perfect for a stream bottom banner.
-     - **Sidebar** (`6×1` vertical strip): Ultra-narrow side column.
+#### 3. 🌐 Direct P2P & Automatic UPnP Port Forwarding
+* **Zero Relay Dependency**: Connect directly peer-to-peer using high-performance streaming TCP sockets without relying on public relay servers or local LAN discovery.
+* **Automatic UPnP**: Automatically requests port mapping on your router/gateway (`TCP 7820`) in one click—no manual port forwarding or router configuration needed for most home setups.
+* **Integrated Windows Firewall Helper**: Ensures inbound rules are present with a single prompt.
+* **1-Click Local Testing**: Instantly test two emulator instances on the same machine via `127.0.0.1:7820`.
 
-5. **Integrated Retro Customization Dashboard**:
-   - Floating `[ ⚙ CONFIGURE OVERLAY ]` button that opens a comprehensive retro settings panel (580px wide).
-   - **6 Preset Themes**: Cyan Neon, Platinum Red, Emerald Nuzlocke, Amethyst Night, Retro Gold, and Minimalist Slate.
-   - **Custom Color Pickers**: Full customization for Accent color (borders/titles) and Background color.
-   - **Background Opacity**: `95% (Opaque)`, `75% (Semi-transparent)`, or `0% (Chroma/Transparent for OBS)`.
-   - **Global Zoom**: 100%, 125%, 150%, 175%, 200%.
-   - **Bilingual Support (EN / FR)**: Automatic synchronization with melonDS language setting (`Options -> Language`), with dynamic live translation of all texts and all 493 Pokémon names (e.g. *Tiplouf* $\leftrightarrow$ *Piplup*), plus manual language switch buttons.
-   - **OBS Studio Export**: 1-click `[ COPY OBS STUDIO URL ]` button that embeds all layout, scale, and theme preferences while automatically hiding the configurator panel in OBS (`?obs=1`).
+#### 4. 🔑 Short, Shareable Room Codes (`SL-XXXXX-XXXXX`)
+* Hosts don't need to look up or share raw IP addresses. The emulator encodes the public IP and port into a clean, 10-character Base32 room code (e.g. `SL-4LADD-A69NE`).
+* One-click copy for the host, instant decoding for joining players.
+* Also accepts raw IPv4 addresses or virtual LAN IPs (Radmin VPN, Tailscale, ZeroTier) seamlessly.
 
-6. **Automatic Death & SoulLocke Synchronization**:
-   - When a Pokémon faints in battle or is sent to PC Box 18 ("CIMETIERE"), its zone is marked dead and synced to all peers over P2P.
-   - In the overworld (out of battle), the partner's linked Pokémon is automatically removed from their party and remaining slots are safely compacted without RAM corruption.
-   - If the partner is currently in battle, the removal safely waits until the battle concludes to prevent mid-battle desyncs or flickering.
+#### 5. 🖥️ Dedicated Direct P2P Window (`System -> Multiplayer -> Direct P2P...`)
+* **Host Tab**: One-click session creation, large room code display, copy button, UPnP diagnostic indicator, live roster with latency/ping times, and session controls.
+* **Join Tab**: Room code / IP input, instant decoding, connection status, and connected roster.
+
+#### 6. ⚔️ Advanced Co-op & Challenge Run Features
+* Automatic death detection via PC Box 18 ("CIMETIERE") or in-battle fainting.
+* Real-time pair & zone synchronization for co-op challenges with safe out-of-battle party compaction.
 
 ---
 
@@ -126,7 +121,7 @@ See [BUILD.md](./BUILD.md) for build instructions.
    * **ComicartOlie** - Lead Developer & Multiplayer Bridge Architecture
    * **nUt** (nUt0225) - Developer & Core Systems
    * **MottledAbyss** - Developer & Game Balancer
- * **Ekiiii** for the SoulLocke implementation, Direct P2P with UPnP, automatic death sync, and OBS streaming overlay.
+ * **Ekiiii** for the Live OBS streaming overlay, Direct P2P with UPnP, real-time RAM decryption, and challenge run features.
 
 ---
 

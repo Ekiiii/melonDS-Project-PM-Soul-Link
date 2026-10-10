@@ -448,7 +448,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 submenu->addSeparator();
 
-                actDirectP2P = submenu->addAction("Direct P2P SoulLocke...");
+                actDirectP2P = submenu->addAction("Direct P2P...");
                 actDirectP2P->setMenuRole(QAction::NoRole);
                 connect(actDirectP2P, &QAction::triggered, this, &MainWindow::onOpenDirectP2P);
 
@@ -470,7 +470,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
                 submenu->addSeparator();
 
-                overlaySubmenu = submenu->addMenu("Twitch / OBS Overlay (SoulLocke)");
+                overlaySubmenu = submenu->addMenu("Twitch / OBS Overlay");
 
                 actOverlayEnable = overlaySubmenu->addAction("Enable Twitch / OBS Overlay (Port 8080)");
                 actOverlayEnable->setMenuRole(QAction::NoRole);
@@ -2034,12 +2034,12 @@ void MainWindow::retranslateUI()
     if (actMPNewInstance) actMPNewInstance->setText(fr ? "Lancer une nouvelle instance" : "Launch new instance");
     if (actLANStartHost) actLANStartHost->setText(fr ? "Héberger une partie LAN" : "Host LAN game");
     if (actLANStartClient) actLANStartClient->setText(fr ? "Rejoindre une partie LAN" : "Join LAN game");
-    if (actDirectP2P) actDirectP2P->setText(fr ? "Direct P2P SoulLocke..." : "Direct P2P SoulLocke...");
+    if (actDirectP2P) actDirectP2P->setText(fr ? "Direct P2P..." : "Direct P2P...");
     if (actOnlineStartHost) actOnlineStartHost->setText(fr ? "Héberger une partie en ligne..." : "Host Online Game...");
     if (actOnlineStartClient) actOnlineStartClient->setText(fr ? "Rejoindre une partie en ligne..." : "Join Online Game...");
     if (actOnlineCustomRelay) actOnlineCustomRelay->setText(fr ? "Serveur relais personnalisé" : "Custom Relay Server");
 
-    if (overlaySubmenu) overlaySubmenu->setTitle(fr ? "Overlay Twitch / OBS (SoulLocke)" : "Twitch / OBS Overlay (SoulLocke)");
+    if (overlaySubmenu) overlaySubmenu->setTitle(fr ? "Overlay Twitch / OBS" : "Twitch / OBS Overlay");
     if (actOverlayEnable) actOverlayEnable->setText(fr ? "Activer l'overlay Twitch / OBS (Port 8080)" : "Enable Twitch / OBS Overlay (Port 8080)");
     if (actOverlayCopyLinkSoloH) actOverlayCopyLinkSoloH->setText(fr ? "Copier le lien OBS : Équipe Streamer (Horizontal)" : "Copy OBS Link: Streamer Team (Horizontal)");
     if (actOverlayCopyLinkSoloV) actOverlayCopyLinkSoloV->setText(fr ? "Copier le lien OBS : Équipe Streamer (Vertical)" : "Copy OBS Link: Streamer Team (Vertical)");
@@ -2094,7 +2094,7 @@ void MainWindow::onCopyOverlayLinkSoloH()
 {
     bool fr = (globalCfg.GetQString("UI.Language") == "fr");
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=me&layout=horizontal");
-    QMessageBox::information(this, fr ? "Overlay Twitch - SoulLocke" : "Twitch Overlay - SoulLocke",
+    QMessageBox::information(this, fr ? "Overlay OBS" : "OBS Overlay",
         fr ? "Lien copié dans le presse-papier !\n\n"
              "URL: http://localhost:8080/overlay?player=me&layout=horizontal\n\n"
              "Affiche uniquement votre équipe dans un format horizontal compact."
@@ -2107,7 +2107,7 @@ void MainWindow::onCopyOverlayLinkSoloV()
 {
     bool fr = (globalCfg.GetQString("UI.Language") == "fr");
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=me&layout=vertical");
-    QMessageBox::information(this, fr ? "Overlay Twitch - SoulLocke" : "Twitch Overlay - SoulLocke",
+    QMessageBox::information(this, fr ? "Overlay OBS" : "OBS Overlay",
         fr ? "Lien copié dans le presse-papier !\n\n"
              "URL: http://localhost:8080/overlay?player=me&layout=vertical\n\n"
              "Affiche uniquement votre équipe dans un format vertical compact."
@@ -2120,7 +2120,7 @@ void MainWindow::onCopyOverlayLinkAllH()
 {
     bool fr = (globalCfg.GetQString("UI.Language") == "fr");
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=all&layout=horizontal");
-    QMessageBox::information(this, fr ? "Overlay Twitch - SoulLocke" : "Twitch Overlay - SoulLocke",
+    QMessageBox::information(this, fr ? "Overlay OBS" : "OBS Overlay",
         fr ? "Lien copié dans le presse-papier !\n\n"
              "URL: http://localhost:8080/overlay?player=all&layout=horizontal\n\n"
              "Affiche tous les joueurs connectés dans un format horizontal."
@@ -2133,7 +2133,7 @@ void MainWindow::onCopyOverlayLinkAllV()
 {
     bool fr = (globalCfg.GetQString("UI.Language") == "fr");
     QGuiApplication::clipboard()->setText("http://localhost:8080/overlay?player=all&layout=vertical");
-    QMessageBox::information(this, fr ? "Overlay Twitch - SoulLocke" : "Twitch Overlay - SoulLocke",
+    QMessageBox::information(this, fr ? "Overlay OBS" : "OBS Overlay",
         fr ? "Lien copié dans le presse-papier !\n\n"
              "URL: http://localhost:8080/overlay?player=all&layout=vertical\n\n"
              "Affiche tous les joueurs connectés en grille / vertical."
